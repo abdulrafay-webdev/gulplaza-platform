@@ -17,7 +17,7 @@ export const shops = {
     update: (data: any) => api.put('/shops/me', data),
     getMe: () => api.get('/shops/me'),
     list: () => api.get('/shops/'),
-    get: (id: number) => api.get(`/shops/${id}`),
+    get: (id: string | number) => api.get(`/shops/${id}`),
 };
 
 export const products = {
@@ -41,8 +41,8 @@ export const orders = {
 export const categories = {
     list: () => api.get('/categories/'),
     create: (data: any) => api.post('/categories/', data),
-    createSub: (mainId: number, data: any) => api.post(`/categories/${mainId}/subcategories`, data),
-    listSub: (mainId?: number) => api.get('/categories/subcategories', { params: { main_category_id: mainId } }),
+    createSub: (mainId: string | number, data: any) => api.post(`/categories/${mainId}/subcategories`, data),
+    listSub: (mainId?: string | number) => api.get('/categories/subcategories', { params: { main_category_id: mainId } }),
 };
 
 export default api;
