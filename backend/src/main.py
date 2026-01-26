@@ -1,43 +1,40 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from .db.session import init_db
+# Import using absolute paths
+from src.db.session import init_db
 from contextlib import asynccontextmanager
 import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    # Try to initialize DB but don't crash the whole app if connection is slow
+    try:
+        init_db()
+    except Exception as e:
+        print(f"DB Init Error: {e}")
     yield
 
 app = FastAPI(title="Gul Plaza API", version="1.0.0", lifespan=lifespan)
 
-# Mount Uploads
-# Use absolute path to ensure correct resolution
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
-
 # CORS Configuration
 origins = [
-    "http://localhost:5173", # Vite default
+    "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://localhost:3000", # Next.js default
+    "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://gulplaza-frontend.vercel.app", # Add your frontend vercel URL if known
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"], # Allow all for now to debug deployment
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 from fastapi import APIRouter
-from .api import shops, products, checkout, orders, admin, categories
+from src.api import shops, products, checkout, orders, admin, categories
 
 api_router = APIRouter()
 
