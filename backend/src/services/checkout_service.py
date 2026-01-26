@@ -1,7 +1,7 @@
 from sqlmodel import Session, select
 from typing import List, Optional
-from ..models.order import Order, OrderItem, OrderStatus
-from ..models.product import Product
+from src.models.order import Order, OrderItem, OrderStatus
+from src.models.product import Product
 
 def process_checkout(session: Session, customer_id: Optional[str], items: List[dict], guest_info: dict = None):
     """

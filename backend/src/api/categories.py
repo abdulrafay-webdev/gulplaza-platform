@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 from typing import List
-from ..db.session import get_session
-from ..models.category import Category, SubCategory
-from ..services import category_service, shop_service
-from ..auth.deps import get_super_admin, get_shop_owner
+from src.db.session import get_session
+from src.models.category import Category, SubCategory
+from src.services import category_service, shop_service
+from src.auth.deps import get_super_admin, get_shop_owner
 
 router = APIRouter()
 

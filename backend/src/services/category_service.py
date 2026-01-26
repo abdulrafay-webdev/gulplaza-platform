@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 from typing import List, Optional
-from ..models.category import Category, SubCategory
+from src.models.category import Category, SubCategory
 
 # --- MAIN CATEGORY ---
 def create_category(session: Session, category: Category) -> Category:

@@ -1,5 +1,5 @@
 from sqlmodel import Session, select
-from ..models.shop import Shop
+from src.models.shop import Shop
 from typing import List, Optional
 
 def create_shop(session: Session, shop: Shop) -> Shop:

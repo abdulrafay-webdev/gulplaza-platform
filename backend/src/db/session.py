@@ -22,10 +22,10 @@ def get_session():
 
 def init_db():
     # Import models here to ensure they are registered on the metadata
-    from ..models.user import User
-    from ..models.shop import Shop
-    from ..models.category import Category, SubCategory # Import categories first
-    from ..models.product import Product, ProductImage
-    from ..models.order import Order
+    from src.models.user import User
+    from src.models.shop import Shop
+    from src.models.category import Category, SubCategory # Import categories first
+    from src.models.product import Product, ProductImage
+    from src.models.order import Order
     
     SQLModel.metadata.create_all(engine)

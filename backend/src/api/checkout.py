@@ -1,26 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
-from ..db.session import get_session
-from ..services import checkout_service
-from ..auth.deps import get_current_user
-from pydantic import BaseModel
-from typing import List
-
-router = APIRouter()
-
-class CartItem(BaseModel):
-    product_id: int
-    quantity: int
-
-from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session
-from ..db.session import get_session
-from ..services import checkout_service
-from ..auth.deps import get_current_user
+from src.db.session import get_session
+from src.services import checkout_service
+from src.auth.deps import get_current_user
 from pydantic import BaseModel
 from typing import List, Optional
+import logging
 
 router = APIRouter()
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 class CartItem(BaseModel):
     product_id: int
@@ -28,32 +18,22 @@ class CartItem(BaseModel):
 
 class CheckoutRequest(BaseModel):
     items: List[CartItem]
-    # Guest Details (Optional if logged in, but we might force them for guest)
+    # Guest Details
     guest_name: Optional[str] = None
     guest_email: Optional[str] = None
     guest_phone: Optional[str] = None
     guest_address: Optional[str] = None
 
-import logging
-
-# Configure logging
-logger = logging.getLogger(__name__)
-
 @router.post("/checkout")
 def checkout(
     req: CheckoutRequest, 
-    # User is optional now
     session: Session = Depends(get_session)
 ):
     """Checkout cart items. Splits into orders per shop. Supports Guest Checkout."""
     try:
-        # TODO: Ideally check if user token is present manually if we want to support both
-        # For now, we assume Guest flow is primary as per instructions "Buyer login ... deferred"
-        
-        user_id = None # req.user_id if we had it
+        user_id = None
         
         # Convert Pydantic models to dicts
-        # Use .dict() for compatibility
         items_dict = [i.dict() for i in req.items]
         
         orders = checkout_service.process_checkout(

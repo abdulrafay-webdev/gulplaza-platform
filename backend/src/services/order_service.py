@@ -1,7 +1,7 @@
 from sqlmodel import Session, select
 from typing import List, Optional
 from sqlalchemy.orm import selectinload
-from ..models.order import Order, OrderItem
+from src.models.order import Order, OrderItem
 
 def get_orders(session: Session, shop_id: Optional[int] = None, customer_id: Optional[str] = None) -> List[Order]:
     # Load items and their products

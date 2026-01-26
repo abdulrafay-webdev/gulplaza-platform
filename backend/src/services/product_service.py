@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 from typing import List, Optional
-from ..models.product import Product, ProductImage
+from src.models.product import Product, ProductImage
 
 def create_product(session: Session, product_data: dict, image_urls: List[str]) -> Product:
     """Create a product and its associated gallery images."""

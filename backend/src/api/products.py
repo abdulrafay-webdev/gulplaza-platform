@@ -6,10 +6,10 @@ from sqlalchemy.orm import selectinload
 import shutil
 import uuid
 import os
-from ..db.session import get_session
-from ..models.product import Product, ProductImage, ProductCreate, ProductRead
-from ..services import product_service, shop_service, image_service
-from ..auth.deps import get_shop_owner
+from src.db.session import get_session
+from src.models.product import Product, ProductImage, ProductCreate, ProductRead
+from src.services import product_service, shop_service, image_service
+from src.auth.deps import get_shop_owner
 
 router = APIRouter()
 

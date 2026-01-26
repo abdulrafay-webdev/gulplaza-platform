@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 from typing import List
-from ..db.session import get_session
-from ..models.shop import Shop
-from ..services import shop_service
-from ..auth.deps import get_current_user, get_shop_owner
+from src.db.session import get_session
+from src.models.shop import Shop
+from src.services import shop_service
+from src.auth.deps import get_current_user, get_shop_owner
 import logging
 
 from pydantic import BaseModel

@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlmodel import Session
 from typing import List
-from ..db.session import get_session
-from ..models.order import Order, OrderRead
-from ..services import order_service, shop_service
-from ..auth.deps import get_current_user
+from src.db.session import get_session
+from src.models.order import Order, OrderRead
+from src.services import order_service, shop_service
+from src.auth.deps import get_current_user
 from pydantic import BaseModel
 
 router = APIRouter()
