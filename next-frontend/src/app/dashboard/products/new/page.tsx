@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { IKUpload } from "imagekitio-next";
 
 export default function ProductForm() {
-    const { getToken } = useAuth();
+    const { getToken, isLoaded, userId } = useAuth();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     
@@ -33,6 +33,8 @@ export default function ProductForm() {
     const [newSubName, setNewSubName] = useState('');
 
     useEffect(() => {
+        if (!isLoaded || !userId) return;
+
         const loadData = async () => {
             try {
                 const cats = await categories.list();
@@ -49,7 +51,7 @@ export default function ProductForm() {
             }
         };
         loadData();
-    }, [getToken]);
+    }, [getToken, isLoaded, userId]);
 
     const authenticator = async () => {
         try {
@@ -68,7 +70,6 @@ export default function ProductForm() {
             return {
                 ...prev,
                 image_urls: updatedUrls,
-                // Set first image as main thumbnail if not set
                 image_url: prev.image_url || newUrl 
             };
         });
@@ -83,6 +84,21 @@ export default function ProductForm() {
                 image_url: prev.image_url === url ? (updatedUrls[0] || '') : prev.image_url
             };
         });
+    };
+
+    const handleCreateSubCategory = async () => {
+        if (!newSubName || !formData.main_category_id) return;
+        const token = await getToken();
+        setAuthToken(token);
+        try {
+            const res = await categories.createSub(parseInt(formData.main_category_id), { name: newSubName });
+            setSubCategories([...subCategories, res.data]);
+            setFormData(prev => ({ ...prev, sub_category_id: res.data.id.toString() }));
+            setIsCreatingSub(false);
+            setNewSubName('');
+        } catch (err) {
+            alert("Failed to create sub-category");
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -111,15 +127,15 @@ export default function ProductForm() {
         }
     };
 
-    // Filter subcategories based on selected main category
     const filteredSubs = subCategories.filter(s => s.main_category_id === parseInt(formData.main_category_id));
+
+    if (!isLoaded) return <div className="p-8 text-center">Loading...</div>;
 
     return (
         <div className="max-w-2xl mx-auto">
             <h1 className="text-2xl font-bold mb-6 text-primary">Add New Product</h1>
             <form onSubmit={handleSubmit} className="space-y-6 bg-surface p-8 rounded-lg shadow-sm border border-gray-100 text-text-primary">
                 
-                {/* Basic Info */}
                 <div>
                     <label className="block text-sm font-medium">Product Name</label>
                     <input 
@@ -130,7 +146,6 @@ export default function ProductForm() {
                     />
                 </div>
 
-                {/* Categories */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium">Main Category (Required)</label>
@@ -181,7 +196,6 @@ export default function ProductForm() {
                     </div>
                 </div>
 
-                {/* Details */}
                 <div>
                     <label className="block text-sm font-medium">Short Description</label>
                     <input 
@@ -205,7 +219,6 @@ export default function ProductForm() {
                     />
                 </div>
 
-                {/* Price & Stock */}
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium">Price</label>
@@ -229,7 +242,6 @@ export default function ProductForm() {
                     </div>
                 </div>
 
-                {/* Image Upload */}
                 <div>
                     <label className="block text-sm font-medium mb-2">Product Images (Gallery)</label>
                     <IKUpload 
