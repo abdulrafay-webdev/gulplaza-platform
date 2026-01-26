@@ -1,55 +1,45 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+SYNC IMPACT REPORT
+Version: 1.1.0
+- Refined Principle I: Added explicit pause requirement for credentials.
+- Refined Principle VI: Added explicit requirement to link to dashboard/docs for credentials.
+- Confirmed Tech Stack and Domain principles.
+-->
+
+# Gul Plaza Multi-Shop Ordering Platform Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Explicit Configuration & No Assumptions
+You must not proceed without necessary credentials or configurations. You will never guess or assume defaults. If a credential or access is required, you must clearly state it and **PAUSE** implementation until provided. You will only move to the next step after credentials are received.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Simplicity & Explainability
+Every architectural and code decision must be simple and easily explainable. Avoid over-engineering.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Domain Focus
+The project is strictly a multi-shop ordering platform for **Gul Plaza**. All features must support this scope.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Strict Tech Stack Compliance
+Adhere strictly to the defined technology stack:
+- **Backend**: FastAPI + SQLModel + Neon PostgreSQL
+- **Authentication & Roles**: Clerk
+Deviations are not permitted without constitutional amendment.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Security & Isolation
+**Data isolation is mandatory.** Each shop owner must ONLY be able to see their own shop's orders. This is a non-negotiable security requirement.
 
-### [PRINCIPLE_6_NAME]
+### VI. Operational Guidance
+For every required credential, you must explicitly state **where to find it** (e.g., specific dashboard URL, official documentation section, or service page).
 
-
-[PRINCIPLE__DESCRIPTION]
-
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
-
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### VII. Implementation Gating
+Coding is only allowed after the `/sp.implement` command and **after** required credentials have been provided.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+### Amendment Process
+Amendments require explicit user instruction.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+### Compliance
+All plans and code must be verified against these principles.
+
+**Version**: 1.1.0 | **Ratified**: 2026-01-24 | **Last Amended**: 2026-01-24

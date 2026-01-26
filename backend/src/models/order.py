@@ -1,0 +1,65 @@
+from sqlmodel import SQLModel, Field, Relationship
+from typing import Optional, List
+from datetime import datetime
+from enum import Enum
+
+class OrderStatus(str, Enum):
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    SHIPPED = "shipped"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+class OrderItem(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    order_id: int = Field(foreign_key="order.id")
+    product_id: int = Field(foreign_key="product.id")
+    quantity: int
+    price_at_purchase: float
+    
+    order: "Order" = Relationship(back_populates="items")
+    product: "Product" = Relationship() # Enable product fetch
+
+class Order(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    shop_id: int = Field(foreign_key="shop.id")
+    customer_clerk_id: Optional[str] = Field(default=None, index=True) # Optional for Guest
+    
+    # Guest Details
+    guest_name: Optional[str] = None
+    guest_email: Optional[str] = None
+    guest_phone: Optional[str] = None
+    guest_address: Optional[str] = None
+    
+    status: str = Field(default=OrderStatus.PENDING)
+    total_amount: float
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    items: List["OrderItem"] = Relationship(back_populates="order")
+
+# Read Models
+class ProductRead(SQLModel):
+    id: int
+    name: str
+    price: float
+    image_url: Optional[str] = None
+
+class OrderItemRead(SQLModel):
+    id: int
+    product_id: int
+    quantity: int
+    price_at_purchase: float
+    product: Optional[ProductRead] = None
+
+class OrderRead(SQLModel):
+    id: int
+    shop_id: int
+    customer_clerk_id: Optional[str]
+    guest_name: Optional[str]
+    guest_email: Optional[str]
+    guest_phone: Optional[str]
+    guest_address: Optional[str]
+    status: str
+    total_amount: float
+    created_at: datetime
+    items: List[OrderItemRead] = []

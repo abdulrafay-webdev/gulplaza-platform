@@ -1,0 +1,102 @@
+openapi: 3.0.0
+info:
+  title: Gul Plaza API
+  version: 1.0.0
+  description: Multi-shop ordering platform API
+paths:
+  /shops:
+    get:
+      summary: List all shops
+      operationId: list_shops
+      responses:
+        '200':
+          description: List of shops
+    post:
+      summary: Create a shop (Shop Owner only)
+      operationId: create_shop
+      responses:
+        '201':
+          description: Shop created
+
+  /shops/{shop_id}/products:
+    get:
+      summary: List products for a shop
+      operationId: list_products
+      parameters:
+        - name: shop_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of products
+    post:
+      summary: Add product (Shop Owner only)
+      operationId: create_product
+      parameters:
+        - name: shop_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Product created
+
+  /cart/checkout:
+    post:
+      summary: Checkout (Create Orders)
+      description: Splits cart items into multiple orders based on shop_id.
+      operationId: checkout
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      product_id:
+                        type: integer
+                      quantity:
+                        type: integer
+      responses:
+        '201':
+          description: Orders created successfully
+
+  /orders:
+    get:
+      summary: List orders (Context sensitive)
+      description: |
+        - If Shop Owner: Returns orders for their shop.
+        - If Customer: Returns their placed orders.
+      operationId: list_orders
+      responses:
+        '200':
+          description: List of orders
+
+  /orders/{order_id}/status:
+    patch:
+      summary: Update order status (Shop Owner only)
+      operationId: update_order_status
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+      responses:
+        '200':
+          description: Status updated
