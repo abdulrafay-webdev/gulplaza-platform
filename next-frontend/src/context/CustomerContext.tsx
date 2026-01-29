@@ -5,7 +5,7 @@ import { customers, setAuthToken } from '@/services/api';
 
 type Customer = {
     id: number;
-    full_name: str;
+    full_name: string;
     email?: string;
     phone?: string;
 };
@@ -14,7 +14,7 @@ type CustomerContextType = {
     customer: Customer | null;
     login: (token: string, user: Customer) => void;
     logout: () => void;
-    isLoaded: bool;
+    isLoaded: boolean;
 };
 
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
