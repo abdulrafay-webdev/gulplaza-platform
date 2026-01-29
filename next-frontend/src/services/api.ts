@@ -45,4 +45,11 @@ export const categories = {
     listSub: (mainId?: string | number) => api.get('/categories/subcategories', { params: { main_category_id: mainId } }),
 };
 
+export const customers = {
+    signup: (data: any) => api.post('/customers/signup', data),
+    login: (data: any) => api.post('/customers/login', data),
+    getMe: () => api.get('/customers/me'),
+    getOrders: () => api.get('/customers/orders'),
+};
+
 export default api;

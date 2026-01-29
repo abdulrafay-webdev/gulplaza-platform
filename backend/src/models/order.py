@@ -1,7 +1,10 @@
 from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from enum import Enum
+
+if TYPE_CHECKING:
+    from .customer import Customer
 
 class OrderStatus(str, Enum):
     PENDING = "pending"
@@ -11,6 +14,7 @@ class OrderStatus(str, Enum):
     CANCELLED = "cancelled"
 
 class OrderItem(SQLModel, table=True):
+    # ... (existing fields)
     id: Optional[int] = Field(default=None, primary_key=True)
     order_id: int = Field(foreign_key="order.id")
     product_id: int = Field(foreign_key="product.id")
@@ -23,7 +27,8 @@ class OrderItem(SQLModel, table=True):
 class Order(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     shop_id: int = Field(foreign_key="shop.id")
-    customer_clerk_id: Optional[str] = Field(default=None, index=True) # Optional for Guest
+    customer_clerk_id: Optional[str] = Field(default=None, index=True) # Optional for Guest/Clerk
+    customer_id: Optional[int] = Field(default=None, foreign_key="customer.id") # Link to Neon Customer
     
     # Guest Details
     guest_name: Optional[str] = None
@@ -36,6 +41,7 @@ class Order(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     items: List["OrderItem"] = Relationship(back_populates="order")
+    customer: Optional["Customer"] = Relationship(back_populates="orders")
 
 # Read Models
 class ProductRead(SQLModel):

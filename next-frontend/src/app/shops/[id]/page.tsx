@@ -57,44 +57,69 @@ export default function ShopDetail({ params }: { params: Promise<{ id: string }>
                     </p>
                 </div>
 
-                <div className="px-8 pb-12 border-t border-gray-100 pt-12">
-                    <h2 className="text-2xl font-bold text-primary mb-8 uppercase tracking-tight">Our Products</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="px-2 md:px-8 pb-12 border-t border-gray-100 pt-8">
+                    <h2 className="text-xl md:text-2xl font-bold text-primary mb-6 uppercase tracking-tight px-2">Our Products</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
                         {productList.map(product => (
-                            <div key={product.id} className="bg-surface p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow">
-                                <Link href={`/products/${product.id}`} className="block group">
-                                    <div className="mb-4">
+                            <div key={product.id} className="bg-surface rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow overflow-hidden group">
+                                <Link href={`/products/${product.id}`} className="block">
+                                    <div className="relative aspect-square bg-gray-50 overflow-hidden">
                                         {product.image_url ? (
                                             <img 
                                                 src={product.image_url} 
                                                 alt={product.name} 
-                                                className="w-full h-56 object-cover rounded-lg mb-4 bg-gray-50 group-hover:opacity-90 transition-opacity"
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                 onError={(e) => {
                                                     (e.target as HTMLImageElement).src = 'https://placehold.co/400x300?text=No+Image';
                                                 }}
                                             />
                                         ) : (
-                                            <div className="w-full h-56 bg-gray-50 rounded-lg mb-4 flex items-center justify-center text-text-secondary border border-gray-100">
+                                            <div className="w-full h-full flex items-center justify-center text-text-secondary text-[10px]">
                                                 No Image
                                             </div>
                                         )}
-                                        <h3 className="font-bold text-xl text-text-primary mb-1 group-hover:text-secondary transition-colors">{product.name}</h3>
-                                        <p className="text-text-secondary text-sm mb-4 line-clamp-2">{product.short_description}</p>
-                                        <p className="text-primary font-bold text-2xl">${product.price}</p>
+                                    </div>
+                                    <div className="px-3 py-2 md:px-4 md:py-3">
+                                        <h3 className="font-bold text-sm md:text-base text-text-primary mb-0.5 line-clamp-1 group-hover:text-secondary transition-colors">
+                                            {product.name}
+                                        </h3>
+                                        <p className="text-text-secondary text-[10px] md:text-xs mb-1 line-clamp-1">
+                                            {product.short_description}
+                                        </p>
+                                        <p className="text-primary font-bold text-sm md:text-lg">
+                                            ${product.price.toFixed(2)}
+                                        </p>
                                     </div>
                                 </Link>
-                                <button 
-                                    onClick={() => addToCart({
-                                        product_id: product.id,
-                                        name: product.name,
-                                        price: product.price,
-                                        quantity: 1,
-                                        shop_id: shop.id
-                                    })}
-                                    className="w-full mt-4 bg-accent text-white py-3 rounded-lg font-bold hover:bg-amber-600 transition-colors shadow-sm"
-                                >
-                                    Add to Cart
-                                </button>
+                                <div className="flex border-t border-gray-50">
+                                    <button 
+                                        onClick={() => addToCart({
+                                            product_id: product.id,
+                                            name: product.name,
+                                            price: product.price,
+                                            quantity: 1,
+                                            shop_id: shop.id
+                                        })}
+                                        className="flex-1 bg-secondary text-white py-2.5 text-[9px] md:text-xs font-bold hover:bg-sky-600 transition-colors uppercase tracking-tighter"
+                                    >
+                                        Add to Cart
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            addToCart({
+                                                product_id: product.id,
+                                                name: product.name,
+                                                price: product.price,
+                                                quantity: 1,
+                                                shop_id: shop.id
+                                            });
+                                            window.location.href = '/checkout';
+                                        }}
+                                        className="flex-1 bg-accent text-white py-2.5 text-[9px] md:text-xs font-bold hover:bg-amber-600 transition-colors border-l border-white/10 uppercase tracking-tighter"
+                                    >
+                                        Buy Now
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>

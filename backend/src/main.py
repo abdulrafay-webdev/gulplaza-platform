@@ -14,7 +14,7 @@ async def lifespan(app: FastAPI):
         print(f"DB Init Error: {e}")
     yield
 
-app = FastAPI(title="Gul Plaza API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Madni Mall API", version="1.0.0", lifespan=lifespan)
 
 # CORS Configuration
 origins = [
@@ -34,7 +34,7 @@ app.add_middleware(
 )
 
 from fastapi import APIRouter
-from src.api import shops, products, checkout, orders, admin, categories
+from src.api import shops, products, checkout, orders, admin, categories, customers
 
 api_router = APIRouter()
 
@@ -44,6 +44,7 @@ api_router.include_router(products.router, tags=["products"])
 api_router.include_router(checkout.router, prefix="/cart", tags=["checkout"])
 api_router.include_router(orders.router, tags=["orders"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+api_router.include_router(customers.router, prefix="/customers", tags=["customers"])
 
 @api_router.get("/health")
 def health_check():

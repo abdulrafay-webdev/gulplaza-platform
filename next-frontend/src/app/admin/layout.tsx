@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Sidebar */}
       <aside className="w-64 bg-surface shadow-md border-r border-gray-100">
         <div className="p-6">
-          <Link href="/" className="text-xl font-bold text-primary">Gul Plaza Admin</Link>
+          <Link href="/" className="text-xl font-bold text-primary">Madni Mall Admin</Link>
         </div>
         <nav className="mt-6">
           {navItems.map(item => (

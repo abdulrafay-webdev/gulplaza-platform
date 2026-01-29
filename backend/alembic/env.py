@@ -17,6 +17,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from src.models.shop import Shop
 from src.models.category import Category, SubCategory # Import Categories
 from src.models.product import Product, ProductImage
+from src.models.customer import Customer
 from src.models.order import Order, OrderItem
 
 # this is the Alembic Config object, which provides

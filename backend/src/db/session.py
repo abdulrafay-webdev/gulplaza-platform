@@ -26,6 +26,7 @@ def init_db():
     from src.models.shop import Shop
     from src.models.category import Category, SubCategory # Import categories first
     from src.models.product import Product, ProductImage
+    from src.models.customer import Customer
     from src.models.order import Order
     
     SQLModel.metadata.create_all(engine)

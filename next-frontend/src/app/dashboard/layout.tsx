@@ -57,21 +57,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ];
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-surface shadow-md border-r border-gray-100">
-        <div className="p-6">
-          <Link href="/" className="text-xl font-bold text-primary">Gul Plaza Vendor</Link>
+    <div className="min-h-screen bg-background flex flex-col md:flex-row">
+      {/* Sidebar - Desktop */}
+      <aside className="w-full md:w-64 bg-surface shadow-md border-b md:border-b-0 md:border-r border-gray-100 flex-shrink-0">
+        <div className="p-4 md:p-6 flex justify-between items-center md:block">
+          <Link href="/" className="text-lg md:text-xl font-bold text-primary">Madni Mall Vendor</Link>
+          {/* Mobile User Button */}
+          <div className="md:hidden">
+            <UserButton afterSignOutUrl="/" />
+          </div>
         </div>
-        <nav className="mt-6">
+        <nav className="flex md:flex-col overflow-x-auto md:overflow-x-visible md:mt-6 no-scrollbar">
           {navItems.map(item => (
             <Link 
               key={item.name}
               href={item.href}
-              className={`block px-6 py-3 border-l-4 transition-colors ${
+              className={`px-4 py-3 md:px-6 md:py-3 border-b-2 md:border-b-0 md:border-l-4 transition-colors whitespace-nowrap text-sm md:text-base ${
                 pathname === item.href 
-                  ? 'bg-blue-50 border-primary text-primary font-medium' 
-                  : 'border-transparent text-text-secondary hover:bg-gray-50 hover:text-text-primary'
+                  ? 'border-primary text-primary font-bold bg-blue-50/50 md:bg-blue-50' 
+                  : 'border-transparent text-text-secondary hover:text-text-primary'
               }`}
             >
               {item.name}
@@ -81,12 +85,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <header className="bg-surface shadow-sm border-b border-gray-100 px-8 py-4 flex justify-between items-center">
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="hidden md:flex bg-surface shadow-sm border-b border-gray-100 px-8 py-4 justify-between items-center text-text-primary font-bold">
             <h2 className="text-lg font-semibold text-text-primary">Dashboard</h2>
             <UserButton afterSignOutUrl="/" />
         </header>
-        <main className="p-8 relative">
+        <main className="p-4 md:p-8 relative flex-1 overflow-auto">
           {isPending ? (
               <div className="fixed inset-0 bg-background/50 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-4">
                   <div className="bg-surface p-8 rounded-lg shadow-xl max-w-md text-center border border-gray-100">

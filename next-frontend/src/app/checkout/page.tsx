@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { cart } from '@/services/api';
 import { useRouter } from 'next/navigation';
 import PublicLayout from '@/components/PublicLayout';
 
+import { useCustomer } from '@/context/CustomerContext';
+
 export default function Checkout() {
     const { items, clearCart } = useCart();
+    const { customer, isLoaded: customerLoaded } = useCustomer();
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     
@@ -18,6 +21,18 @@ export default function Checkout() {
         guest_phone: '',
         guest_address: ''
     });
+
+    // Pre-fill form if customer is logged in
+    useEffect(() => {
+        if (customerLoaded && customer) {
+            setFormData({
+                guest_name: customer.full_name,
+                guest_email: customer.email || '',
+                guest_phone: customer.phone || '',
+                guest_address: '' // Still need address
+            });
+        }
+    }, [customer, customerLoaded]);
 
     const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
