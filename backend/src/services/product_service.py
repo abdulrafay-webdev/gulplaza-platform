@@ -53,6 +53,13 @@ def update_product(session: Session, product: Product, data: dict, image_urls: O
     return product
 
 def delete_product(session: Session, product: Product):
-    """Delete a product from the database."""
+    """Delete a product and all its associated gallery images."""
+    # 1. Manually delete associated images first to avoid Foreign Key errors
+    statement = select(ProductImage).where(ProductImage.product_id == product.id)
+    images = session.exec(statement).all()
+    for img in images:
+        session.delete(img)
+    
+    # 2. Delete the product
     session.delete(product)
     session.commit()
