@@ -19,12 +19,15 @@ def create_product(session: Session, product_data: dict, image_urls: List[str]) 
     return product
 
 def get_product_by_id(session: Session, product_id: int) -> Optional[Product]:
-    """Fetch a single product by ID."""
-    return session.get(Product, product_id)
+    """Fetch a single product by ID, if not deleted."""
+    product = session.get(Product, product_id)
+    if product and product.is_deleted:
+        return None
+    return product
 
 def get_products_by_shop(session: Session, shop_id: int) -> List[Product]:
-    """List all products for a specific shop."""
-    statement = select(Product).where(Product.shop_id == shop_id)
+    """List all active (non-deleted) products for a specific shop."""
+    statement = select(Product).where(Product.shop_id == shop_id, Product.is_deleted == False)
     return session.exec(statement).all()
 
 def update_product(session: Session, product: Product, data: dict, image_urls: Optional[List[str]] = None) -> Product:
@@ -53,13 +56,7 @@ def update_product(session: Session, product: Product, data: dict, image_urls: O
     return product
 
 def delete_product(session: Session, product: Product):
-    """Delete a product and all its associated gallery images."""
-    # 1. Manually delete associated images first to avoid Foreign Key errors
-    statement = select(ProductImage).where(ProductImage.product_id == product.id)
-    images = session.exec(statement).all()
-    for img in images:
-        session.delete(img)
-    
-    # 2. Delete the product
-    session.delete(product)
+    """Soft delete a product by setting is_deleted=True."""
+    product.is_deleted = True
+    session.add(product)
     session.commit()

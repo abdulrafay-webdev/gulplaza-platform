@@ -91,19 +91,24 @@ export default function OrderList() {
                                     <div className="text-[10px] text-text-secondary uppercase font-medium">{order.guest_name || 'Buyer'}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="flex -space-x-2 overflow-hidden">
+                                    <div className="flex flex-col gap-1.5">
                                         {order.items.slice(0, 3).map((item: any, idx: number) => (
-                                            <div key={idx} className="inline-block h-8 w-8 rounded-full ring-2 ring-white overflow-hidden bg-gray-100">
-                                                {item.product?.image_url ? (
-                                                    <img src={item.product.image_url} alt="" className="h-full w-full object-cover" />
-                                                ) : (
-                                                    <div className="h-full w-full flex items-center justify-center text-[8px] text-gray-400">?</div>
-                                                )}
+                                            <div key={idx} className="flex items-center gap-2">
+                                                <div className="h-6 w-6 rounded-full ring-1 ring-gray-200 overflow-hidden bg-gray-50 flex-shrink-0">
+                                                    {item.product?.image_url ? (
+                                                        <img src={item.product.image_url} alt="" className="h-full w-full object-cover" />
+                                                    ) : (
+                                                        <div className="h-full w-full flex items-center justify-center text-[6px] text-gray-400">?</div>
+                                                    )}
+                                                </div>
+                                                <span className="text-xs text-text-primary font-medium truncate max-w-[150px]" title={item.product?.name}>
+                                                    {item.product?.name || `Product #${item.product_id}`}
+                                                </span>
                                             </div>
                                         ))}
                                         {order.items.length > 3 && (
-                                            <div className="flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-white bg-gray-200 text-[10px] font-bold text-gray-600">
-                                                +{order.items.length - 3}
+                                            <div className="text-[10px] text-text-secondary pl-8 font-medium">
+                                                +{order.items.length - 3} more
                                             </div>
                                         )}
                                     </div>

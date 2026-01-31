@@ -18,6 +18,7 @@ class ProductBase(SQLModel):
     stock_quantity: int = Field(default=0, ge=0)
     image_url: Optional[str] = None # Thumbnail
     is_active: bool = True
+    is_deleted: bool = False # New field for soft delete
     
     # New Fields
     short_description: str = Field(default="No short description")

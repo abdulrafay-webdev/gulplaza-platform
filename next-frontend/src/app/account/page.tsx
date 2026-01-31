@@ -79,6 +79,29 @@ export default function CustomerDashboard() {
                                                 {order.status}
                                             </span>
                                         </div>
+                                        
+                                        {/* Mobile: Items Preview */}
+                                        <div className="space-y-2 py-2">
+                                            {order.items.slice(0, 2).map((item: any, idx: number) => (
+                                                <div key={idx} className="flex items-center gap-2">
+                                                    <div className="h-8 w-8 rounded bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
+                                                        {item.product?.image_url && (
+                                                            <img src={item.product.image_url} alt="" className="h-full w-full object-cover" />
+                                                        )}
+                                                    </div>
+                                                    <span className="text-xs text-text-primary font-medium truncate">
+                                                        {item.product?.name || `Product #${item.product_id}`}
+                                                        <span className="text-text-secondary ml-1">x{item.quantity}</span>
+                                                    </span>
+                                                </div>
+                                            ))}
+                                            {order.items.length > 2 && (
+                                                <div className="text-[10px] text-text-secondary pl-1">
+                                                    +{order.items.length - 2} more items...
+                                                </div>
+                                            )}
+                                        </div>
+
                                         <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100/50">
                                             <div className="text-xs font-bold text-text-primary">Total: ${order.total_amount.toFixed(2)}</div>
                                             <Link 
@@ -98,6 +121,7 @@ export default function CustomerDashboard() {
                                     <thead className="bg-gray-50 text-text-secondary uppercase text-[10px] font-bold tracking-widest border-b border-gray-100">
                                         <tr>
                                             <th className="p-4">Order ID</th>
+                                            <th className="p-4">Products</th>
                                             <th className="p-4">Date</th>
                                             <th className="p-4">Total</th>
                                             <th className="p-4">Status</th>
@@ -108,6 +132,25 @@ export default function CustomerDashboard() {
                                         {orders.map(order => (
                                             <tr key={order.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                                                 <td className="p-4 font-bold text-primary">#{order.id}</td>
+                                                <td className="p-4">
+                                                    <div className="flex flex-col gap-1 max-w-[200px]">
+                                                        {order.items.slice(0, 3).map((item: any, idx: number) => (
+                                                            <div key={idx} className="flex items-center gap-2">
+                                                                <div className="h-6 w-6 rounded bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
+                                                                    {item.product?.image_url && (
+                                                                        <img src={item.product.image_url} alt="" className="h-full w-full object-cover" />
+                                                                    )}
+                                                                </div>
+                                                                <span className="text-xs text-text-primary truncate" title={item.product?.name}>
+                                                                    {item.product?.name || `Product #${item.product_id}`}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                        {order.items.length > 3 && (
+                                                            <span className="text-[10px] text-text-secondary pl-8">+{order.items.length - 3} more</span>
+                                                        )}
+                                                    </div>
+                                                </td>
                                                 <td className="p-4 text-sm text-text-secondary">
                                                     {new Date(order.created_at).toLocaleDateString()}
                                                 </td>

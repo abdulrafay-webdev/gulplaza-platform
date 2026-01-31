@@ -23,7 +23,7 @@ def get_product(product_id: int, session: Session = Depends(get_session)):
     """Get a single product details (Public)."""
     # Use eager load via service or selectinload
     product = session.exec(
-        select(Product).where(Product.id == product_id).options(selectinload(Product.images))
+        select(Product).where(Product.id == product_id, Product.is_deleted == False).options(selectinload(Product.images))
     ).first()
     
     if not product:
@@ -55,7 +55,7 @@ def create_product(
 def list_products(shop_id: int, session: Session = Depends(get_session)):
     """List products for a shop (Public)."""
     # Use selectinload for images
-    statement = select(Product).where(Product.shop_id == shop_id).options(selectinload(Product.images))
+    statement = select(Product).where(Product.shop_id == shop_id, Product.is_deleted == False).options(selectinload(Product.images))
     return session.exec(statement).all()
 
 @router.delete("/products/{product_id}")

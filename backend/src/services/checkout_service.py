@@ -19,7 +19,7 @@ def process_checkout(session: Session, customer_identity: Optional[str], items: 
             
         logger.info(f"Processing checkout for products: {product_ids}")
         
-        products_list = session.exec(select(Product).where(Product.id.in_(product_ids))).all()
+        products_list = session.exec(select(Product).where(Product.id.in_(product_ids), Product.is_deleted == False)).all()
         product_map = {p.id: p for p in products_list}
         
         # 2. Group by Shop and Validate Stock
