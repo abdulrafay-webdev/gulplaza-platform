@@ -61,12 +61,12 @@ def list_products(shop_id: int, session: Session = Depends(get_session)):
 @router.delete("/products/{product_id}")
 def delete_product(product_id: int, user = Depends(get_shop_owner), session: Session = Depends(get_session)):
     """Delete a product. Must be owner."""
-    product = product_service.get_product_by_id(session, product_id)
+    product = session.get(Product, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
         
     shop = shop_service.get_shop_by_id(session, product.shop_id)
-    if shop.owner_clerk_id != user["id"]:
+    if not shop or shop.owner_clerk_id != user["id"]:
         raise HTTPException(status_code=403, detail="Not your product")
         
     product_service.delete_product(session, product)
