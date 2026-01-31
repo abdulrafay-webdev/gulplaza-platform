@@ -45,7 +45,8 @@ export default function ShopSettings() {
 
     const authenticator = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/v1/imagekit-auth');
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+            const response = await fetch(`${apiUrl}/imagekit-auth`);
             if (!response.ok) throw new Error("Authentication failed");
             return await response.json();
         } catch (error) {

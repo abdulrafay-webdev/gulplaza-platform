@@ -75,7 +75,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
     const authenticator = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/v1/imagekit-auth');
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+            const response = await fetch(`${apiUrl}/imagekit-auth`);
             return await response.json();
         } catch (error) {
             throw new Error(`Authentication request failed: ${error}`);
