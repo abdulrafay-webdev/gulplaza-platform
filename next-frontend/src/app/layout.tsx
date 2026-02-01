@@ -21,6 +21,10 @@ export const metadata: Metadata = {
 
 // Clerk Theme Customization
 const clerkAppearance = {
+  layout: {
+    socialButtonsPlacement: 'bottom' as const,
+    socialButtonsVariant: 'iconButton' as const,
+  },
   variables: {
     colorPrimary: '#F59E0B', // Accent (Amber)
     colorText: '#0F172A', // Text Primary
@@ -30,10 +34,10 @@ const clerkAppearance = {
     borderRadius: '0.5rem',
   },
   elements: {
-    card: 'shadow-md rounded-xl border border-gray-100 bg-white',
-    formButtonPrimary: 'bg-[#F59E0B] hover:bg-[#D97706] text-white shadow-sm normal-case text-sm',
+    card: 'shadow-xl rounded-xl border border-gray-100 bg-white',
+    formButtonPrimary: '!bg-[#F59E0B] hover:!bg-[#D97706] !text-white !shadow-md normal-case text-sm',
     footerActionLink: 'text-[#0EA5E9] hover:text-[#0284C7] font-bold',
-    headerTitle: 'text-[#1E40AF] font-bold',
+    headerTitle: 'text-[#1E40AF] font-bold text-xl',
     headerSubtitle: 'text-[#64748B]',
     formFieldInput: 'border-gray-200 focus:border-[#0EA5E9] focus:ring-[#0EA5E9] rounded-lg',
     identityPreviewEditButton: 'text-[#F59E0B] hover:text-[#D97706]',
