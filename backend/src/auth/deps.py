@@ -1,5 +1,8 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlmodel import Session
+from src.db.session import get_session
+from src.services import shop_service
 import os
 from dotenv import load_dotenv
 from jose import jwt
@@ -51,10 +54,21 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Invalid authentication credentials: {str(e)}")
 
-def get_shop_owner(user = Depends(get_current_user)):
-    if user["role"] != "SHOP_OWNER":
-        raise HTTPException(status_code=403, detail="Not a Shop Owner")
-    return user
+def get_shop_owner(user = Depends(get_current_user), session: Session = Depends(get_session)):
+    # 1. Trust the token if it says SHOP_OWNER
+    if user["role"] == "SHOP_OWNER":
+        return user
+        
+    # 2. Fallback: Check DB if the user owns a shop
+    # This handles cases where Clerk metadata isn't updated yet or custom auth flows
+    shop = shop_service.get_shop_by_owner(session, user["id"])
+    if shop:
+        # User owns a shop, so they are a shop owner.
+        user["role"] = "SHOP_OWNER"
+        user["shop_id"] = shop.id
+        return user
+
+    raise HTTPException(status_code=403, detail="Not a Shop Owner")
 
 def get_super_admin(user = Depends(get_current_user)):
     # For baseline, we can allow a specific user ID or check role
