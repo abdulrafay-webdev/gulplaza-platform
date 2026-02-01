@@ -23,6 +23,7 @@ export const shops = {
 export const products = {
     create: (shopId: string | number, data: any) => api.post(`/shops/${shopId}/products`, data),
     list: (shopId: string | number) => api.get(`/shops/${shopId}/products`),
+    listAll: (params?: any) => api.get('/products', { params }),
     get: (id: string | number) => api.get(`/products/${id}`),
     update: (id: string | number, data: any) => api.put(`/products/${id}`, data),
     delete: (id: string | number) => api.delete(`/products/${id}`),

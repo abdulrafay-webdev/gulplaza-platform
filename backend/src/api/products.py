@@ -18,6 +18,21 @@ def get_imagekit_auth():
     """Get authentication parameters for ImageKit client-side upload."""
     return image_service.get_auth_params()
 
+@router.get("/products", response_model=List[ProductRead])
+def list_all_products(
+    limit: int = 50, 
+    offset: int = 0, 
+    search: Optional[str] = None, 
+    session: Session = Depends(get_session)
+):
+    """List all products across all shops (Public)."""
+    query = select(Product).where(Product.is_deleted == False).options(selectinload(Product.images))
+    if search:
+        query = query.where(Product.name.ilike(f"%{search}%"))
+    
+    query = query.offset(offset).limit(limit).order_by(Product.id.desc())
+    return session.exec(query).all()
+
 @router.get("/products/{product_id}", response_model=ProductRead)
 def get_product(product_id: int, session: Session = Depends(get_session)):
     """Get a single product details (Public)."""
