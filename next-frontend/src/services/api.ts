@@ -53,4 +53,8 @@ export const customers = {
     getOrders: () => api.get('/customers/orders'),
 };
 
+export const search = {
+    unified: (query: string) => api.get('/search/', { params: { q: query } }),
+};
+
 export default api;

@@ -30,6 +30,14 @@ def get_products_by_shop(session: Session, shop_id: int) -> List[Product]:
     statement = select(Product).where(Product.shop_id == shop_id, Product.is_deleted == False)
     return session.exec(statement).all()
 
+def search_products(session: Session, query: str, limit: int = 10) -> List[Product]:
+    """Search products by name or description."""
+    statement = select(Product).where(
+        Product.is_deleted == False,
+        (Product.name.ilike(f"%{query}%")) | (Product.short_description.ilike(f"%{query}%"))
+    ).limit(limit)
+    return session.exec(statement).all()
+
 def update_product(session: Session, product: Product, data: dict, image_urls: Optional[List[str]] = None) -> Product:
     """Update base product fields and optionally replace the image gallery."""
     # Update base fields

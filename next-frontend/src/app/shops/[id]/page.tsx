@@ -36,7 +36,7 @@ export default function ShopDetail({ params }: { params: Promise<{ id: string }>
                     
                     {/* Logo & Info Overlay */}
                     <div className="absolute -bottom-8 left-8 flex items-end gap-6">
-                        <div className="h-32 w-32 rounded-full border-4 border-white shadow-lg bg-white overflow-hidden">
+                        <div className="h-32 w-32 rounded-full border-4 border-white shadow-lg bg-white overflow-hidden aspect-square">
                             {shop.logo_url ? (
                                 <img src={shop.logo_url} alt="Logo" className="w-full h-full object-cover" />
                             ) : (
@@ -59,9 +59,9 @@ export default function ShopDetail({ params }: { params: Promise<{ id: string }>
 
                 <div className="px-2 md:px-8 pb-12 border-t border-gray-100 pt-8">
                     <h2 className="text-xl md:text-2xl font-bold text-primary mb-6 uppercase tracking-tight px-2">Our Products</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-6">
                         {productList.map(product => (
-                            <div key={product.id} className="bg-surface rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow overflow-hidden group">
+                            <div key={product.id} className="bg-surface rounded-none shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow overflow-hidden group">
                                 <Link href={`/products/${product.id}`} className="block">
                                     <div className="relative aspect-square bg-gray-50 overflow-hidden">
                                         {product.image_url ? (
@@ -98,7 +98,8 @@ export default function ShopDetail({ params }: { params: Promise<{ id: string }>
                                             name: product.name,
                                             price: product.price,
                                             quantity: 1,
-                                            shop_id: shop.id
+                                            shop_id: shop.id,
+                                            image_url: product.image_url || (product.images && product.images.length > 0 ? product.images[0].url : undefined)
                                         })}
                                         className="flex-1 bg-secondary text-white py-2.5 text-[9px] md:text-xs font-bold hover:bg-sky-600 transition-colors uppercase tracking-tighter"
                                     >
@@ -111,7 +112,8 @@ export default function ShopDetail({ params }: { params: Promise<{ id: string }>
                                                 name: product.name,
                                                 price: product.price,
                                                 quantity: 1,
-                                                shop_id: shop.id
+                                                shop_id: shop.id,
+                                                image_url: product.image_url || (product.images && product.images.length > 0 ? product.images[0].url : undefined)
                                             });
                                             window.location.href = '/checkout';
                                         }}

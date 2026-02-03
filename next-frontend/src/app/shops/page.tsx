@@ -34,7 +34,7 @@ export default function AllShops() {
                         {list.map(shop => (
                             <Link href={`/shops/${shop.id}`} key={shop.id} className="block group">
                                 <div className="bg-surface p-5 rounded-xl shadow-sm border border-gray-100 hover:border-secondary hover:shadow-lg hover:-translate-y-1 transition-all h-full flex flex-col items-center text-center">
-                                    <div className="h-20 w-20 rounded-full border-2 border-white shadow-md overflow-hidden bg-gray-50 flex items-center justify-center mb-4 ring-2 ring-gray-100 group-hover:ring-secondary/50 transition-all">
+                                    <div className="h-20 w-20 rounded-full border-2 border-white shadow-md overflow-hidden bg-gray-50 flex items-center justify-center mb-4 ring-2 ring-gray-100 group-hover:ring-secondary/50 transition-all aspect-square">
                                         {shop.logo_url ? (
                                             <img src={shop.logo_url} alt={shop.name} className="h-full w-full object-cover" />
                                         ) : (

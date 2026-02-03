@@ -2,22 +2,22 @@
 
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
-import { X, ShoppingBag } from 'lucide-react';
+import { X, ShoppingBag, Plus, Minus, Trash2 } from 'lucide-react';
 
 export default function Cart({ onClose }: { onClose?: () => void }) {
-    const { items, removeFromCart } = useCart();
+    const { items, removeFromCart, updateQuantity } = useCart();
     
     const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     return (
-        <div className={`bg-surface flex flex-col ${onClose ? 'h-full p-0' : 'p-5 rounded-2xl shadow-lg sticky top-24 border border-gray-100 max-h-[calc(100vh-120px)]'}`}>
+        <div className={`bg-surface flex flex-col ${onClose ? 'h-full p-0' : 'p-5 rounded-none shadow-lg sticky top-24 border border-gray-100 max-h-[calc(100vh-120px)]'}`}>
             <div className={`flex justify-between items-center mb-4 ${onClose ? 'p-6 bg-primary text-white' : ''}`}>
                 <h2 className={`text-lg font-black uppercase tracking-tight flex items-center gap-2 ${onClose ? 'text-white' : 'text-primary'}`}>
                     <ShoppingBag className="w-5 h-5" />
                     Your Cart
                 </h2>
                 {onClose && (
-                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-none transition-colors">
                         <X className="w-6 h-6" />
                     </button>
                 )}
@@ -30,21 +30,53 @@ export default function Cart({ onClose }: { onClose?: () => void }) {
                         <p className="text-text-secondary font-medium italic text-xs">Empty cart...</p>
                     </div>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {items.map(item => (
-                            <div key={item.product_id} className="flex gap-3 border-b border-gray-50 pb-3 last:border-0">
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-text-primary text-xs truncate">{item.name}</p>
-                                    <p className="text-text-secondary text-[10px] mt-0.5 font-medium">Qty: {item.quantity}</p>
-                                    <button 
-                                        onClick={() => removeFromCart(item.product_id)}
-                                        className="text-error text-[9px] font-black uppercase tracking-widest hover:underline mt-1"
-                                    >
-                                        Remove
-                                    </button>
+                            <div key={item.product_id} className="flex gap-3 border-b border-gray-50 pb-4 last:border-0">
+                                {/* Product Image */}
+                                <div className="h-16 w-16 bg-gray-50 flex-shrink-0 overflow-hidden border border-gray-100">
+                                    {item.image_url ? (
+                                        <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="h-full w-full flex items-center justify-center text-gray-300">
+                                            <ShoppingBag className="w-4 h-4 opacity-20" />
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="text-right">
-                                    <p className="font-black text-primary text-xs">${(item.price * item.quantity).toFixed(2)}</p>
+
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <p className="font-bold text-text-primary text-xs truncate pr-2">{item.name}</p>
+                                        <button 
+                                            onClick={() => removeFromCart(item.product_id)}
+                                            className="text-gray-400 hover:text-error transition-colors"
+                                            title="Remove item"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center border border-gray-200 rounded-none">
+                                            <button 
+                                                onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                                                className="p-1 hover:bg-gray-100 transition-colors disabled:opacity-30"
+                                                disabled={item.quantity <= 1}
+                                            >
+                                                <Minus className="w-3 h-3" />
+                                            </button>
+                                            <span className="px-3 text-xs font-black text-primary border-x border-gray-200 min-w-[32px] text-center">
+                                                {item.quantity}
+                                            </span>
+                                            <button 
+                                                onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                                                className="p-1 hover:bg-gray-100 transition-colors"
+                                            >
+                                                <Plus className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                        <p className="font-black text-primary text-xs">${(item.price * item.quantity).toFixed(2)}</p>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -62,7 +94,7 @@ export default function Cart({ onClose }: { onClose?: () => void }) {
                     <Link 
                         href="/checkout"
                         onClick={onClose}
-                        className="flex items-center justify-center gap-2 w-full bg-accent text-white text-center py-3.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 transition-all shadow-md shadow-accent/20"
+                        className="flex items-center justify-center gap-2 w-full bg-accent text-white text-center py-3.5 rounded-none font-black text-xs uppercase tracking-widest hover:bg-amber-600 transition-all shadow-md shadow-accent/20"
                     >
                         Checkout
                     </Link>

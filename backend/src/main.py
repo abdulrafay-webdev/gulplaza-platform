@@ -34,10 +34,11 @@ app.add_middleware(
 )
 
 from fastapi import APIRouter
-from src.api import shops, products, checkout, orders, admin, categories, customers
+from src.api import shops, products, checkout, orders, admin, categories, customers, search
 
 api_router = APIRouter()
 
+api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(shops.router, prefix="/shops", tags=["shops"])
 api_router.include_router(categories.router, prefix="/categories", tags=["categories"])
 api_router.include_router(products.router, tags=["products"])

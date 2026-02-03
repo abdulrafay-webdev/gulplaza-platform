@@ -41,7 +41,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             name: product.name,
             price: product.price,
             quantity: 1,
-            shop_id: product.shop_id
+            shop_id: product.shop_id,
+            image_url: product.image_url || (product.images && product.images.length > 0 ? product.images[0].url : undefined)
         });
         window.location.href = '/checkout';
     };
@@ -60,7 +61,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         {/* LEFT: Sticky Gallery & Shop Info (5 cols) */}
                         <div className="lg:col-span-5 lg:sticky lg:top-10 space-y-8">
                             <div className="space-y-6">
-                                <div className="aspect-square bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-xl group cursor-zoom-in">
+                                <div className="aspect-square bg-white rounded-none overflow-hidden border border-gray-100 shadow-xl group cursor-zoom-in">
                                     {activeImage ? (
                                         <img 
                                             src={activeImage} 
@@ -80,7 +81,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                             <button 
                                                 key={idx}
                                                 onClick={() => setActiveImage(img.url)}
-                                                className={`w-20 h-20 md:w-24 md:h-24 rounded-2xl flex-shrink-0 overflow-hidden border-2 transition-all shadow-sm ${
+                                                className={`w-20 h-20 md:w-24 md:h-24 rounded-none flex-shrink-0 overflow-hidden border-2 transition-all shadow-sm ${
                                                     activeImage === img.url 
                                                     ? 'border-secondary ring-4 ring-secondary/10 scale-95' 
                                                     : 'border-transparent hover:border-gray-200 grayscale-[0.5] hover:grayscale-0'
@@ -94,9 +95,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             </div>
 
                             {/* Shop Summary Card (Desktop Only: under gallery) */}
-                            <div className="hidden lg:flex bg-white border-2 border-primary/5 p-6 rounded-3xl shadow-sm flex-col xl:flex-row items-center justify-between gap-4 group">
+                            <div className="hidden lg:flex bg-white border-2 border-primary/5 p-6 rounded-none shadow-sm flex-col xl:flex-row items-center justify-between gap-4 group">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary font-black border border-primary/10">
+                                    <div className="w-14 h-14 rounded-none bg-primary/5 flex items-center justify-center text-primary font-black border border-primary/10">
                                         <Store className="w-7 h-7" />
                                     </div>
                                     <div>
@@ -106,7 +107,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 </div>
                                 <Link 
                                     href={`/shops/${product.shop_id}`}
-                                    className="w-full xl:w-auto text-center bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-blue-800 transition-all shadow-md shadow-primary/10"
+                                    className="w-full xl:w-auto text-center bg-primary text-white px-5 py-2.5 rounded-none font-bold text-xs hover:bg-blue-800 transition-all shadow-md shadow-primary/10"
                                 >
                                     Visit Store
                                 </Link>
@@ -119,9 +120,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             <div className="mb-8">
                                 <div className="flex items-center gap-3 mb-4">
                                     {product.stock_quantity > 0 ? (
-                                        <span className="bg-success/10 text-success text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-success/20">In Stock</span>
+                                        <span className="bg-success/10 text-success text-[10px] font-black px-3 py-1 rounded-none uppercase tracking-widest border border-success/20">In Stock</span>
                                     ) : (
-                                        <span className="bg-error/10 text-error text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-error/20">Out of Stock</span>
+                                        <span className="bg-error/10 text-error text-[10px] font-black px-3 py-1 rounded-none uppercase tracking-widest border border-error/20">Out of Stock</span>
                                     )}
                                     <span className="text-text-secondary text-xs font-bold uppercase tracking-wider italic opacity-60">Verified Product</span>
                                 </div>
@@ -141,15 +142,15 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
                             {/* Trust Features Grid */}
                             <div className="grid grid-cols-3 gap-2 mb-10">
-                                <div className="bg-surface border border-gray-100 p-3 md:p-4 rounded-2xl flex flex-col items-center text-center gap-2 shadow-sm">
+                                <div className="bg-surface border border-gray-100 p-3 md:p-4 rounded-none flex flex-col items-center text-center gap-2 shadow-sm">
                                     <Truck className="text-secondary w-5 h-5" />
                                     <span className="text-[9px] md:text-[10px] font-black uppercase text-primary tracking-tighter">Fast Delivery</span>
                                 </div>
-                                <div className="bg-surface border border-gray-100 p-3 md:p-4 rounded-2xl flex flex-col items-center text-center gap-2 shadow-sm">
+                                <div className="bg-surface border border-gray-100 p-3 md:p-4 rounded-none flex flex-col items-center text-center gap-2 shadow-sm">
                                     <ShieldCheck className="text-success w-5 h-5" />
                                     <span className="text-[9px] md:text-[10px] font-black uppercase text-primary tracking-tighter">Secure Pay</span>
                                 </div>
-                                <div className="bg-surface border border-gray-100 p-3 md:p-4 rounded-2xl flex flex-col items-center text-center gap-2 shadow-sm">
+                                <div className="bg-surface border border-gray-100 p-3 md:p-4 rounded-none flex flex-col items-center text-center gap-2 shadow-sm">
                                     <RotateCcw className="text-accent w-5 h-5" />
                                     <span className="text-[9px] md:text-[10px] font-black uppercase text-primary tracking-tighter">7-Day Return</span>
                                 </div>
@@ -163,10 +164,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                         name: product.name,
                                         price: product.price,
                                         quantity: 1,
-                                        shop_id: product.shop_id
+                                        shop_id: product.shop_id,
+                                        image_url: product.image_url || (product.images && product.images.length > 0 ? product.images[0].url : undefined)
                                     })}
                                     disabled={product.stock_quantity <= 0}
-                                    className="flex-1 bg-secondary text-white py-5 rounded-2xl font-black text-lg hover:bg-sky-600 transition-all shadow-lg shadow-secondary/20 flex items-center justify-center gap-3 disabled:bg-gray-200"
+                                    className="flex-1 bg-secondary text-white py-5 rounded-none font-black text-lg hover:bg-sky-600 transition-all shadow-lg shadow-secondary/20 flex items-center justify-center gap-3 disabled:bg-gray-200"
                                 >
                                     <ShoppingCart className="w-6 h-6" />
                                     ADD TO CART
@@ -174,7 +176,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 <button 
                                     onClick={handleBuyNow}
                                     disabled={product.stock_quantity <= 0}
-                                    className="flex-1 bg-accent text-white py-5 rounded-2xl font-black text-lg hover:bg-amber-600 transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-3 disabled:bg-gray-200"
+                                    className="flex-1 bg-accent text-white py-5 rounded-none font-black text-lg hover:bg-amber-600 transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-3 disabled:bg-gray-200"
                                 >
                                     <Zap className="w-6 h-6 fill-current" />
                                     BUY IT NOW
@@ -182,9 +184,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             </div>
 
                             {/* Shop Summary Card (Mobile Only: under buttons) */}
-                            <div className="lg:hidden bg-white border-2 border-primary/5 p-6 rounded-3xl shadow-sm flex items-center justify-between gap-4 mb-12 group">
+                            <div className="lg:hidden bg-white border-2 border-primary/5 p-6 rounded-none shadow-sm flex items-center justify-between gap-4 mb-12 group">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center text-primary font-black border border-primary/10">
+                                    <div className="w-12 h-12 rounded-none bg-primary/5 flex items-center justify-center text-primary font-black border border-primary/10">
                                         <Store className="w-6 h-6" />
                                     </div>
                                     <div>
@@ -194,7 +196,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 </div>
                                 <Link 
                                     href={`/shops/${product.shop_id}`}
-                                    className="bg-primary text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-blue-800 transition-all shadow-md shadow-primary/10 whitespace-nowrap"
+                                    className="bg-primary text-white px-4 py-2 rounded-none font-bold text-xs hover:bg-blue-800 transition-all shadow-md shadow-primary/10 whitespace-nowrap"
                                 >
                                     Visit Store
                                 </Link>
@@ -203,7 +205,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             {/* Full Description */}
                             <div className="border-t border-gray-100 pt-10">
                                 <h3 className="text-2xl font-black text-text-primary mb-6 flex items-center gap-3">
-                                    <div className="w-2 h-8 bg-secondary rounded-full"></div>
+                                    <div className="w-2 h-8 bg-secondary rounded-none"></div>
                                     Product Description
                                 </h3>
                                 <p className="text-text-secondary text-base md:text-lg leading-[1.8] whitespace-pre-wrap font-medium">

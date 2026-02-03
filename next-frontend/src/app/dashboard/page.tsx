@@ -90,7 +90,7 @@ export default function ShopSettings() {
                     <div>
                         <label className="block text-sm font-bold text-text-primary mb-4 uppercase tracking-wider">Shop Logo</label>
                         <div className="flex flex-col items-center gap-4">
-                            <div className="h-32 w-32 rounded-full border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50 relative group">
+                            <div className="h-32 w-32 rounded-full border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50 relative group aspect-square">
                                 {formData.logo_url ? (
                                     <img src={formData.logo_url} alt="Logo" className="h-full w-full object-cover" />
                                 ) : (
