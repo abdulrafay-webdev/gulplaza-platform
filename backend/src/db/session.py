@@ -28,5 +28,6 @@ def init_db():
     from src.models.product import Product, ProductImage
     from src.models.customer import Customer
     from src.models.order import Order
+    from src.models.review import Review
     
     SQLModel.metadata.create_all(engine)

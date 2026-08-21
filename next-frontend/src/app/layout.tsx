@@ -15,35 +15,35 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Madni Mall Marketplace",
-  description: "Multi-shop ordering platform",
+  title: "AI Plaza - Smart Multi-Vendor Marketplace",
+  description: "Next-generation multi-shop shopping platform with unified cart & direct store fulfillment.",
 };
 
-// Clerk Theme Customization
+// Clerk Theme Customization - Purple & Blue Palette
 const clerkAppearance = {
   layout: {
     socialButtonsPlacement: 'bottom' as const,
     socialButtonsVariant: 'iconButton' as const,
   },
   variables: {
-    colorPrimary: '#F59E0B', // Accent (Amber)
-    colorText: '#0F172A', // Text Primary
+    colorPrimary: '#A163F7',
+    colorText: '#161226',
     colorBackground: '#FFFFFF',
     colorInputBackground: '#FFFFFF',
-    colorInputText: '#0F172A',
-    borderRadius: '0.5rem',
+    colorInputText: '#161226',
+    borderRadius: '0.75rem',
   },
   elements: {
-    card: 'shadow-xl rounded-xl border border-gray-100 bg-white',
-    formButtonPrimary: '!bg-[#F59E0B] hover:!bg-[#D97706] !text-white !shadow-md normal-case text-sm',
-    footerActionLink: 'text-[#0EA5E9] hover:text-[#0284C7] font-bold',
-    headerTitle: 'text-[#1E40AF] font-bold text-xl',
-    headerSubtitle: 'text-[#64748B]',
-    formFieldInput: 'border-gray-200 focus:border-[#0EA5E9] focus:ring-[#0EA5E9] rounded-lg',
-    identityPreviewEditButton: 'text-[#F59E0B] hover:text-[#D97706]',
-    formFieldLabel: 'text-[#0F172A] font-medium',
-    socialButtonsBlockButton: 'border-gray-200 hover:bg-gray-50 text-[#0F172A]',
-    userButtonPopoverCard: 'shadow-lg border border-gray-100',
+    card: 'shadow-2xl rounded-2xl border border-slate-200 bg-white',
+    formButtonPrimary: '!bg-gradient-to-r !from-[#A163F7] !to-[#6F88FC] hover:!opacity-95 !text-white !shadow-lg !shadow-purple-500/25 normal-case text-sm !rounded-xl !py-3',
+    footerActionLink: 'text-[#6F88FC] hover:text-[#A163F7] font-bold',
+    headerTitle: 'text-[#161226] font-black text-xl',
+    headerSubtitle: 'text-slate-500 text-xs',
+    formFieldInput: 'border-slate-300 focus:border-[#A163F7] focus:ring-[#A163F7] rounded-xl',
+    identityPreviewEditButton: 'text-[#A163F7] hover:text-[#8738F6]',
+    formFieldLabel: 'text-[#161226] font-bold text-xs',
+    socialButtonsBlockButton: 'border-slate-200 hover:bg-slate-50 text-[#161226] rounded-xl',
+    userButtonPopoverCard: 'shadow-2xl border border-slate-200 rounded-2xl',
   }
 };
 

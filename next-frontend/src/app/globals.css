@@ -1,45 +1,139 @@
 @import "tailwindcss";
 
 :root {
-  /* Trust + Professional Theme Palette */
-  --primary: #1E40AF;
-  --secondary: #0EA5E9;
-  --accent: #F59E0B;
+  /* Exact User Requested Color Palette */
+  --base: #FFFFFF;
+  --primary-purple: #A163F7;
+  --primary-purple-dark: #8738F6;
+  --primary-purple-light: #B98AF9;
   
-  --background: #F8FAFC;
+  --secondary-blue: #6F88FC;
+  --secondary-blue-dark: #4D6DFB;
+  --secondary-blue-light: #9EB0FD;
+  
+  --accent-cyan: #45E3FF;
+  --accent-cyan-dark: #1CD5F8;
+  
+  --soft-coral: #FF7582;
+  --soft-coral-light: #FFA1AA;
+  
+  /* Clean App Backgrounds */
+  --background: #FAFAFE;
   --surface: #FFFFFF;
+  --surface-hover: #F3F1FC;
   
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
+  --text-primary: #161226;
+  --text-secondary: #605B78;
+  --text-muted: #9893B0;
   
-  --status-success: #16A34A;
+  --border-light: #EBE7F5;
+  
+  --status-success: #10B981;
   --status-pending: #F59E0B;
-  --status-error: #DC2626;
+  --status-error: #FF7582;
   
   --foreground: var(--text-primary);
 }
 
 @theme inline {
-  --color-primary: var(--primary);
-  --color-secondary: var(--secondary);
-  --color-accent: var(--accent);
+  --color-primary-purple: var(--primary-purple);
+  --color-primary-purple-dark: var(--primary-purple-dark);
+  --color-primary-purple-light: var(--primary-purple-light);
+  
+  --color-secondary-blue: var(--secondary-blue);
+  --color-secondary-blue-dark: var(--secondary-blue-dark);
+  --color-secondary-blue-light: var(--secondary-blue-light);
+  
+  --color-accent-cyan: var(--accent-cyan);
+  --color-accent-cyan-dark: var(--accent-cyan-dark);
+  
+  --color-soft-coral: var(--soft-coral);
   
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
   
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  
+  --color-border-light: var(--border-light);
   
   --color-success: var(--status-success);
   --color-pending: var(--status-pending);
   --color-error: var(--status-error);
+}
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html, body {
+  max-width: 100%;
+  overflow-x: hidden !important;
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
   background-color: var(--background);
   color: var(--text-primary);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* Custom Smooth Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #D8D2EE;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-purple);
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Luxury Glassmorphism */
+.glass-header {
+  background: rgba(22, 18, 38, 0.95);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Gradient Utilities */
+.gradient-primary {
+  background: linear-gradient(135deg, #A163F7 0%, #6F88FC 100%);
+}
+
+.gradient-accent {
+  background: linear-gradient(135deg, #6F88FC 0%, #45E3FF 100%);
+}
+
+.gradient-coral {
+  background: linear-gradient(135deg, #A163F7 0%, #FF7582 100%);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #A163F7 0%, #6F88FC 50%, #45E3FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

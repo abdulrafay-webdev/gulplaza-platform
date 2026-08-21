@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 # Import using absolute paths
 from src.db.session import init_db
@@ -14,7 +14,7 @@ async def lifespan(app: FastAPI):
         print(f"DB Init Error: {e}")
     yield
 
-app = FastAPI(title="Madni Mall API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="AI Plaza API", version="1.0.0", lifespan=lifespan)
 
 # CORS Configuration
 origins = [
@@ -33,8 +33,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi import APIRouter
-from src.api import shops, products, checkout, orders, admin, categories, customers, search
+from src.api import shops, products, checkout, orders, admin, categories, customers, search, reviews
 
 api_router = APIRouter()
 
@@ -42,6 +41,7 @@ api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(shops.router, prefix="/shops", tags=["shops"])
 api_router.include_router(categories.router, prefix="/categories", tags=["categories"])
 api_router.include_router(products.router, tags=["products"])
+api_router.include_router(reviews.router, tags=["reviews"])
 api_router.include_router(checkout.router, prefix="/cart", tags=["checkout"])
 api_router.include_router(orders.router, tags=["orders"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])

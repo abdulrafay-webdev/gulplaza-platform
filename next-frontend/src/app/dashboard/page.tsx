@@ -4,12 +4,29 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { shops, setAuthToken } from '@/services/api';
 import { IKUpload } from "imagekitio-next";
+import { 
+  Store, 
+  TrendingUp, 
+  ShoppingBag, 
+  Layers, 
+  AlertTriangle, 
+  CheckCircle, 
+  Clock, 
+  Sparkles, 
+  Edit3, 
+  ArrowRight,
+  Package,
+  Plus
+} from 'lucide-react';
+import Link from 'next/link';
 
-export default function ShopSettings() {
+export default function SellerDashboardHome() {
     const { getToken, isLoaded, userId } = useAuth();
     const [shop, setShop] = useState<any>(null);
+    const [analytics, setAnalytics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [editProfileOpen, setEditProfileOpen] = useState(false);
     const [formData, setFormData] = useState({ 
         name: '', 
         description: '',
@@ -17,30 +34,36 @@ export default function ShopSettings() {
         cover_image_url: ''
     });
 
-    useEffect(() => {
-        if (!isLoaded || !userId) return;
+    const loadData = async () => {
+        if (!userId) return;
+        const token = await getToken();
+        if (!token) return;
+        
+        setAuthToken(token);
+        try {
+            const [shopRes, analyticsRes] = await Promise.all([
+                shops.getMe(),
+                shops.getAnalytics()
+            ]);
+            setShop(shopRes.data);
+            setAnalytics(analyticsRes.data);
+            setFormData({ 
+                name: shopRes.data.name, 
+                description: shopRes.data.description || '',
+                logo_url: shopRes.data.logo_url || '',
+                cover_image_url: shopRes.data.cover_image_url || ''
+            });
+        } catch (err) {
+            console.log("No shop found, ready to create.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        const fetchShop = async () => {
-            const token = await getToken();
-            if (!token) return;
-            
-            setAuthToken(token);
-            try {
-                const res = await shops.getMe();
-                setShop(res.data);
-                setFormData({ 
-                    name: res.data.name, 
-                    description: res.data.description,
-                    logo_url: res.data.logo_url || '',
-                    cover_image_url: res.data.cover_image_url || ''
-                });
-            } catch (err) {
-                console.log("No shop found, ready to create.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchShop();
+    useEffect(() => {
+        if (isLoaded && userId) {
+            loadData();
+        }
     }, [getToken, isLoaded, userId]);
 
     const authenticator = async () => {
@@ -54,7 +77,7 @@ export default function ShopSettings() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleProfileSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
         const token = await getToken();
@@ -63,11 +86,12 @@ export default function ShopSettings() {
             if (shop) {
                 const res = await shops.update(formData);
                 setShop(res.data);
-                alert("Shop updated!");
+                setEditProfileOpen(false);
+                alert("Store profile updated successfully!");
             } else {
                 const res = await shops.create(formData);
                 setShop(res.data);
-                alert("Shop created!");
+                alert("Store created!");
                 window.location.reload(); 
             }
         } catch (err) {
@@ -77,95 +101,338 @@ export default function ShopSettings() {
         }
     };
 
-    if (loading) return <div className="p-8 text-center">Loading settings...</div>;
+    if (loading) {
+        return (
+            <div className="py-24 text-center text-slate-400 font-bold flex items-center justify-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#A163F7] animate-spin" />
+                Loading Store Analytics...
+            </div>
+        );
+    }
+
+    // New Store Creation Form if user doesn't own a store yet
+    if (!shop) {
+        return (
+            <div className="max-w-2xl mx-auto py-8">
+                <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                    <div>
+                        <h1 className="text-2xl font-black text-slate-900 mb-1">Register Your Store on AI Plaza</h1>
+                        <p className="text-slate-500 text-xs">Set up your vendor profile to begin listing products and taking orders.</p>
+                    </div>
+
+                    <form onSubmit={handleProfileSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1">Store Name *</label>
+                            <input 
+                                type="text"
+                                required
+                                value={formData.name}
+                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                placeholder="e.g. Apex Electronics"
+                                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+                            <textarea 
+                                rows={3}
+                                value={formData.description}
+                                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                placeholder="What products do you offer?"
+                                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="w-full bg-gradient-to-r from-[#A163F7] to-[#6F88FC] text-white py-3.5 rounded-xl font-black text-sm"
+                        >
+                            {saving ? 'Creating Store...' : 'Submit Application'}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
+    const overview = analytics?.overview || {
+        total_sales: 0,
+        total_orders: 0,
+        total_products: 0,
+        low_stock_count: 0
+    };
+    const breakdown = analytics?.orders_breakdown || {};
+    const recentOrders = analytics?.recent_orders || [];
+    const lowStockList = analytics?.low_stock_products || [];
 
     return (
-        <div className="max-w-3xl mx-auto">
-            <h1 className="text-3xl font-bold mb-8 text-primary">{shop ? 'Shop Profile' : 'Create Your Shop'}</h1>
-            
-            <form onSubmit={handleSubmit} className="space-y-8 bg-surface p-8 rounded-xl shadow-sm border border-gray-100">
-                {/* Visual Assets Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-8 border-b border-gray-100">
-                    {/* Logo Upload */}
-                    <div>
-                        <label className="block text-sm font-bold text-text-primary mb-4 uppercase tracking-wider">Shop Logo</label>
-                        <div className="flex flex-col items-center gap-4">
-                            <div className="h-32 w-32 rounded-full border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50 relative group aspect-square">
-                                {formData.logo_url ? (
-                                    <img src={formData.logo_url} alt="Logo" className="h-full w-full object-cover" />
-                                ) : (
-                                    <span className="text-gray-400 text-xs">No Logo</span>
-                                )}
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span className="text-white text-[10px] font-bold">Change</span>
-                                </div>
-                            </div>
-                            <IKUpload 
-                                fileName="logo.jpg"
-                                authenticator={authenticator}
-                                onSuccess={(res) => setFormData(prev => ({ ...prev, logo_url: res.url }))}
-                                className="text-xs text-text-secondary"
-                            />
-                        </div>
+        <div className="space-y-8 w-full max-w-full">
+            {/* Store Profile Header Card */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden border border-slate-200 flex items-center justify-center flex-shrink-0">
+                        {shop.logo_url ? (
+                            <img src={shop.logo_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                            <Store className="w-8 h-8 text-slate-400" />
+                        )}
                     </div>
-
-                    {/* Cover Image Upload */}
                     <div>
-                        <label className="block text-sm font-bold text-text-primary mb-4 uppercase tracking-wider">Cover Banner</label>
-                        <div className="flex flex-col gap-4">
-                            <div className="h-32 w-full rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50 relative group">
-                                {formData.cover_image_url ? (
-                                    <img src={formData.cover_image_url} alt="Cover" className="h-full w-full object-cover" />
-                                ) : (
-                                    <span className="text-gray-400 text-xs">No Cover Image</span>
-                                )}
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span className="text-white text-[10px] font-bold">Change Banner</span>
-                                </div>
-                            </div>
-                            <IKUpload 
-                                fileName="cover.jpg"
-                                authenticator={authenticator}
-                                onSuccess={(res) => setFormData(prev => ({ ...prev, cover_image_url: res.url }))}
-                                className="text-xs text-text-secondary"
-                            />
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-xl sm:text-2xl font-black text-slate-900">{shop.name}</h1>
+                            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3" /> Live Store
+                            </span>
                         </div>
+                        <p className="text-slate-400 text-xs mt-0.5 truncate max-w-md">{shop.description || "Official AI Plaza Vendor"}</p>
                     </div>
                 </div>
 
-                {/* Basic Details Section */}
-                <div className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-text-primary mb-1">Shop Name</label>
-                        <input 
-                            type="text" 
-                            value={formData.name}
-                            onChange={e => setFormData({...formData, name: e.target.value})}
-                            className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-secondary focus:border-secondary transition-all outline-none text-text-primary"
-                            placeholder="e.g. Al-Abbas Electronics"
-                            required
-                        />
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => setEditProfileOpen(!editProfileOpen)}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>{editProfileOpen ? 'Close Editor' : 'Edit Profile'}</span>
+                    </button>
+                    <Link
+                        href="/dashboard/products/new"
+                        className="bg-gradient-to-r from-[#A163F7] to-[#6F88FC] hover:opacity-95 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md shadow-purple-500/20 transition-all flex items-center gap-1.5"
+                    >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Product</span>
+                    </Link>
+                </div>
+            </div>
+
+            {/* Profile Editor Collapse */}
+            {editProfileOpen && (
+                <div className="bg-purple-50/50 p-6 rounded-3xl border border-purple-200 animate-in fade-in space-y-4">
+                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                        <Edit3 className="w-4 h-4 text-[#A163F7]" /> Update Store Branding & Details
+                    </h3>
+
+                    <form onSubmit={handleProfileSubmit} className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 mb-1">Store Name</label>
+                                <input 
+                                    type="text"
+                                    required
+                                    value={formData.name}
+                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white text-slate-900"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 mb-1">Logo Image URL</label>
+                                <input 
+                                    type="text"
+                                    value={formData.logo_url}
+                                    onChange={e => setFormData({ ...formData, logo_url: e.target.value })}
+                                    placeholder="https://..."
+                                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white text-slate-900"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1">Cover Banner URL</label>
+                            <input 
+                                type="text"
+                                value={formData.cover_image_url}
+                                onChange={e => setFormData({ ...formData, cover_image_url: e.target.value })}
+                                placeholder="https://..."
+                                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white text-slate-900"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1">Store Description</label>
+                            <textarea 
+                                rows={2}
+                                value={formData.description}
+                                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white text-slate-900"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="bg-[#A163F7] text-white px-5 py-2 rounded-xl font-bold text-xs shadow-md"
+                        >
+                            {saving ? 'Saving...' : 'Save Profile Changes'}
+                        </button>
+                    </form>
+                </div>
+            )}
+
+            {/* 1. SELLER STORE KPIS (4 Cards) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div className="flex justify-between items-start mb-2">
+                        <span className="text-[11px] font-black uppercase text-slate-400">Total Store Sales</span>
+                        <div className="w-8 h-8 rounded-xl bg-purple-50 text-[#A163F7] flex items-center justify-center">
+                            <TrendingUp className="w-4 h-4" />
+                        </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-text-primary mb-1">Description</label>
-                        <textarea 
-                            value={formData.description}
-                            onChange={e => setFormData({...formData, description: e.target.value})}
-                            className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-secondary focus:border-secondary transition-all outline-none text-text-primary"
-                            rows={4}
-                            placeholder="Tell customers what you sell..."
-                        />
+                        <h3 className="text-xl sm:text-2xl font-black text-slate-900">
+                            Rs. {overview.total_sales.toLocaleString()}
+                        </h3>
+                        <p className="text-[10px] text-emerald-600 font-bold mt-1">Earnings via COD</p>
                     </div>
                 </div>
 
-                <button 
-                    type="submit"
-                    disabled={saving}
-                    className="w-full bg-accent text-white py-4 rounded-lg font-bold text-lg hover:bg-amber-600 transition-all shadow-md disabled:bg-gray-300"
-                >
-                    {saving ? 'Processing...' : (shop ? 'Update Profile' : 'Create My Shop')}
-                </button>
-            </form>
+                <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div className="flex justify-between items-start mb-2">
+                        <span className="text-[11px] font-black uppercase text-slate-400">Store Orders</span>
+                        <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#6F88FC] flex items-center justify-center">
+                            <ShoppingBag className="w-4 h-4" />
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="text-xl sm:text-2xl font-black text-slate-900">
+                            {overview.total_orders}
+                        </h3>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-1">
+                            {breakdown.completed || 0} completed &bull; {breakdown.pending || 0} pending
+                        </p>
+                    </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div className="flex justify-between items-start mb-2">
+                        <span className="text-[11px] font-black uppercase text-slate-400">Listed Products</span>
+                        <div className="w-8 h-8 rounded-xl bg-cyan-50 text-[#45E3FF] flex items-center justify-center">
+                            <Package className="w-4 h-4 text-[#161226]" />
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="text-xl sm:text-2xl font-black text-slate-900">
+                            {overview.total_products}
+                        </h3>
+                        <Link href="/dashboard/products" className="text-[10px] text-[#6F88FC] font-bold mt-1 inline-block hover:underline">
+                            Manage Inventory &rarr;
+                        </Link>
+                    </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div className="flex justify-between items-start mb-2">
+                        <span className="text-[11px] font-black uppercase text-slate-400">Low Stock Alerts</span>
+                        <div className="w-8 h-8 rounded-xl bg-rose-50 text-[#FF7582] flex items-center justify-center">
+                            <AlertTriangle className="w-4 h-4" />
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="text-xl sm:text-2xl font-black text-slate-900">
+                            {overview.low_stock_count}
+                        </h3>
+                        <p className="text-[10px] text-[#FF7582] font-semibold mt-1">
+                            {overview.low_stock_count > 0 ? "Requires restock" : "All items in stock"}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* 2. RECENT ORDERS & LOW STOCK ITEMS */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Recent Orders (8 cols) */}
+                <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <h3 className="text-sm font-black text-slate-900">Recent Customer Orders</h3>
+                        <Link href="/dashboard/orders" className="text-xs font-bold text-[#6F88FC] hover:underline">
+                            View All Orders &rarr;
+                        </Link>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse min-w-[500px]">
+                            <thead>
+                                <tr className="bg-slate-50/80 text-[10px] font-black uppercase tracking-wider text-slate-500 border-b border-slate-100">
+                                    <th className="p-3.5">Order ID</th>
+                                    <th className="p-3.5">Customer</th>
+                                    <th className="p-3.5">Amount</th>
+                                    <th className="p-3.5">Status</th>
+                                    <th className="p-3.5">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-xs">
+                                {recentOrders.map((ord: any) => (
+                                    <tr key={ord.id} className="hover:bg-slate-50/70 transition-colors">
+                                        <td className="p-3.5 font-mono font-bold text-slate-900">#{ord.id}</td>
+                                        <td className="p-3.5">
+                                            <div className="font-bold text-slate-900">{ord.guest_name}</div>
+                                            <div className="text-[10px] text-slate-400">{ord.guest_phone}</div>
+                                        </td>
+                                        <td className="p-3.5 font-black text-[#161226]">Rs. {ord.total_amount.toLocaleString()}</td>
+                                        <td className="p-3.5">
+                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                                ord.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
+                                                ord.status === 'cancelled' ? 'bg-rose-100 text-rose-800' :
+                                                'bg-purple-100 text-[#A163F7]'
+                                            }`}>
+                                                {ord.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-3.5 text-[10px] text-slate-400">
+                                            {new Date(ord.created_at).toLocaleDateString()}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {recentOrders.length === 0 && (
+                        <div className="p-8 text-center text-slate-400 text-xs">
+                            No orders placed yet for this store.
+                        </div>
+                    )}
+                </div>
+
+                {/* Low Stock Items (4 cols) */}
+                <div className="lg:col-span-4 bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                            <AlertTriangle className="w-4 h-4 text-[#FF7582]" /> Low Stock Warnings
+                        </h3>
+                        <span className="text-xs font-bold text-[#FF7582]">{lowStockList.length}</span>
+                    </div>
+
+                    <div className="divide-y divide-slate-100">
+                        {lowStockList.map((item: any) => (
+                            <div key={item.id} className="py-3 first:pt-0 flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-8 h-8 rounded-lg bg-slate-100 overflow-hidden border border-slate-200 flex-shrink-0">
+                                        {item.image_url ? (
+                                            <img src={item.image_url} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Package className="w-4 h-4 text-slate-400" />
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h4 className="font-bold text-xs text-slate-900 truncate">{item.name}</h4>
+                                        <span className="text-[10px] text-slate-400">Rs. {item.price.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                                <span className="bg-rose-50 text-[#FF7582] text-[10px] font-black px-2 py-0.5 rounded-full flex-shrink-0">
+                                    {item.stock_quantity} left
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {lowStockList.length === 0 && (
+                        <div className="text-center py-6 text-slate-400 text-xs">
+                            All products have sufficient inventory.
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

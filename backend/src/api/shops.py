@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session
-from typing import List
+from sqlmodel import Session, select
+from typing import List, Optional
 from src.db.session import get_session
 from src.models.shop import Shop
+from src.models.product import Product
+from src.models.order import Order
+from src.models.review import Review
 from src.services import shop_service
 from src.auth.deps import get_current_user, get_shop_owner
 import logging
-
 from pydantic import BaseModel
-from typing import List, Optional
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -26,12 +27,9 @@ class ShopUpdate(BaseModel):
 def create_shop(shop: Shop, user = Depends(get_current_user), session: Session = Depends(get_session)):
     """Create a shop. Any authenticated user can apply to become a shop owner."""
     try:
-        # Enforce owner
         shop.owner_clerk_id = user["id"]
-        
         logger.info(f"Creating shop for user: {user['id']} with data: {shop}")
 
-        # Check existing
         existing = shop_service.get_shop_by_owner(session, user["id"])
         if existing:
             raise HTTPException(status_code=400, detail="You already own a shop")
@@ -42,6 +40,76 @@ def create_shop(shop: Shop, user = Depends(get_current_user), session: Session =
     except Exception as e:
         logger.error(f"Error creating shop: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+@router.get("/me/analytics")
+def get_my_shop_analytics(user = Depends(get_current_user), session: Session = Depends(get_session)):
+    """Analytics & KPIs for the logged-in seller's shop."""
+    shop = shop_service.get_shop_by_owner(session, user["id"])
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+
+    # Orders for this shop
+    orders = session.exec(select(Order).where(Order.shop_id == shop.id)).all()
+    total_sales = sum(o.total_amount for o in orders if o.status != "cancelled")
+
+    orders_by_status = {
+        "pending": 0,
+        "confirmed": 0,
+        "shipped": 0,
+        "completed": 0,
+        "cancelled": 0
+    }
+    for o in orders:
+        st = o.status.lower()
+        if st in orders_by_status:
+            orders_by_status[st] += 1
+        else:
+            orders_by_status[st] = 1
+
+    # Products for this shop
+    products = session.exec(select(Product).where(Product.shop_id == shop.id, Product.is_deleted == False)).all()
+    total_products = len(products)
+    low_stock = [p for p in products if p.stock_quantity <= 3]
+
+    # Recent shop orders
+    recent_orders = session.exec(
+        select(Order).where(Order.shop_id == shop.id).order_by(Order.created_at.desc()).limit(10)
+    ).all()
+
+    recent_orders_list = []
+    for o in recent_orders:
+        recent_orders_list.append({
+            "id": o.id,
+            "guest_name": o.guest_name or "Guest Customer",
+            "guest_phone": o.guest_phone or "N/A",
+            "guest_address": o.guest_address or "N/A",
+            "total_amount": o.total_amount,
+            "status": o.status,
+            "created_at": o.created_at,
+            "items_count": len(o.items) if o.items else 0
+        })
+
+    return {
+        "shop": {
+            "id": shop.id,
+            "name": shop.name,
+            "is_approved": shop.is_approved,
+            "is_active": shop.is_active,
+            "logo_url": shop.logo_url
+        },
+        "overview": {
+            "total_sales": total_sales,
+            "total_orders": len(orders),
+            "total_products": total_products,
+            "low_stock_count": len(low_stock),
+        },
+        "orders_breakdown": orders_by_status,
+        "low_stock_products": [
+            {"id": p.id, "name": p.name, "stock_quantity": p.stock_quantity, "price": p.price, "image_url": p.image_url}
+            for p in low_stock
+        ],
+        "recent_orders": recent_orders_list
+    }
 
 @router.put("/me", response_model=Shop)
 def update_my_shop(update_data: ShopUpdate, user = Depends(get_current_user), session: Session = Depends(get_session)):
