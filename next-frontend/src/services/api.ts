@@ -34,6 +34,9 @@ export const reviews = {
     getProductReviews: (productId: string | number) => api.get(`/products/${productId}/reviews`),
     submitProductReview: (productId: string | number, data: any) => api.post(`/products/${productId}/reviews`, data),
     getRecentReviews: (limit: number = 6) => api.get('/recent', { params: { limit } }),
+    getMyReviews: () => api.get('/reviews/shop/me'),
+    approveReview: (reviewId: string | number) => api.patch(`/reviews/${reviewId}/approve`),
+    deleteReview: (reviewId: string | number) => api.delete(`/reviews/${reviewId}`),
 };
 
 export const cart = {
@@ -71,6 +74,18 @@ export const customers = {
 
 export const search = {
     unified: (query: string) => api.get('/search/', { params: { q: query } }),
+};
+
+export const ai = {
+    listChats: () => api.get('/ai/chats'),
+    createChat: (data?: { initial_message?: string; image_url?: string }) => api.post('/ai/chats', data),
+    getChat: (chatId: string | number) => api.get(`/ai/chats/${chatId}`),
+    sendMessage: (chatId: string | number, data: { content: string; image_url?: string }) => api.post(`/ai/chats/${chatId}/messages`, data),
+    renameChat: (chatId: string | number, title: string) => api.patch(`/ai/chats/${chatId}/title`, { title }),
+    deleteChat: (chatId: string | number) => api.delete(`/ai/chats/${chatId}`),
+    uploadImage: (formData: FormData) => api.post('/ai/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
 };
 
 export default api;

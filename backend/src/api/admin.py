@@ -8,6 +8,7 @@ from src.models.order import Order, OrderItem
 from src.models.customer import Customer
 from src.models.category import Category
 from src.models.review import Review
+from src.models.ai_chat import AIDemandInsight
 from src.auth.deps import get_super_admin
 
 router = APIRouter()
@@ -87,6 +88,22 @@ def get_platform_analytics(user = Depends(get_super_admin), session: Session = D
             "items_count": len(o.items) if o.items else 0
         })
 
+    # 8. High Demand Shopper Queries from AI Assistant
+    demands = session.exec(
+        select(AIDemandInsight).order_by(AIDemandInsight.request_count.desc(), AIDemandInsight.last_requested_at.desc()).limit(10)
+    ).all()
+
+    demands_list = [
+        {
+            "id": d.id,
+            "query_text": d.query_text,
+            "category_hint": d.category_hint or "General Market",
+            "request_count": d.request_count,
+            "had_direct_match": d.had_direct_match,
+            "last_requested_at": d.last_requested_at
+        } for d in demands
+    ]
+
     return {
         "overview": {
             "total_revenue": total_revenue,
@@ -103,7 +120,8 @@ def get_platform_analytics(user = Depends(get_super_admin), session: Session = D
         },
         "orders_breakdown": orders_by_status,
         "top_shops": top_shops,
-        "recent_orders": recent_orders_list
+        "recent_orders": recent_orders_list,
+        "trending_ai_demands": demands_list
     }
 
 @router.get("/shops", response_model=List[Shop])

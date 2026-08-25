@@ -92,7 +92,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             </Link>
             
             {/* Desktop Quick Nav Links */}
-            <nav className="hidden lg:flex items-center gap-6 text-xs font-bold text-slate-300 flex-shrink-0">
+            <nav className="hidden lg:flex items-center gap-5 text-xs font-bold text-slate-300 flex-shrink-0">
               <Link 
                 href="/" 
                 className={`hover:text-white transition-colors flex items-center gap-1.5 py-1 ${pathname === '/' ? 'text-white border-b-2 border-[#45E3FF]' : ''}`}
@@ -104,6 +104,14 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 className={`hover:text-white transition-colors flex items-center gap-1.5 py-1 ${pathname.startsWith('/shops') ? 'text-white border-b-2 border-[#45E3FF]' : ''}`}
               >
                 <Store className="w-3.5 h-3.5 text-[#6F88FC]" /> All Shops
+              </Link>
+              <Link 
+                href={customer || user ? "/ai" : "/login?redirect=/ai"}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${pathname.startsWith('/ai') ? 'bg-gradient-to-r from-[#A163F7] to-[#6F88FC] text-white shadow-md shadow-purple-500/30 font-black' : 'bg-[#A163F7]/15 hover:bg-[#A163F7]/30 text-[#45E3FF] border border-[#A163F7]/40'}`}
+              >
+                <Bot className="w-4 h-4 text-[#45E3FF] animate-pulse" />
+                <span>AI Assistant</span>
+                <span className="bg-[#45E3FF] text-[#161226] text-[8px] font-black px-1 rounded-sm">NEW</span>
               </Link>
             </nav>
 
@@ -117,7 +125,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 {/* Cart Trigger */}
                 <button 
                     onClick={() => setIsCartOpen(true)}
-                    className="relative flex items-center gap-1.5 sm:gap-2 bg-white/10 hover:bg-white/20 text-white px-2.5 sm:px-3.5 py-2 rounded-xl border border-purple-400/20 shadow-sm transition-all group active:scale-95 flex-shrink-0"
+                    className="relative flex items-center gap-1.5 sm:gap-2 bg-white/10 hover:bg-white/20 text-white px-2.5 sm:px-3.5 py-2 rounded-xl border border-purple-400/20 shadow-sm transition-all group active:scale-95 flex-shrink-0 cursor-pointer"
                     title="View Cart"
                 >
                     <div className="relative flex items-center">
@@ -151,8 +159,15 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                         <Layers className="w-3.5 h-3.5" />
                         <span>Seller Portal</span>
                     </Link>
-                    <div className="ring-2 ring-purple-500/40 rounded-full p-0.5 flex-shrink-0">
-                      <UserButton afterSignOutUrl="/" />
+                    <div className="flex items-center justify-center flex-shrink-0">
+                      <UserButton 
+                        afterSignOutUrl="/" 
+                        appearance={{
+                          elements: {
+                            avatarBox: "w-8 h-8 rounded-full ring-2 ring-[#A163F7]/50 shadow-sm"
+                          }
+                        }}
+                      />
                     </div>
                 </SignedIn>
 
@@ -161,14 +176,16 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                     <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                         <Link 
                           href="/account" 
-                          className="flex items-center gap-1 text-xs font-bold bg-white/10 hover:bg-white/20 text-white px-2.5 sm:px-3 py-2 rounded-xl border border-white/20 transition-all"
+                          className="flex items-center gap-1.5 text-xs font-bold bg-white/10 hover:bg-white/20 text-white px-2.5 sm:px-3 py-1.5 rounded-xl border border-white/20 transition-all flex-shrink-0"
                         >
-                            <User className="w-3.5 h-3.5 text-[#45E3FF]" />
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#A163F7] to-[#45E3FF] flex items-center justify-center text-[#161226] font-black text-[10px] shadow-xs">
+                                {customer.full_name?.charAt(0).toUpperCase() || 'U'}
+                            </div>
                             <span className="hidden sm:inline">{customer.full_name?.split(' ')[0] || 'Account'}</span>
                         </Link>
                         <button 
                             onClick={logout}
-                            className="hidden md:block text-[11px] bg-white/5 hover:bg-[#FF7582]/20 hover:text-[#FF7582] px-2 py-1.5 rounded-lg text-slate-300 font-semibold border border-white/10 transition-colors"
+                            className="hidden md:block text-[11px] bg-white/5 hover:bg-[#FF7582]/20 hover:text-[#FF7582] px-2 py-1.5 rounded-lg text-slate-300 font-semibold border border-white/10 transition-colors cursor-pointer"
                         >
                             Logout
                         </button>
@@ -190,7 +207,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                                 forceRedirectUrl="/dashboard"
                                 signUpForceRedirectUrl="/dashboard"
                             >
-                                <button className="flex items-center gap-1 bg-gradient-to-r from-[#A163F7] via-[#6F88FC] to-[#45E3FF] text-white font-black text-[11px] sm:text-xs px-2.5 sm:px-3.5 py-2 rounded-xl shadow-md shadow-purple-500/25 transition-all active:scale-95 flex-shrink-0">
+                                <button className="flex items-center gap-1 bg-gradient-to-r from-[#A163F7] via-[#6F88FC] to-[#45E3FF] text-white font-black text-[11px] sm:text-xs px-2.5 sm:px-3.5 py-2 rounded-xl shadow-md shadow-purple-500/25 transition-all active:scale-95 flex-shrink-0 cursor-pointer">
                                     <Store className="w-3.5 h-3.5" />
                                     <span>Sell</span>
                                 </button>
@@ -298,13 +315,23 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             <span className="text-[10px]">Shops</span>
           </Link>
 
-          {/* Search */}
+          {/* AI Assistant Prominent Center Action */}
           <Link 
-            href="/search" 
-            className={`flex flex-col items-center py-1 rounded-xl transition-all ${pathname.startsWith('/search') ? 'text-[#45E3FF] font-black' : 'text-slate-400 font-medium hover:text-slate-200'}`}
+            href={customer || user ? "/ai" : "/login?redirect=/ai"} 
+            className="flex flex-col items-center -mt-5 group"
           >
-            <Search className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">Search</span>
+            <div className="relative p-0.5 sm:p-1 rounded-full bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] shadow-lg shadow-purple-500/40 group-hover:scale-110 group-active:scale-95 transition-all duration-300">
+              <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center ${pathname === '/ai' ? 'bg-gradient-to-tr from-[#A163F7] to-[#6F88FC] text-white' : 'bg-[#161226] text-[#45E3FF]'}`}>
+                <Bot className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
+              </div>
+              <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#45E3FF] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#45E3FF]"></span>
+              </span>
+            </div>
+            <span className={`text-[9px] font-black mt-0.5 tracking-tight ${pathname === '/ai' ? 'text-[#45E3FF]' : 'text-slate-300'}`}>
+              AI Chat
+            </span>
           </Link>
 
           {/* Cart with Badge */}

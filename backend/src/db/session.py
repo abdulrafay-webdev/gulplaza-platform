@@ -29,5 +29,6 @@ def init_db():
     from src.models.customer import Customer
     from src.models.order import Order
     from src.models.review import Review
+    from src.models.ai_chat import AIChat, AIMessage
     
     SQLModel.metadata.create_all(engine)

@@ -16,7 +16,11 @@ import {
   Edit3, 
   ArrowRight,
   Package,
-  Plus
+  Plus,
+  Flame,
+  Bot,
+  Search,
+  Tag
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -65,17 +69,6 @@ export default function SellerDashboardHome() {
             loadData();
         }
     }, [getToken, isLoaded, userId]);
-
-    const authenticator = async () => {
-        try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-            const response = await fetch(`${apiUrl}/imagekit-auth`);
-            if (!response.ok) throw new Error("Authentication failed");
-            return await response.json();
-        } catch (error) {
-            throw new Error(`Authentication request failed: ${error}`);
-        }
-    };
 
     const handleProfileSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -164,6 +157,7 @@ export default function SellerDashboardHome() {
     const breakdown = analytics?.orders_breakdown || {};
     const recentOrders = analytics?.recent_orders || [];
     const lowStockList = analytics?.low_stock_products || [];
+    const trendingDemands = analytics?.trending_ai_demands || [];
 
     return (
         <div className="space-y-8 w-full max-w-full">
@@ -338,7 +332,76 @@ export default function SellerDashboardHome() {
                 </div>
             </div>
 
-            {/* 2. RECENT ORDERS & LOW STOCK ITEMS */}
+            {/* 2. 🔥 AI SHOPPER DEMAND & RESTOCK RECOMMENDATIONS (New Feature) */}
+            <div className="bg-white rounded-3xl border border-purple-200 shadow-sm overflow-hidden p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#A163F7] to-[#FF7582] text-white flex items-center justify-center shadow-xs">
+                            <Flame className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                                High Demand Customer Queries (AI Shopping Insights)
+                                <span className="bg-[#A163F7]/10 text-[#A163F7] text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                                    Live Insights
+                                </span>
+                            </h3>
+                            <p className="text-slate-400 text-xs">
+                                Products customers are actively asking the AI Assistant for — Add these to your catalog to capture unfulfilled sales!
+                            </p>
+                        </div>
+                    </div>
+                    <Link 
+                        href="/dashboard/products/new"
+                        className="bg-[#A163F7] hover:bg-[#8738F6] text-white text-xs font-bold px-3.5 py-1.5 rounded-xl shadow-xs transition-all flex items-center gap-1.5 self-start sm:self-auto"
+                    >
+                        <Plus className="w-3.5 h-3.5" /> List New Product
+                    </Link>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                    {trendingDemands.map((demand: any) => (
+                        <div 
+                            key={demand.id}
+                            className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-[#A163F7] hover:bg-purple-50/20 transition-all flex flex-col justify-between"
+                        >
+                            <div>
+                                <div className="flex items-center justify-between gap-1 mb-2">
+                                    <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200 flex items-center gap-1">
+                                        <Tag className="w-2.5 h-2.5 text-[#6F88FC]" /> {demand.category_hint}
+                                    </span>
+                                    <span className="bg-purple-100 text-[#A163F7] text-[9px] font-black px-2 py-0.5 rounded-full">
+                                        {demand.request_count} Search{demand.request_count > 1 ? 'es' : ''}
+                                    </span>
+                                </div>
+                                <h4 className="font-bold text-xs text-slate-900 leading-snug">
+                                    "{demand.query_text}"
+                                </h4>
+                            </div>
+
+                            <div className="pt-3 mt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px]">
+                                <span className={demand.had_direct_match ? "text-emerald-600 font-bold" : "text-[#FF7582] font-black"}>
+                                    {demand.had_direct_match ? "✓ In Demand" : "⚡ Restock Needed"}
+                                </span>
+                                <Link 
+                                    href="/dashboard/products/new"
+                                    className="text-[#6F88FC] font-bold hover:underline"
+                                >
+                                    + Add Item
+                                </Link>
+                            </div>
+                        </div>
+                    ))}
+
+                    {trendingDemands.length === 0 && (
+                        <div className="col-span-full py-8 text-center text-slate-400 text-xs">
+                            Shopper queries from the AI Assistant will automatically appear here to guide your inventory restocking.
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* 3. RECENT ORDERS & LOW STOCK ITEMS */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 {/* Recent Orders (8 cols) */}
                 <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">

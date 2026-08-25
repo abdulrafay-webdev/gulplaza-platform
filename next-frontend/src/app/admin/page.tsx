@@ -261,7 +261,61 @@ export default function AdminDashboard() {
                 </div>
             </div>
 
-            {/* 3. RECENT PLATFORM ORDERS FEED */}
+            {/* 3. 🔥 AI MARKET DEMAND & SEARCH TRENDS (Platform Intelligence) */}
+            <div className="bg-white rounded-3xl border border-purple-200 shadow-sm overflow-hidden p-6 space-y-4">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#A163F7] animate-ping"></span>
+                            AI Shopper Demand & Unmet Search Trends
+                        </h3>
+                        <p className="text-slate-400 text-xs mt-0.5">Top product search queries from shoppers using the AI Shopping Assistant across AI Plaza</p>
+                    </div>
+                    <span className="bg-purple-100 text-[#A163F7] text-[10px] font-black px-2.5 py-1 rounded-full">
+                        Market Demand
+                    </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                    {(analytics?.trending_ai_demands || []).map((demand: any) => (
+                        <div 
+                            key={demand.id}
+                            className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between"
+                        >
+                            <div>
+                                <div className="flex items-center justify-between gap-1 mb-2">
+                                    <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                                        {demand.category_hint}
+                                    </span>
+                                    <span className="bg-purple-100 text-[#A163F7] text-[9px] font-black px-2 py-0.5 rounded-full">
+                                        {demand.request_count} Search{demand.request_count > 1 ? 'es' : ''}
+                                    </span>
+                                </div>
+                                <h4 className="font-bold text-xs text-slate-900 leading-snug">
+                                    "{demand.query_text}"
+                                </h4>
+                            </div>
+
+                            <div className="pt-2 mt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px]">
+                                <span className={demand.had_direct_match ? "text-emerald-600 font-bold" : "text-[#FF7582] font-black"}>
+                                    {demand.had_direct_match ? "✓ In Catalog" : "⚡ Restock Alert"}
+                                </span>
+                                <span className="text-slate-400">
+                                    {new Date(demand.last_requested_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+
+                    {(!analytics?.trending_ai_demands || analytics?.trending_ai_demands.length === 0) && (
+                        <div className="col-span-full py-6 text-center text-slate-400 text-xs">
+                            No shopper queries recorded yet.
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* 4. RECENT PLATFORM ORDERS FEED */}
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <div>

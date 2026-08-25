@@ -6,6 +6,7 @@ from src.models.shop import Shop
 from src.models.product import Product
 from src.models.order import Order
 from src.models.review import Review
+from src.models.ai_chat import AIDemandInsight
 from src.services import shop_service
 from src.auth.deps import get_current_user, get_shop_owner
 import logging
@@ -89,6 +90,22 @@ def get_my_shop_analytics(user = Depends(get_current_user), session: Session = D
             "items_count": len(o.items) if o.items else 0
         })
 
+    # High Demand Shopper Queries from AI Assistant
+    demands = session.exec(
+        select(AIDemandInsight).order_by(AIDemandInsight.request_count.desc(), AIDemandInsight.last_requested_at.desc()).limit(8)
+    ).all()
+
+    demands_list = [
+        {
+            "id": d.id,
+            "query_text": d.query_text,
+            "category_hint": d.category_hint or "General Market",
+            "request_count": d.request_count,
+            "had_direct_match": d.had_direct_match,
+            "last_requested_at": d.last_requested_at
+        } for d in demands
+    ]
+
     return {
         "shop": {
             "id": shop.id,
@@ -108,7 +125,8 @@ def get_my_shop_analytics(user = Depends(get_current_user), session: Session = D
             {"id": p.id, "name": p.name, "stock_quantity": p.stock_quantity, "price": p.price, "image_url": p.image_url}
             for p in low_stock
         ],
-        "recent_orders": recent_orders_list
+        "recent_orders": recent_orders_list,
+        "trending_ai_demands": demands_list
     }
 
 @router.put("/me", response_model=Shop)

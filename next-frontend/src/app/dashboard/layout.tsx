@@ -14,7 +14,8 @@ import {
   Menu, 
   X,
   Sparkles,
-  BarChart3
+  BarChart3,
+  MessageSquare
 } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -62,6 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Store Analytics', href: '/dashboard', icon: BarChart3 },
     { name: 'Products Inventory', href: '/dashboard/products', icon: Layers },
     { name: 'Customer Orders', href: '/dashboard/orders', icon: ShoppingBag },
+    { name: 'Product Reviews', href: '/dashboard/reviews', icon: MessageSquare },
   ];
 
   return (
