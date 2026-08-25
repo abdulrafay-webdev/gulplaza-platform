@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from src.models.ai_chat import AIChat, AIMessage, AIDemandInsight
 from src.models.product import Product, ProductImage
 from src.models.shop import Shop
+from src.models.category import Category
 from src.models.review import Review
 from src.services.ai_provider import get_ai_provider
 
@@ -179,93 +180,104 @@ def hydrate_product_cards(session: Session, product_ids: List[int]) -> List[Dict
 
 def search_candidate_products(session: Session, intent: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
-    Query live marketplace database for exact matching or closest alternative products.
+    Intelligent candidate search:
+    1. Gender & Demographic Disqualification (e.g. no women kurti for boys suit)
+    2. Typo-tolerant keyword scoring across name, short/long description, shop name
+    3. Category match boosting
     """
-    query = select(Product).where(
-        Product.is_deleted == False,
-        Product.is_active == True,
-        Product.stock_quantity > 0
-    ).options(selectinload(Product.shop))
+    all_products = session.exec(
+        select(Product)
+        .where(Product.is_deleted == False, Product.is_active == True, Product.stock_quantity > 0)
+        .options(selectinload(Product.shop))
+    ).all()
 
-    # Apply Price Filters
-    if intent.get("max_price"):
-        try:
-            query = query.where(Product.price <= float(intent["max_price"]))
-        except Exception:
-            pass
+    gender_target = (intent.get("gender_target") or "").lower()
+    negative_terms = [t.lower() for t in intent.get("negative_terms", [])]
+    search_terms = [t.lower() for t in intent.get("search_terms", []) if len(t) >= 2]
+    target_item = (intent.get("target_item") or "").lower()
+    category_hint = (intent.get("category_hint") or "").lower()
+    color = (intent.get("color") or "").lower()
+    max_price = intent.get("max_price")
+    min_price = intent.get("min_price")
 
-    if intent.get("min_price"):
-        try:
-            query = query.where(Product.price >= float(intent["min_price"]))
-        except Exception:
-            pass
+    # Hard-coded demographic rules for Urdu apparel
+    women_apparel_keywords = ["kurti", "lawn", "dupatta", "chiffon", "ladies", "women", "frock", "lehenga", "female", "girl", "bridal"]
+    men_apparel_keywords = ["coatpant", "coat pant", "pant shirt", "groom", "gents", "mens", "men's", "linen kurta", "oxford"]
 
-    search_terms = intent.get("search_terms", [])
-    target_item = intent.get("target_item")
-    color = intent.get("color")
-    category_hint = intent.get("category_hint")
+    scored_candidates = []
 
-    conditions = []
-    if target_item:
-        conditions.append(Product.name.ilike(f"%{target_item}%"))
-        conditions.append(Product.short_description.ilike(f"%{target_item}%"))
+    for p in all_products:
+        p_name = (p.name or "").lower()
+        p_desc = (p.short_description or "" + " " + (p.long_description or "")).lower()
+        p_shop = (p.shop.name if p.shop else "").lower()
+        combined_text = f"{p_name} {p_desc} {p_shop}"
 
-    for term in search_terms:
-        if len(term) >= 3:
-            conditions.append(Product.name.ilike(f"%{term}%"))
-            conditions.append(Product.short_description.ilike(f"%{term}%"))
+        # 1. Price check
+        if max_price and p.price > float(max_price):
+            continue
+        if min_price and p.price < float(min_price):
+            continue
 
-    if color:
-        conditions.append(Product.name.ilike(f"%{color}%"))
-        conditions.append(Product.short_description.ilike(f"%{color}%"))
+        # 2. Gender / Demographic Negative Filtering
+        if gender_target in ["men", "boys", "male"]:
+            # Disqualify if product contains women's markers
+            if any(w in p_name for w in women_apparel_keywords) or any(neg in p_name for neg in negative_terms):
+                continue
 
-    if conditions:
-        query = query.where(or_(*conditions))
+        if gender_target in ["women", "girls", "female"]:
+            # Disqualify if product is explicitly men's coatpant / groom
+            if any(w in p_name for w in ["groom wedding", "boys coat", "gents"]):
+                continue
 
-    results = session.exec(query.limit(8)).all()
+        # 3. Calculate Relevance Score
+        score = 0
 
-    # If exact search returned results, return them
-    if len(results) >= 2:
-        return [
-            {
-                "id": p.id,
-                "name": p.name,
-                "price": p.price,
-                "shop_name": p.shop.name if p.shop else "AI Plaza Partner",
-                "short_description": p.short_description,
-                "stock_quantity": p.stock_quantity
-            } for p in results
-        ]
+        # Exact target item matching
+        if target_item:
+            if target_item in p_name:
+                score += 30
+            elif target_item in p_desc:
+                score += 15
 
-    # ALTERNATIVES RETRIEVAL:
-    # If exact item was not found or only 1 found, fetch closest alternative products from same category or related items
-    alt_conditions = []
-    if category_hint:
-        alt_conditions.append(Product.name.ilike(f"%{category_hint}%"))
-        alt_conditions.append(Product.short_description.ilike(f"%{category_hint}%"))
+        # Search terms matching
+        for term in search_terms:
+            if term in p_name:
+                score += 12
+            elif term in p_desc:
+                score += 6
+            elif term in p_shop:
+                score += 4
 
-    # Add general category items as alternatives
-    alt_query = select(Product).where(
-        Product.is_deleted == False,
-        Product.is_active == True,
-        Product.stock_quantity > 0
-    ).options(selectinload(Product.shop))
+        # Kitchen / Cookware Intent Special Scoring
+        if category_hint in ["crockery & kitchenware", "home appliances"] or any(k in target_item for k in ["cookware", "kitchen", "kettle", "fryer", "crockery", "pot", "pan"]):
+            if any(k in p_name for k in ["cookware", "granite", "non-stick", "kettle", "fryer", "vacuum", "crockery"]):
+                score += 35
+            if any(k in p_shop for k in ["crockery", "cookware", "kitchen", "appliances", "electronics"]):
+                score += 15
 
-    if alt_conditions:
-        alt_query = alt_query.where(or_(*alt_conditions))
+        # Men's Suit / Apparel Intent Special Scoring
+        if gender_target in ["men", "boys"] and any(k in target_item or k in search_terms for k in ["suit", "coat", "pant", "shirt", "office"]):
+            if any(k in p_name for k in ["coatpant", "coat pant", "pant shirt", "linen kurta", "oxford"]):
+                score += 35
 
-    alt_results = session.exec(alt_query.limit(6)).all()
+        # Color match
+        if color and color in combined_text:
+            score += 8
 
-    # Merge results and alternatives
-    combined = list(results)
-    seen_ids = {p.id for p in combined}
-    for alt in alt_results:
-        if alt.id not in seen_ids:
-            combined.append(alt)
-            seen_ids.add(alt.id)
+        # If product has a positive relevance score, add to candidates
+        if score > 0:
+            scored_candidates.append({
+                "product": p,
+                "score": score
+            })
 
+    # Sort candidates by relevance score descending
+    scored_candidates.sort(key=lambda x: x["score"], reverse=True)
+
+    # Return top 8 candidate products
     candidates = []
-    for p in combined:
+    for item in scored_candidates[:8]:
+        p = item["product"]
         candidates.append({
             "id": p.id,
             "name": p.name,
@@ -274,6 +286,7 @@ def search_candidate_products(session: Session, intent: Dict[str, Any]) -> List[
             "short_description": p.short_description,
             "stock_quantity": p.stock_quantity
         })
+
     return candidates
 
 def process_ai_message(
@@ -304,7 +317,7 @@ def process_ai_message(
     intent = ai.extract_shopping_intent(content, image_url=image_url)
     logger.info(f"Extracted AI Shopping Intent: {intent}")
 
-    # 3. Retrieve Candidate Products from Database (Exact + Alternatives)
+    # 3. Retrieve Candidate Products from Database (Intelligent Demographics & Scoring)
     candidate_products = search_candidate_products(session, intent)
     logger.info(f"Found {len(candidate_products)} candidate/alternate products in marketplace")
 
