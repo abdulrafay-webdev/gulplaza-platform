@@ -203,12 +203,20 @@ def hydrate_product_cards(session: Session, product_ids: List[int]) -> List[Dict
 def search_candidate_products(session: Session, intent: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     Intelligent candidate search:
-    1. Negation filtering (e.g. 'nhi shoes nhi' -> completely exclude shoes)
-    2. Gift query multi-category distribution
-    3. Demographic isolation
-    4. Multi-keyword relevance scoring
+    1. Returns [] if intent is conversational only, context setting, or needs clarification
+    2. Negation filtering (e.g. 'nhi shoes nhi' -> completely exclude shoes)
+    3. Outfit matching support (e.g. red shirt -> matching pants/bottoms/shoes)
+    4. Gift query multi-category distribution
+    5. Demographic isolation
+    6. Multi-keyword relevance scoring
     """
-    if intent.get("is_conversational_only"):
+    if not intent.get("needs_product_search", True):
+        return []
+
+    if intent.get("is_conversational_only") or intent.get("is_context_setting"):
+        return []
+
+    if intent.get("needs_clarification") and not intent.get("target_item") and not intent.get("search_terms"):
         return []
 
     all_products = session.exec(
@@ -237,7 +245,7 @@ def search_candidate_products(session: Session, intent: Dict[str, Any]) -> List[
 
     search_terms = list(set(search_terms))
 
-    # Expand negative terms with synonyms (e.g. if shoes is negative, add sneaker, oxford, footwear)
+    # Expand negative terms with synonyms
     expanded_negatives = list(negative_terms)
     for neg in negative_terms:
         if any(s in neg for s in ["shoe", "joot", "sneaker", "footwear", "oxford"]):
@@ -284,7 +292,7 @@ def search_candidate_products(session: Session, intent: Dict[str, Any]) -> List[
         # 4. Calculate Relevance Score
         score = 0
 
-        # Gift Query Handling: Give high baseline to diverse gift items
+        # Gift Query Handling
         if is_gift_query:
             if any(gm in p_name for gm in gift_markers):
                 score += 30
@@ -292,11 +300,16 @@ def search_candidate_products(session: Session, intent: Dict[str, Any]) -> List[
                 score += 15
 
         # Exact target item matching
-        if target_item and target_item != "gift ideas" and target_item != "gift":
+        if target_item and target_item not in ["gift ideas", "gift", "product"]:
             if target_item in p_name:
                 score += 35
             elif target_item in p_desc:
                 score += 15
+
+        # Matching pant / trousers query (e.g. matching pant for red shirt)
+        if any(k in target_item or k in search_terms for k in ["pant", "trousers", "chinos", "bottoms"]):
+            if any(k in p_name for k in ["pant", "coatpant", "pant shirt"]):
+                score += 40
 
         # Search terms matching
         for term in search_terms:
@@ -369,15 +382,28 @@ def process_ai_message(
     content: str,
     image_url: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Execute complete multi-turn Shopping Assistant RAG pipeline with conversation memory."""
+    """Execute complete multi-turn Shopping Assistant RAG pipeline with rich conversation memory."""
     chat = get_or_create_chat(session, user_identity, user_type, chat_id=chat_id)
 
     # 1. Load recent conversation history for context (up to last 10 messages)
     history = []
     for m in chat.messages[-10:]:
+        prods_summary = ""
+        if m.product_ids_json:
+            try:
+                p_ids = json.loads(m.product_ids_json)
+                if isinstance(p_ids, list) and p_ids:
+                    hydrated = hydrate_product_cards(session, p_ids)
+                    p_names = [f"#{p['id']} {p['name']} (Rs. {p['price']})" for p in hydrated]
+                    prods_summary = "Recommended: " + ", ".join(p_names)
+            except Exception:
+                pass
+
         history.append({
             "role": m.role,
-            "content": m.content
+            "content": m.content,
+            "image_url": m.image_url,
+            "products_context": prods_summary
         })
 
     # 2. Save Current User Message to DB
@@ -410,8 +436,8 @@ def process_ai_message(
         history=history
     )
 
-    # 6. Record Demand Insight for Seller Dashboard (if meaningful query)
-    if not intent.get("is_conversational_only"):
+    # 6. Record Demand Insight for Seller Dashboard (if meaningful product search)
+    if intent.get("needs_product_search", True) and not intent.get("is_conversational_only"):
         record_customer_demand(
             session=session,
             query_text=content,
