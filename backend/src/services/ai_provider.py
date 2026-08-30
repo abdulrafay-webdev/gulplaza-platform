@@ -55,11 +55,20 @@ class GeminiProvider(AIProvider):
         return None
 
     def _post_with_retry(self, payload: Dict[str, Any], max_retries: int = 2) -> Optional[Dict[str, Any]]:
-        """Execute Gemini API request with controlled retry on transient failures."""
+        """Execute Gemini API request with separate budgets for rate limits and server errors.
+
+        - 429 (rate limit): up to 4 retries, respects Retry-After header, exponential backoff
+        - 500/502/503/504: up to max_retries (default 2), short linear backoff
+        - Transport errors: counted against the server error budget
+        """
         if not self.api_key:
             return None
 
-        for attempt in range(1, max_retries + 1):
+        rate_limit_remaining = 4
+        server_remaining = max_retries
+        total_attempts = max_retries + 4 + 1  # server + rate limit + initial
+
+        for attempt in range(1, total_attempts + 1):
             try:
                 with httpx.Client(timeout=15.0) as client:
                     res = client.post(
@@ -72,23 +81,50 @@ class GeminiProvider(AIProvider):
                     )
                     if res.status_code == 200:
                         return res.json()
-                    if res.status_code in (429, 500, 502, 503, 504):
-                        if attempt == max_retries:
-                            logger.error(f"Gemini API transient status {res.status_code} exhausted {max_retries} retries.")
+
+                    if res.status_code == 429:
+                        if rate_limit_remaining <= 0:
+                            logger.error("Gemini 429 rate limit exhausted all 4 retries.")
                             return None
-                        base = 1.5 if res.status_code == 429 else 0.6
-                        sleep_time = base * attempt + random.uniform(0, 0.3)
-                        logger.warning(f"Gemini transient {res.status_code} (attempt {attempt}/{max_retries}); retrying in {sleep_time:.2f}s")
+                        rate_limit_remaining -= 1
+                        retry_after = res.headers.get("Retry-After")
+                        if retry_after:
+                            try:
+                                sleep_time = min(float(retry_after), 30.0)
+                            except (ValueError, TypeError):
+                                sleep_time = min(5.0 * (2 ** (3 - rate_limit_remaining)), 30.0)
+                        else:
+                            sleep_time = min(5.0 * (2 ** (3 - rate_limit_remaining)), 30.0)
+                        sleep_time += random.uniform(0, 0.5)
+                        logger.warning(
+                            f"Gemini 429 rate limit (retry-after={retry_after}s, "
+                            f"waiting {sleep_time:.1f}s, {rate_limit_remaining} rate retries left)"
+                        )
                         time.sleep(sleep_time)
+
+                    elif res.status_code in (500, 502, 503, 504):
+                        if server_remaining <= 0:
+                            logger.error(f"Gemini server error {res.status_code} exhausted retries.")
+                            return None
+                        server_remaining -= 1
+                        sleep_time = 0.6 * (max_retries - server_remaining) + random.uniform(0, 0.3)
+                        logger.warning(
+                            f"Gemini transient {res.status_code} (attempt {attempt}); "
+                            f"retrying in {sleep_time:.2f}s, {server_remaining} server retries left"
+                        )
+                        time.sleep(sleep_time)
+
                     else:
                         logger.error(f"Gemini API error {res.status_code}: {res.text[:500]}")
                         return None
+
             except (httpx.TimeoutException, httpx.TransportError) as e:
-                if attempt == max_retries:
-                    logger.error(f"Gemini transport failure exhausted {max_retries} retries: {e}")
+                if server_remaining <= 0:
+                    logger.error(f"Gemini transport failure exhausted retries: {e}")
                     return None
-                sleep_time = 0.6 * attempt + random.uniform(0, 0.3)
-                logger.warning(f"Gemini transport error: {e} (attempt {attempt}/{max_retries}); retrying in {sleep_time:.2f}s")
+                server_remaining -= 1
+                sleep_time = 0.6 * (max_retries - server_remaining) + random.uniform(0, 0.3)
+                logger.warning(f"Gemini transport error: {e}; retrying in {sleep_time:.2f}s, {server_remaining} server retries left")
                 time.sleep(sleep_time)
             except Exception as e:
                 logger.error(f"Unexpected error in Gemini API call: {e}")
