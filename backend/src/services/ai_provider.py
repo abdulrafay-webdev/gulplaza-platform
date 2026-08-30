@@ -65,14 +65,14 @@ class GeminiProvider(AIProvider):
             logger.warning(f"Failed to fetch image for Gemini vision ({image_url}): {e}")
         return None
 
-    def _post_with_retry(self, payload: Dict[str, Any], max_retries: int = 3) -> Optional[Dict[str, Any]]:
+    def _post_with_retry(self, payload: Dict[str, Any], max_retries: int = 4) -> Optional[Dict[str, Any]]:
         """Execute Gemini API request with automatic retry on 503/429/connection spikes."""
         if not self.api_key:
             return None
 
         for attempt in range(1, max_retries + 1):
             try:
-                with httpx.Client(timeout=25.0) as client:
+                with httpx.Client(timeout=30.0) as client:
                     res = client.post(
                         f"{self.base_url}?key={self.api_key}",
                         json=payload,
@@ -81,14 +81,15 @@ class GeminiProvider(AIProvider):
                     if res.status_code == 200:
                         return res.json()
                     elif res.status_code in [429, 500, 502, 503, 504]:
-                        logger.warning(f"Gemini API transient error {res.status_code} (attempt {attempt}/{max_retries}). Retrying in 1.5s...")
-                        time.sleep(1.5 * attempt)
+                        sleep_time = 2.5 * attempt if res.status_code == 429 else 1.5 * attempt
+                        logger.warning(f"Gemini API transient error {res.status_code} (attempt {attempt}/{max_retries}). Retrying in {sleep_time}s...")
+                        time.sleep(sleep_time)
                     else:
                         logger.error(f"Gemini API client error {res.status_code}: {res.text}")
                         return None
             except (httpx.TimeoutException, httpx.NetworkError) as e:
                 logger.warning(f"Gemini connection timeout/error: {e} (attempt {attempt}/{max_retries}). Retrying...")
-                time.sleep(1.5 * attempt)
+                time.sleep(2.0 * attempt)
             except Exception as e:
                 logger.error(f"Unexpected error in Gemini API call: {e}")
                 return None
