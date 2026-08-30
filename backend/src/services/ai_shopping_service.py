@@ -1,3 +1,4 @@
+import re
 import json
 import logging
 from typing import List, Optional, Dict, Any
@@ -16,9 +17,9 @@ from src.services.ai_provider import get_ai_provider
 logger = logging.getLogger(__name__)
 
 def record_customer_demand(
-    session: Session, 
-    query_text: str, 
-    category_hint: Optional[str] = None, 
+    session: Session,
+    query_text: str,
+    category_hint: Optional[str] = None,
     had_direct_match: bool = True
 ):
     """Track search demand so sellers can see trending customer requests on their dashboard."""
@@ -53,9 +54,9 @@ def record_customer_demand(
         session.rollback()
 
 def get_or_create_chat(
-    session: Session, 
-    user_identity: str, 
-    user_type: str = "customer", 
+    session: Session,
+    user_identity: str,
+    user_type: str = "customer",
     chat_id: Optional[int] = None,
     initial_title: Optional[str] = None
 ) -> AIChat:
@@ -177,25 +178,78 @@ def hydrate_product_cards(session: Session, product_ids: List[int]) -> List[Dict
             })
     return hydrated
 
-def get_active_catalog_products(session: Session) -> List[Dict[str, Any]]:
-    """Fetch all active, in-stock marketplace products for conversational reasoning."""
-    all_products = session.exec(
-        select(Product)
-        .where(Product.is_deleted == False, Product.is_active == True, Product.stock_quantity > 0)
-        .options(selectinload(Product.shop))
-    ).all()
 
-    catalog = []
-    for p in all_products:
-        catalog.append({
+_STOPWORDS = {
+    "chahiye", "chahye", "dikhao", "mujhe", "mjhe", "kya", "hai", "hay",
+    "karo", "karna", "keliye", "liye", "under", "with", "good", "best",
+    "the", "and", "for", "koi", "acha", "achi", "sasta", "please",
+}
+
+def _keywords(query: str) -> List[str]:
+    """Extract meaningful search keywords from a user message."""
+    words = [w.strip(".,!?()").lower() for w in (query or "").split()]
+    return [w for w in words if len(w) > 3 and w not in _STOPWORDS][:6]
+
+
+def get_active_catalog_products(
+    session: Session,
+    query: str = "",
+    limit: int = 50,
+) -> List[Dict[str, Any]]:
+    """Fetch active, in-stock products, prioritising keyword matches."""
+    base_filters = [
+        Product.is_deleted == False,
+        Product.is_active == True,
+        Product.stock_quantity > 0,
+    ]
+
+    selected: Dict[int, Any] = {}
+    kws = _keywords(query)
+
+    if kws:
+        conds = []
+        for kw in kws:
+            like = f"%{kw}%"
+            conds.append(Product.name.ilike(like))
+            conds.append(Product.short_description.ilike(like))
+        matches = session.exec(
+            select(Product).where(*base_filters, or_(*conds))
+            .options(selectinload(Product.shop))
+            .limit(limit)
+        ).all()
+        selected = {p.id: p for p in matches}
+
+    # Backfill with recent catalog so the model can still cross-sell
+    if len(selected) < limit:
+        fill = session.exec(
+            select(Product).where(*base_filters)
+            .options(selectinload(Product.shop))
+            .order_by(Product.id.desc())
+            .limit(limit - len(selected))
+        ).all()
+        for p in fill:
+            selected.setdefault(p.id, p)
+
+    return [
+        {
             "id": p.id,
             "name": p.name,
             "price": p.price,
             "shop_name": p.shop.name if p.shop else "AI Plaza Store",
             "short_description": p.short_description or "",
-            "stock_quantity": p.stock_quantity
-        })
-    return catalog
+            "stock_quantity": p.stock_quantity,
+        }
+        for p in list(selected.values())[:limit]
+    ]
+
+
+def _sanitize_demand_keyword(raw: Optional[str], fallback: str) -> str:
+    """Clean and truncate demand keyword to prevent dashboard pollution."""
+    text = (raw or fallback or "").strip()
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"[^\w\s&+-]", "", text, flags=re.UNICODE)
+    return text[:60].strip().lower()
+
 
 def process_ai_message(
     session: Session,
@@ -205,31 +259,46 @@ def process_ai_message(
     content: str,
     image_url: Optional[str] = None
 ) -> Dict[str, Any]:
-    """
-    Execute high-speed single-pass Shopping Assistant RAG pipeline with rich conversation memory.
-    Latency is reduced by 60% with instant contextual response generation.
-    """
+    """Execute shopping assistant pipeline with conversation memory and product recommendations."""
     chat = get_or_create_chat(session, user_identity, user_type, chat_id=chat_id)
 
-    # 1. Load recent conversation history (up to last 10 messages)
-    history = []
-    for m in chat.messages[-10:]:
-        prods_summary = ""
-        if m.product_ids_json:
-            try:
-                p_ids = json.loads(m.product_ids_json)
-                if isinstance(p_ids, list) and p_ids:
-                    hydrated = hydrate_product_cards(session, p_ids)
-                    p_names = [f"#{p['id']} {p['name']} (Rs. {p['price']})" for p in hydrated]
-                    prods_summary = "Recommended: " + ", ".join(p_names)
-            except Exception:
-                pass
+    # 1. Load recent conversation history with batched product hydration
+    recent = chat.messages[-10:]
 
+    all_ids: List[int] = []
+    per_msg_ids: Dict[int, List[int]] = {}
+    for m in recent:
+        if not m.product_ids_json:
+            continue
+        try:
+            pids = json.loads(m.product_ids_json)
+        except Exception:
+            continue
+        if isinstance(pids, list) and pids:
+            clean = [int(p) for p in pids if isinstance(p, (int, str)) and str(p).isdigit()]
+            per_msg_ids[m.id] = clean
+            all_ids.extend(clean)
+
+    card_map: Dict[int, Dict[str, Any]] = {}
+    if all_ids:
+        card_map = {c["id"]: c for c in hydrate_product_cards(session, list(dict.fromkeys(all_ids)))}
+
+    history = []
+    for m in recent:
+        prods_summary = ""
+        ids = per_msg_ids.get(m.id)
+        if ids:
+            names = [
+                f"#{card_map[i]['id']} {card_map[i]['name']} (Rs. {card_map[i]['price']})"
+                for i in ids if i in card_map
+            ]
+            if names:
+                prods_summary = "Recommended: " + ", ".join(names)
         history.append({
             "role": m.role,
             "content": m.content,
             "image_url": m.image_url,
-            "products_context": prods_summary
+            "products_context": prods_summary,
         })
 
     # 2. Save Current User Message to DB
@@ -244,8 +313,8 @@ def process_ai_message(
     session.add(user_msg)
     session.flush()
 
-    # 3. Retrieve Active Marketplace Catalog
-    catalog_products = get_active_catalog_products(session)
+    # 3. Retrieve Active Marketplace Catalog (keyword-filtered, limited)
+    catalog_products = get_active_catalog_products(session, query=content, limit=50)
 
     # 4. Execute Unified Conversational Turn in Single Gemini Call
     ai = get_ai_provider()
@@ -256,20 +325,11 @@ def process_ai_message(
         history=history
     )
 
-    ai_response_text = result.get("message", "Aapke liye ye behtareen options hain:")
+    ai_response_text = result.get("message") or "Aapke liye ye behtareen options hain:"
     recommended_ids = result.get("recommended_product_ids", [])
-    demand_keyword = result.get("demand_keyword") or content
+    demand_keyword = _sanitize_demand_keyword(result.get("demand_keyword"), content)
 
-    # 5. Record Demand Insight for Seller Dashboard
-    if recommended_ids or len(content.split()) >= 2:
-        record_customer_demand(
-            session=session,
-            query_text=demand_keyword,
-            category_hint=result.get("category_hint"),
-            had_direct_match=bool(recommended_ids)
-        )
-
-    # 6. Save Assistant Message to DB
+    # 5. Save Assistant Message to DB
     assistant_msg = AIMessage(
         chat_id=chat.id,
         role="assistant",
@@ -280,7 +340,7 @@ def process_ai_message(
     )
     session.add(assistant_msg)
 
-    # 7. Auto-generate chat title if it's the first message
+    # 6. Auto-generate chat title if it's the first message
     if chat.title == "New Shopping Conversation" or chat.title == "Shopping Assistant Chat":
         clean_title = content[:35] + ("..." if len(content) > 35 else "")
         if image_url and not content:
@@ -291,7 +351,16 @@ def process_ai_message(
     session.commit()
     session.refresh(assistant_msg)
 
-    # 8. Hydrate recommended product cards for instant UI presentation
+    # 7. Record Demand Insight AFTER commit so rollback can never discard messages
+    if recommended_ids or len(content.split()) >= 2:
+        record_customer_demand(
+            session=session,
+            query_text=demand_keyword,
+            category_hint=result.get("category_hint"),
+            had_direct_match=bool(recommended_ids)
+        )
+
+    # 8. Hydrate recommended product cards for UI presentation
     product_cards = hydrate_product_cards(session, recommended_ids)
 
     return {

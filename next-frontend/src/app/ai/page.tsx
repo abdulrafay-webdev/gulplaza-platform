@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useCustomer } from '@/context/CustomerContext';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { ai, setAuthToken } from '@/services/api';
@@ -36,6 +36,7 @@ export default function AIAssistantPage() {
     const router = useRouter();
     const { customer, isLoaded: customerLoaded } = useCustomer();
     const { user, isLoaded: userLoaded } = useUser();
+    const { getToken } = useAuth();
     const { addToCart } = useCart();
 
     const [chats, setChats] = useState<any[]>([]);
@@ -49,6 +50,7 @@ export default function AIAssistantPage() {
     const [loadingChats, setLoadingChats] = useState(true);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [cartToast, setCartToast] = useState<string | null>(null);
+    const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +63,34 @@ export default function AIAssistantPage() {
         scrollToBottom();
     }, [messages, isThinking]);
 
+    const ensureAuthToken = async () => {
+        if (customer) return;
+        if (!user) return;
+        try {
+            const token = await getToken();
+            if (token) setAuthToken(token);
+        } catch (e) {
+            console.error("Failed to refresh Clerk token:", e);
+        }
+    };
+
+    const describeAxiosError = (err: any): string => {
+        if (err?.code === 'ECONNABORTED' || err?.code === 'ETIMEDOUT') {
+            return "Request time out ho gayi. AI abhi busy hai — dobara try karein.";
+        }
+        if (!err?.response) {
+            return "Internet connection ya server se rabta nahi ho saka. Apna connection check karein.";
+        }
+        const s = err.response?.status;
+        if (s === 401 || s === 403) {
+            return "Aapka login session khatam ho gaya hai. Baraye meharbani dobara sign in karein.";
+        }
+        if (s === 413) return "Image ka size bohat bara hai (max 10MB).";
+        if (s === 429) return "Bohat zyada requests. Thori dair baad koshish karein.";
+        if (s >= 500) return "Server mein masla hai. Kuch dair baad dobara try karein.";
+        return err.response?.data?.detail || "Request process karte waqt issue aaya hai. Dobara try karein.";
+    };
+
     // Immediate Authentication Validation & Redirect Gate
     useEffect(() => {
         if (!customerLoaded || !userLoaded) return;
@@ -72,6 +102,7 @@ export default function AIAssistantPage() {
 
         const fetchChats = async () => {
             try {
+                await ensureAuthToken();
                 const res = await ai.listChats();
                 const chatList = res.data || [];
                 setChats(chatList);
@@ -91,10 +122,13 @@ export default function AIAssistantPage() {
         try {
             setCurrentChatId(chatId);
             setHistoryOpen(false);
+            setErrorBanner(null);
+            await ensureAuthToken();
             const res = await ai.getChat(chatId);
             setMessages(res.data.messages || []);
         } catch (err) {
             console.error("Failed to load chat details:", err);
+            setErrorBanner(describeAxiosError(err));
         }
     };
 
@@ -135,12 +169,15 @@ export default function AIAssistantPage() {
         const text = textToSend !== undefined ? textToSend : inputText;
         if (!text.trim() && !selectedImageFile) return;
 
+        const tempId = Date.now();
         let uploadedImageUrl: string | undefined = undefined;
 
         setIsThinking(true);
-        setInputText('');
+        setErrorBanner(null);
 
         try {
+            await ensureAuthToken();
+
             // 1. Upload image if selected
             if (selectedImageFile) {
                 setIsUploadingImage(true);
@@ -152,15 +189,17 @@ export default function AIAssistantPage() {
                 setIsUploadingImage(false);
             }
 
+            // Clear input only after upload succeeds
+            setInputText('');
+
             // 2. Optimistic user message preview
-            const tempUserMsg = {
-                id: Date.now(),
+            setMessages(prev => [...prev, {
+                id: tempId,
                 role: 'user',
                 content: text,
                 image_url: uploadedImageUrl,
                 created_at: new Date().toISOString()
-            };
-            setMessages(prev => [...prev, tempUserMsg]);
+            }]);
 
             // 3. If no chat open, create a new one first
             let chatId = currentChatId;
@@ -173,16 +212,14 @@ export default function AIAssistantPage() {
                 if (createRes.data.chat) {
                     chatId = createRes.data.chat.id;
                     setCurrentChatId(chatId);
-                    
-                    // The create response processes the initial message
+
                     if (createRes.data.assistant_message) {
                         setMessages([
                             createRes.data.user_message,
                             createRes.data.assistant_message
                         ]);
                     }
-                    
-                    // Refresh chat list
+
                     const listRes = await ai.listChats();
                     setChats(listRes.data || []);
                     setIsThinking(false);
@@ -199,8 +236,7 @@ export default function AIAssistantPage() {
 
                 if (res.data.assistant_message) {
                     setMessages(prev => {
-                        // Replace temp message with server response
-                        const filtered = prev.filter(m => m.id !== tempUserMsg.id);
+                        const filtered = prev.filter(m => m.id !== tempId);
                         return [
                             ...filtered,
                             res.data.user_message,
@@ -209,22 +245,20 @@ export default function AIAssistantPage() {
                     });
                 }
 
-                // Update chat list metadata
                 const listRes = await ai.listChats();
                 setChats(listRes.data || []);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("AI chat error:", err);
-            setMessages(prev => [
-                ...prev,
-                {
-                    id: Date.now() + 1,
-                    role: 'assistant',
-                    content: "Maaf kijiye, request process karte waqt issue aaya hai. Baraye meharbani dobara try karein.",
-                    created_at: new Date().toISOString(),
-                    products: []
-                }
-            ]);
+            // Remove orphaned optimistic message
+            setMessages(prev => prev.filter(m => m.id !== tempId));
+            // Restore the user's text so it is not lost
+            setInputText(prev => prev || text);
+            setErrorBanner(describeAxiosError(err));
+            // Redirect on auth failure
+            if (err?.response?.status === 401) {
+                setTimeout(() => router.replace('/login?redirect=/ai'), 2000);
+            }
         } finally {
             setIsThinking(false);
             setIsUploadingImage(false);
@@ -236,6 +270,7 @@ export default function AIAssistantPage() {
         if (!confirm("Are you sure you want to delete this chat history?")) return;
 
         try {
+            await ensureAuthToken();
             await ai.deleteChat(chatId);
             setChats(prev => prev.filter(c => c.id !== chatId));
             if (currentChatId === chatId) {
@@ -501,7 +536,7 @@ export default function AIAssistantPage() {
                                                                         <div className="flex items-baseline gap-1 mt-1">
                                                                             <span className="text-[10px] font-bold text-slate-400">Rs.</span>
                                                                             <span className="text-xs sm:text-sm font-black text-slate-950">
-                                                                                {prod.price.toLocaleString()}
+                                                                                {typeof prod.price === 'number' ? prod.price.toLocaleString() : '—'}
                                                                             </span>
                                                                         </div>
                                                                     </div>
@@ -514,7 +549,7 @@ export default function AIAssistantPage() {
                                                                         addToCart({
                                                                             product_id: prod.id,
                                                                             name: prod.name,
-                                                                            price: prod.price,
+                                                                            price: prod.price ?? 0,
                                                                             quantity: 1,
                                                                             shop_id: prod.shop_id,
                                                                             image_url: prod.image_url
@@ -578,6 +613,19 @@ export default function AIAssistantPage() {
                                 className="p-1.5 rounded-full hover:bg-purple-200 text-slate-500 hover:text-slate-900 transition-colors"
                             >
                                 <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Error Banner */}
+                    {errorBanner && (
+                        <div className="px-4 py-2.5 bg-red-50 border-t border-red-200 flex items-center justify-between gap-2">
+                            <p className="text-xs font-medium text-red-700 flex-1">{errorBanner}</p>
+                            <button
+                                onClick={() => setErrorBanner(null)}
+                                className="p-1 rounded-full hover:bg-red-100 text-red-400 hover:text-red-700 flex-shrink-0"
+                            >
+                                <X className="w-3.5 h-3.5" />
                             </button>
                         </div>
                     )}

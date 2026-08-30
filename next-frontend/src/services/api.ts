@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
+  timeout: 20000,
 });
 
 export const setAuthToken = (token: string | null) => {
@@ -76,15 +77,21 @@ export const search = {
     unified: (query: string) => api.get('/search/', { params: { q: query } }),
 };
 
+const AI_TIMEOUT = 30000;
+
 export const ai = {
-    listChats: () => api.get('/ai/chats'),
-    createChat: (data?: { initial_message?: string; image_url?: string }) => api.post('/ai/chats', data),
-    getChat: (chatId: string | number) => api.get(`/ai/chats/${chatId}`),
-    sendMessage: (chatId: string | number, data: { content: string; image_url?: string }) => api.post(`/ai/chats/${chatId}/messages`, data),
-    renameChat: (chatId: string | number, title: string) => api.patch(`/ai/chats/${chatId}/title`, { title }),
+    listChats: () => api.get('/ai/chats', { timeout: AI_TIMEOUT }),
+    createChat: (data?: { initial_message?: string; image_url?: string }) =>
+        api.post('/ai/chats', data, { timeout: AI_TIMEOUT }),
+    getChat: (chatId: string | number) => api.get(`/ai/chats/${chatId}`, { timeout: AI_TIMEOUT }),
+    sendMessage: (chatId: string | number, data: { content: string; image_url?: string }) =>
+        api.post(`/ai/chats/${chatId}/messages`, data, { timeout: AI_TIMEOUT }),
+    renameChat: (chatId: string | number, title: string) =>
+        api.patch(`/ai/chats/${chatId}/title`, { title }),
     deleteChat: (chatId: string | number) => api.delete(`/ai/chats/${chatId}`),
     uploadImage: (formData: FormData) => api.post('/ai/upload-image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000,
     }),
 };
 

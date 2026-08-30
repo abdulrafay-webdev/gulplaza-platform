@@ -14,7 +14,8 @@ if not DATABASE_URL:
 # If using async engine, might need modifications, but plan implies standard sync/FastAPI for simplicity unless specified.
 # Plan said "FastAPI + SQLModel". Sync is simpler for baseline.
 
-engine = create_engine(DATABASE_URL, echo=True)
+SQL_ECHO = os.getenv("SQL_ECHO", "false").lower() == "true"
+engine = create_engine(DATABASE_URL, echo=SQL_ECHO, pool_pre_ping=True)
 
 def get_session():
     with Session(engine) as session:

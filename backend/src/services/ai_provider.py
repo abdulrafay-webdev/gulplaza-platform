@@ -1,6 +1,8 @@
 import os
+import re
 import json
 import time
+import random
 import base64
 import logging
 from abc import ABC, abstractmethod
@@ -32,7 +34,6 @@ class GeminiProvider(AIProvider):
         if not image_url:
             return None
 
-        # 1. Direct Base64 Data URI
         if image_url.startswith("data:"):
             try:
                 header, b64_data = image_url.split(",", 1)
@@ -42,7 +43,6 @@ class GeminiProvider(AIProvider):
                 logger.warning(f"Failed to parse base64 data URI: {e}")
                 return None
 
-        # 2. Remote HTTP/HTTPS Image URL
         try:
             with httpx.Client(timeout=10.0) as client:
                 res = client.get(image_url)
@@ -54,35 +54,76 @@ class GeminiProvider(AIProvider):
             logger.warning(f"Failed to fetch image for Gemini vision ({image_url}): {e}")
         return None
 
-    def _post_with_retry(self, payload: Dict[str, Any], max_retries: int = 3) -> Optional[Dict[str, Any]]:
-        """Execute Gemini API request with fast retry on 503/429/connection spikes."""
+    def _post_with_retry(self, payload: Dict[str, Any], max_retries: int = 2) -> Optional[Dict[str, Any]]:
+        """Execute Gemini API request with controlled retry on transient failures."""
         if not self.api_key:
             return None
 
         for attempt in range(1, max_retries + 1):
             try:
-                with httpx.Client(timeout=25.0) as client:
+                with httpx.Client(timeout=15.0) as client:
                     res = client.post(
-                        f"{self.base_url}?key={self.api_key}",
+                        self.base_url,
                         json=payload,
-                        headers={"Content-Type": "application/json"}
+                        headers={
+                            "Content-Type": "application/json",
+                            "x-goog-api-key": self.api_key,
+                        },
                     )
                     if res.status_code == 200:
                         return res.json()
-                    elif res.status_code in [429, 500, 502, 503, 504]:
-                        sleep_time = 2.0 * attempt if res.status_code == 429 else 1.0 * attempt
-                        logger.warning(f"Gemini API transient status {res.status_code} (attempt {attempt}/{max_retries}). Retrying in {sleep_time}s...")
+                    if res.status_code in (429, 500, 502, 503, 504):
+                        if attempt == max_retries:
+                            logger.error(f"Gemini API transient status {res.status_code} exhausted {max_retries} retries.")
+                            return None
+                        base = 1.5 if res.status_code == 429 else 0.6
+                        sleep_time = base * attempt + random.uniform(0, 0.3)
+                        logger.warning(f"Gemini transient {res.status_code} (attempt {attempt}/{max_retries}); retrying in {sleep_time:.2f}s")
                         time.sleep(sleep_time)
                     else:
-                        logger.error(f"Gemini API error {res.status_code}: {res.text}")
+                        logger.error(f"Gemini API error {res.status_code}: {res.text[:500]}")
                         return None
-            except (httpx.TimeoutException, httpx.NetworkError) as e:
-                logger.warning(f"Gemini connection timeout/error: {e} (attempt {attempt}/{max_retries}). Retrying...")
-                time.sleep(1.0 * attempt)
+            except (httpx.TimeoutException, httpx.TransportError) as e:
+                if attempt == max_retries:
+                    logger.error(f"Gemini transport failure exhausted {max_retries} retries: {e}")
+                    return None
+                sleep_time = 0.6 * attempt + random.uniform(0, 0.3)
+                logger.warning(f"Gemini transport error: {e} (attempt {attempt}/{max_retries}); retrying in {sleep_time:.2f}s")
+                time.sleep(sleep_time)
             except Exception as e:
                 logger.error(f"Unexpected error in Gemini API call: {e}")
                 return None
         return None
+
+    @staticmethod
+    def _extract_text(data: Dict[str, Any]) -> Optional[str]:
+        """Robustly extract model text from a Gemini response, tolerating
+        safety blocks, missing parts, and thinking-only parts."""
+        candidates = data.get("candidates") or []
+        if not candidates:
+            fb = (data.get("promptFeedback") or {}).get("blockReason")
+            if fb:
+                logger.warning(f"Gemini blocked the prompt: {fb}")
+            return None
+
+        cand = candidates[0]
+        finish = cand.get("finishReason")
+        parts = ((cand.get("content") or {}).get("parts")) or []
+
+        chunks = []
+        for p in parts:
+            if p.get("thought"):
+                continue
+            t = p.get("text")
+            if isinstance(t, str) and t.strip():
+                chunks.append(t)
+
+        if not chunks:
+            logger.warning(f"Gemini returned no usable text (finishReason={finish}).")
+            return None
+        if finish not in (None, "STOP"):
+            logger.warning(f"Gemini finished with reason={finish}; using partial text.")
+        return "".join(chunks)
 
     def process_conversational_turn(
         self,
@@ -91,11 +132,7 @@ class GeminiProvider(AIProvider):
         image_url: Optional[str] = None,
         history: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
-        """
-        Unified single-pass high-speed shopping intelligence engine:
-        Handles intent detection, multi-turn memory, image understanding, order requests,
-        clarification, styling advice, and product card ranking in ONE blazing-fast roundtrip.
-        """
+        """Unified single-pass shopping intelligence engine."""
         if not self.api_key:
             return self._fallback_conversational_turn(user_message, catalog_products, history=history)
 
@@ -110,8 +147,8 @@ class GeminiProvider(AIProvider):
             "   - If the user says 'mjhe ye order karna hay', 'buy karna hai', 'purchase karna hai', 'cart mein add karo':\n"
             "     Guide them warmly: explain that they can click the 'Add Cart' button right on the product card below and proceed to checkout for quick delivery across Pakistan (3-5 days). Return the exact product ID in recommended_product_ids!\n\n"
             "3. MULTI-TURN CONVERSATION & MEMORY:\n"
-            "   - Understand context from previous messages (e.g., if user mentioned having a red shirt, and asks 'iske saath konsi pant achi lagegi?', recommend matching dark pants/trousers like Product #17 or #13).\n"
-            "   - If user says 'ye pasand nahi aya' / 'nhi shoes nhi', strictly exclude rejected items and suggest alternative gift categories (Perfumes, Smartwatches, Earbuds, Cookware).\n"
+            "   - Understand context from previous messages (e.g., if the user mentioned owning a red shirt and asks 'iske saath konsi pant achi lagegi?', recommend colour-appropriate matching items chosen ONLY from available_marketplace_products).\n"
+            "   - If user says 'ye pasand nahi aya' / 'nhi shoes nhi', strictly exclude rejected items and suggest alternative categories available in the marketplace.\n"
             "   - If user asks a general question ('Delivery kitne din mein hoti hai?', 'Aap kaun ho?'), answer naturally with ZERO product cards (recommended_product_ids: []).\n\n"
             "4. CLARIFICATION ON VAGUE QUERIES:\n"
             "   - If user asks an underspecified request ('Mujhe shoes chahiye', 'Kapray dikhao') without style/budget:\n"
@@ -138,20 +175,29 @@ class GeminiProvider(AIProvider):
                 role_label = h.get("role", "user").upper()
                 content_text = h.get("content", "")
                 prods_context = h.get("products_context", "")
-                img_ctx = f" [Image attached]" if h.get("image_url") else ""
+                img_ctx = " [Image attached]" if h.get("image_url") else ""
                 entry = f"{role_label}: {content_text}{img_ctx}"
                 if prods_context:
                     entry += f"\n  -> {prods_context}"
                 formatted_history.append(entry)
             parts.append({"text": "Recent Chat History:\n" + "\n".join(formatted_history)})
 
-        # Latest Image Part or Reference Image from History
+        # Image: only re-attach if current turn has one, or user references the image,
+        # or the immediately preceding user turn had an image.
+        _IMAGE_REF_TOKENS = (
+            "image", "picture", "photo", "tasveer", "tasweer", "pic",
+            "is dress", "isi", "same", "yeh wali", "ye wali", "upar",
+        )
         active_img_url = image_url
         if not active_img_url and history:
-            for h in reversed(history):
-                if h.get("image_url"):
-                    active_img_url = h.get("image_url")
-                    break
+            msg_l = (user_message or "").lower()
+            references_image = any(tok in msg_l for tok in _IMAGE_REF_TOKENS)
+            last_user = next((h for h in reversed(history) if h.get("role") == "user"), None)
+            if references_image or (last_user and last_user.get("image_url")):
+                for h in reversed(history):
+                    if h.get("image_url"):
+                        active_img_url = h.get("image_url")
+                        break
 
         if active_img_url:
             img_data = self._fetch_image_base64(active_img_url)
@@ -163,9 +209,9 @@ class GeminiProvider(AIProvider):
                         "data": b64
                     }
                 })
-                parts.append({"text": f"Attached/Reference Image uploaded in this chat."})
+                parts.append({"text": "Attached/Reference Image uploaded in this chat."})
 
-        # Compact Product Catalog Representation
+        # Compact Product Catalog
         catalog_summary = []
         for p in catalog_products:
             catalog_summary.append({
@@ -183,7 +229,9 @@ class GeminiProvider(AIProvider):
         }
 
         parts.append({
-            "text": f"Context & Available Marketplace Products:\n{json.dumps(prompt_context, indent=2)}\n\nGenerate your response and select matching product IDs strictly from the available marketplace products."
+            "text": "Context & Available Marketplace Products:\n"
+                    + json.dumps(prompt_context, separators=(",", ":"))
+                    + "\n\nGenerate your response and select matching product IDs strictly from the available marketplace products."
         })
 
         payload = {
@@ -191,26 +239,35 @@ class GeminiProvider(AIProvider):
             "system_instruction": {"parts": [{"text": system_instruction}]},
             "generation_config": {
                 "response_mime_type": "application/json",
-                "temperature": 0.2
-            }
+                "temperature": 0.2,
+                "thinkingConfig": {"thinkingBudget": 0},
+            },
         }
 
         data = self._post_with_retry(payload)
         if data:
-            try:
-                raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-                parsed = json.loads(raw_text)
-                ids = parsed.get("recommended_product_ids", [])
-                valid_ids = [p["id"] for p in catalog_products]
-                final_ids = [int(i) for i in ids if int(i) in valid_ids]
-                return {
-                    "message": parsed.get("message", "Aapke liye ye behtareen options hain:"),
-                    "recommended_product_ids": final_ids,
-                    "demand_keyword": parsed.get("demand_keyword"),
-                    "category_hint": parsed.get("category_hint")
-                }
-            except Exception as e:
-                logger.error(f"Failed to parse unified Gemini response JSON: {e}")
+            raw_text = self._extract_text(data)
+            if raw_text:
+                try:
+                    parsed = json.loads(raw_text)
+                    valid_ids = {p["id"] for p in catalog_products}
+                    final_ids = []
+                    for i in parsed.get("recommended_product_ids") or []:
+                        try:
+                            pid = int(i)
+                        except (TypeError, ValueError):
+                            logger.warning(f"Model returned non-numeric product id: {i!r}")
+                            continue
+                        if pid in valid_ids and pid not in final_ids:
+                            final_ids.append(pid)
+                    return {
+                        "message": parsed.get("message") or "Aapke liye ye behtareen options hain:",
+                        "recommended_product_ids": final_ids,
+                        "demand_keyword": parsed.get("demand_keyword"),
+                        "category_hint": parsed.get("category_hint"),
+                    }
+                except Exception as e:
+                    logger.error(f"Failed to parse unified Gemini response JSON: {e}")
 
         return self._fallback_conversational_turn(user_message, catalog_products, history=history)
 
@@ -220,11 +277,12 @@ class GeminiProvider(AIProvider):
         catalog_products: List[Dict[str, Any]],
         history: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
-        """Fast rule-based fallback response when API is unavailable."""
-        msg = user_message.lower()
+        """Rule-based fallback response when Gemini API is unavailable."""
+        msg = (user_message or "").lower()
+        tokens = set(re.findall(r"[a-z]+", msg))
 
-        # Greetings
-        if any(w in msg for w in ["salam", "assalam", "hello", "hi", "hey"]):
+        # Greetings (word-boundary matching to avoid false positives)
+        if tokens & {"salam", "assalam", "hello", "hi", "hey", "asalam", "aoa"}:
             return {
                 "message": "Walaikum Assalam! Main AI Plaza ka Shopping Assistant hoon. Aaj main aapki shopping mein kya madad kar sakta hoon?",
                 "recommended_product_ids": [],
@@ -233,7 +291,7 @@ class GeminiProvider(AIProvider):
             }
 
         # Small talk / thanks
-        if any(w in msg for w in ["shukriya", "thanks", "theek", "ok"]):
+        if tokens & {"shukriya", "thanks", "thank", "theek", "ok", "okay", "acha"}:
             return {
                 "message": "Bohat shukriya! Agar mazeed koi product dekhna ho ya order place karna ho toh zaroor batayein.",
                 "recommended_product_ids": [],
@@ -241,29 +299,36 @@ class GeminiProvider(AIProvider):
                 "category_hint": None
             }
 
-        # Order guidance
-        if any(w in msg for w in ["order", "buy", "khareed", "purchase", "kettle"]):
-            kettle_ids = [p["id"] for p in catalog_products if "kettle" in p["name"].lower()]
-            if kettle_ids:
-                return {
-                    "message": "Ji bilkul! Is electric kettle ko order karne ke liye neeche diye gaye 'Add Cart' button par click karein aur checkout proceed karein. Yeh Apex Home Appliances ki taraf se fast boiling aur auto shut-off ke saath aati hai.",
-                    "recommended_product_ids": kettle_ids[:1],
-                    "demand_keyword": "electric kettle",
-                    "category_hint": "Home Appliances"
-                }
+        # Order guidance (generic, no hardcoded products)
+        if tokens & {"order", "buy", "khareed", "kharid", "purchase", "cart", "checkout"}:
+            ids = [
+                p["id"] for p in catalog_products
+                if any(w in p["name"].lower() for w in tokens if len(w) > 3)
+            ]
+            return {
+                "message": (
+                    "Ji bilkul! Order karne ke liye product card par 'Add Cart' button dabayein "
+                    "aur checkout proceed karein — delivery 3-5 din mein Pakistan bhar."
+                    if ids else
+                    "Ji bilkul! Bataiye kaunsa product order karna hai, main aap ko wo dikha deta hoon."
+                ),
+                "recommended_product_ids": ids[:3],
+                "demand_keyword": None,
+                "category_hint": None,
+            }
 
-        # General search fallback
+        # Keyword match against catalog
         matching_ids = []
         for p in catalog_products:
             p_name = p["name"].lower()
-            if any(word in p_name for word in msg.split() if len(word) > 3):
+            if any(word in p_name for word in tokens if len(word) > 3):
                 matching_ids.append(p["id"])
 
         if matching_ids:
             return {
                 "message": "Aapki request ke mutabiq ye behtareen options marketplace mein available hain:",
                 "recommended_product_ids": matching_ids[:3],
-                "demand_keyword": msg[:30],
+                "demand_keyword": None,
                 "category_hint": None
             }
 
