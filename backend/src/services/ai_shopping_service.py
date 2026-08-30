@@ -15,6 +15,28 @@ from src.services.ai_provider import get_ai_provider
 
 logger = logging.getLogger(__name__)
 
+# Common Pakistani Roman Urdu / typo synonyms dictionary
+SYNONYM_MAP = {
+    "cattle": ["kettle", "electric kettle", "tea"],
+    "ketle": ["kettle", "electric kettle"],
+    "ketal": ["kettle", "electric kettle"],
+    "kettal": ["kettle", "electric kettle"],
+    "sitchen": ["cookware", "kitchen", "crockery", "granite", "pot", "pan"],
+    "kichen": ["cookware", "kitchen", "crockery", "granite", "pot", "pan"],
+    "bartan": ["cookware", "granite", "non-stick", "pot", "pan", "crockery"],
+    "handi": ["cookware", "granite", "pot", "pan"],
+    "soot": ["suit", "coatpant", "pant shirt", "shalwar"],
+    "pent": ["pant", "trouser", "pant shirt"],
+    "pnt": ["pant", "trouser", "pant shirt"],
+    "jootay": ["shoes", "oxford", "sneakers", "leather"],
+    "jote": ["shoes", "oxford", "sneakers", "leather"],
+    "ghari": ["smartwatch", "watch", "amoled"],
+    "itarr": ["oud", "perfume", "parfum", "fragrance"],
+    "khushbu": ["oud", "perfume", "parfum"],
+    "fryer": ["air fryer", "digital air fryer"],
+    "vacuum": ["robotic vacuum", "vacuum cleaner"],
+}
+
 def record_customer_demand(
     session: Session, 
     query_text: str, 
@@ -181,10 +203,14 @@ def hydrate_product_cards(session: Session, product_ids: List[int]) -> List[Dict
 def search_candidate_products(session: Session, intent: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     Intelligent candidate search:
-    1. Gender & Demographic Disqualification (e.g. no women kurti for boys suit)
-    2. Typo-tolerant keyword scoring across name, short/long description, shop name
-    3. Category match boosting
+    1. Typo / phonetic expansion
+    2. Gender & Demographic Disqualification (e.g. no women kurti for boys suit)
+    3. Multi-keyword relevance scoring across product name, descriptions, category, and shop
     """
+    # If the user query is very ambiguous and needs clarification, return empty candidates to prompt clarification
+    if intent.get("needs_clarification") and not intent.get("target_item") and not intent.get("search_terms"):
+        return []
+
     all_products = session.exec(
         select(Product)
         .where(Product.is_deleted == False, Product.is_active == True, Product.stock_quantity > 0)
@@ -193,14 +219,24 @@ def search_candidate_products(session: Session, intent: Dict[str, Any]) -> List[
 
     gender_target = (intent.get("gender_target") or "").lower()
     negative_terms = [t.lower() for t in intent.get("negative_terms", [])]
-    search_terms = [t.lower() for t in intent.get("search_terms", []) if len(t) >= 2]
+    raw_search_terms = [t.lower() for t in intent.get("search_terms", []) if len(t) >= 2]
     target_item = (intent.get("target_item") or "").lower()
     category_hint = (intent.get("category_hint") or "").lower()
     color = (intent.get("color") or "").lower()
     max_price = intent.get("max_price")
     min_price = intent.get("min_price")
 
-    # Hard-coded demographic rules for Urdu apparel
+    # Expand search terms using synonym map
+    search_terms = list(raw_search_terms)
+    for term in raw_search_terms:
+        if term in SYNONYM_MAP:
+            search_terms.extend(SYNONYM_MAP[term])
+    if target_item in SYNONYM_MAP:
+        search_terms.extend(SYNONYM_MAP[target_item])
+
+    search_terms = list(set(search_terms))
+
+    # Demographic keywords
     women_apparel_keywords = ["kurti", "lawn", "dupatta", "chiffon", "ladies", "women", "frock", "lehenga", "female", "girl", "bridal"]
     men_apparel_keywords = ["coatpant", "coat pant", "pant shirt", "groom", "gents", "mens", "men's", "linen kurta", "oxford"]
 
@@ -208,7 +244,7 @@ def search_candidate_products(session: Session, intent: Dict[str, Any]) -> List[
 
     for p in all_products:
         p_name = (p.name or "").lower()
-        p_desc = (p.short_description or "" + " " + (p.long_description or "")).lower()
+        p_desc = ((p.short_description or "") + " " + (p.long_description or "")).lower()
         p_shop = (p.shop.name if p.shop else "").lower()
         combined_text = f"{p_name} {p_desc} {p_shop}"
 
@@ -235,18 +271,25 @@ def search_candidate_products(session: Session, intent: Dict[str, Any]) -> List[
         # Exact target item matching
         if target_item:
             if target_item in p_name:
-                score += 30
+                score += 35
             elif target_item in p_desc:
                 score += 15
 
         # Search terms matching
         for term in search_terms:
             if term in p_name:
-                score += 12
+                score += 15
             elif term in p_desc:
-                score += 6
+                score += 8
             elif term in p_shop:
-                score += 4
+                score += 5
+
+        # Kettle / Tea Intent Special Scoring
+        if any(k in target_item or k in search_terms for k in ["kettle", "cattle", "tea", "electric kettle"]):
+            if "kettle" in p_name:
+                score += 45
+            if "stainless steel" in p_name:
+                score += 15
 
         # Kitchen / Cookware Intent Special Scoring
         if category_hint in ["crockery & kitchenware", "home appliances"] or any(k in target_item for k in ["cookware", "kitchen", "kettle", "fryer", "crockery", "pot", "pan"]):
@@ -258,6 +301,11 @@ def search_candidate_products(session: Session, intent: Dict[str, Any]) -> List[
         # Men's Suit / Apparel Intent Special Scoring
         if gender_target in ["men", "boys"] and any(k in target_item or k in search_terms for k in ["suit", "coat", "pant", "shirt", "office"]):
             if any(k in p_name for k in ["coatpant", "coat pant", "pant shirt", "linen kurta", "oxford"]):
+                score += 35
+
+        # Shoes Intent Special Scoring
+        if any(k in target_item or k in search_terms for k in ["shoes", "shoe", "oxford", "sneakers", "leather"]):
+            if any(k in p_name for k in ["shoes", "oxford", "sneakers", "leather"]):
                 score += 35
 
         # Color match
@@ -323,9 +371,10 @@ def process_ai_message(
 
     # 4. Generate AI Shopping Advice & Recommendation Ranking
     ai_response_text, recommended_ids = ai.generate_shopping_recommendation(
-        content, 
-        candidate_products, 
-        image_url=image_url
+        user_message=content, 
+        candidate_products=candidate_products, 
+        image_url=image_url,
+        intent=intent
     )
 
     # 5. Record Demand Insight for Seller Dashboard
