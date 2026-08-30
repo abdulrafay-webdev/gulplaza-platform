@@ -10,8 +10,13 @@ logger = logging.getLogger(__name__)
 
 class AIProvider(ABC):
     @abstractmethod
-    def extract_shopping_intent(self, user_message: str, image_url: Optional[str] = None) -> Dict[str, Any]:
-        """Extract search query, category, price range, color, gender, clarification, and visual attributes."""
+    def extract_shopping_intent(
+        self, 
+        user_message: str, 
+        image_url: Optional[str] = None,
+        history: Optional[List[Dict[str, str]]] = None
+    ) -> Dict[str, Any]:
+        """Extract multi-turn search intent, negations, category, price, gender, clarification, and visual attributes."""
         pass
 
     @abstractmethod
@@ -20,7 +25,8 @@ class AIProvider(ABC):
         user_message: str, 
         candidate_products: List[Dict[str, Any]], 
         image_url: Optional[str] = None,
-        intent: Optional[Dict[str, Any]] = None
+        intent: Optional[Dict[str, Any]] = None,
+        history: Optional[List[Dict[str, str]]] = None
     ) -> Tuple[str, List[int]]:
         """Generate conversational Urdu/English shopping advice, explain features, and rank matching product IDs."""
         pass
@@ -58,59 +64,66 @@ class GeminiProvider(AIProvider):
             logger.warning(f"Failed to fetch image for Gemini vision ({image_url}): {e}")
         return None
 
-    def extract_shopping_intent(self, user_message: str, image_url: Optional[str] = None) -> Dict[str, Any]:
+    def extract_shopping_intent(
+        self, 
+        user_message: str, 
+        image_url: Optional[str] = None,
+        history: Optional[List[Dict[str, str]]] = None
+    ) -> Dict[str, Any]:
         if not self.api_key:
-            return self._fallback_extract_intent(user_message)
+            return self._fallback_extract_intent(user_message, history=history)
 
         system_instruction = (
-            "You are a senior Pakistani e-commerce AI expert for 'AI Plaza', a premier multi-vendor marketplace.\n"
-            "Shoppers will message you in English, Urdu, or Roman Urdu (with typos, phonetic spellings, and shopping slang), "
-            "or upload an image for visual product search.\n\n"
-            "MANDATORY ANALYSIS RULES:\n"
-            "1. PHONETIC & TYPO NORMALIZATION (Urdu / Roman Urdu):\n"
+            "You are a senior Pakistani e-commerce AI expert for 'AI Plaza'. "
+            "You parse user messages in English, Urdu, or Roman Urdu within a multi-turn conversation.\n\n"
+            "CRITICAL ANALYSIS & CONVERSATION RULES:\n"
+            "1. MULTI-TURN CONVERSATION & NEGATIONS:\n"
+            "   - Always read the conversation history to understand context.\n"
+            "   - If the user negates or rejects previous suggestions (e.g. 'nhi shoes nhi', 'shoes ke ilawa kuch dikhao', 'ye nahi pasand', 'kuch aur dikhao'):\n"
+            "     * Add the rejected item(s) to 'negative_terms' (e.g. ['shoes', 'footwear', 'oxford', 'sneakers']).\n"
+            "     * Retain the underlying user goal (e.g. gift ideas, other categories like perfumes, smartwatch, earbuds, clothes, cookware).\n"
+            "   - If user adjusts budget (e.g. '5000 se kam', 'under 10k') or demographic (e.g. 'ladies ke liye', 'for brother'), update min_price/max_price and gender_target accordingly.\n\n"
+            "2. GREETINGS & SMALL TALK:\n"
+            "   - If message is purely conversational / greeting (e.g. 'Salam', 'Hello', 'Kaise ho', 'Shukriya', 'Theek hai', 'Ok', 'Good'):\n"
+            "     Set is_conversational_only = true, search_terms = [], target_item = null.\n\n"
+            "3. GIFT & GENERAL SHOPPING ADVICE:\n"
+            "   - If user asks for gifts (e.g. 'kuch gift k liyay batao', 'kisi ko gift dayna hay', 'best gift items'):\n"
+            "     Set is_gift_query = true, search_terms = ['perfume', 'oud', 'smartwatch', 'earbuds', 'watch', 'cookware', 'suit', 'lawn'].\n\n"
+            "4. PHONETIC & TYPO NORMALIZATION:\n"
             "   - 'tea cattle', 'cattle', 'ketle', 'ketal', 'kettal', 'chay ki ketli' -> target_item: 'electric kettle', category_hint: 'Home Appliances', search_terms: ['kettle', 'electric kettle', 'tea', 'stainless steel'].\n"
-            "   - 'sitchen', 'kichen', 'moi/koi sitchen ka samaan', 'bartan', 'handi', 'bawarcheehana', 'cooking' -> target_item: 'cookware', category_hint: 'Crockery & Kitchenware', search_terms: ['cookware', 'granite', 'pot', 'pan', 'kettle', 'fryer', 'crockery', 'kitchen'].\n"
-            "   - 'fryer', 'air fryer', 'deep fryer' -> target_item: 'air fryer', category_hint: 'Home Appliances', search_terms: ['air fryer', 'fryer', 'digital air fryer'].\n"
-            "   - 'vacuum', 'vacum', 'cleaner', 'jharu' -> target_item: 'vacuum cleaner', category_hint: 'Home Appliances', search_terms: ['vacuum', 'robotic vacuum', 'cleaner'].\n"
-            "   - 'pent', 'pnt', 'pant', 'trouser', 'jeans' -> target_item: 'pant', 'trouser', category_hint: 'Clothes & Apparel'.\n"
-            "   - 'soot', 'suit', 'coatpant', 'coat pant', 'pant shirt', 'shalwar kameez' -> target_item: 'suit', 'coat pant', 'pant shirt', category_hint: 'Clothes & Apparel'.\n"
-            "   - 'jootay', 'jote', 'shoes', 'sneakers', 'oxford', 'chappal', 'sandals' -> target_item: 'shoes', category_hint: 'Shoes & Footwear', search_terms: ['shoes', 'oxford', 'leather', 'sneakers'].\n"
-            "   - 'itarr', 'khushbu', 'perfume', 'oud', 'attar' -> target_item: 'perfume', 'oud', category_hint: 'Cosmetics & Fragrances', search_terms: ['oud', 'perfume', 'parfum'].\n"
-            "   - 'earbuds', 'airpods', 'buds', 'handsfree', 'headphone', 'tws' -> target_item: 'wireless earbuds', category_hint: 'Gadgets & Electronics', search_terms: ['earbuds', 'wireless', 'anc'].\n"
-            "   - 'ghari', 'smartwatch', 'watch' -> target_item: 'smartwatch', category_hint: 'Gadgets & Electronics', search_terms: ['smartwatch', 'watch', 'amoled'].\n\n"
-            "2. GENDER & DEMOGRAPHIC TARGETING (CRITICAL):\n"
-            "   - If user mentions 'boys', 'boy', 'larke', 'larka', 'men', 'gents', 'mardana', 'dulha', 'office suit for boys/men' -> gender_target: 'men', negative_terms: ['ladies', 'women', 'kurti', 'lawn', 'dupatta', 'chiffon', 'frock', 'female', 'girl', 'bridal'].\n"
-            "   - If user mentions 'girls', 'girl', 'larkiyan', 'larki', 'women', 'ladies', 'zanana', 'dulhan', 'frock', 'kurti', 'lawn', 'dupatta' -> gender_target: 'women', negative_terms: ['gents', 'groom', 'boys coat', 'mens'].\n"
-            "   - If user mentions 'kids', 'bache', 'bachon' -> gender_target: 'kids'.\n"
-            "   - If general/household/unspecified -> gender_target: null, negative_terms: [].\n\n"
-            "3. VISUAL IMAGE ANALYSIS (WHEN IMAGE PROVIDED):\n"
-            "   - Accurately recognize the exact product in the picture (e.g. electric kettle, leather oxford shoes, granite cookware, earbuds, smartwatch, lawn kurti, men's coat pant).\n"
-            "   - If user asked for matching item (e.g. 'is shirt ke sath matching pant/shoes dikhao'), target the matching item.\n"
-            "   - If user asked 'yeh chahiye' / 'is jaisa dikhao' / or no text, target the exact/similar item seen in the image.\n"
-            "   - Extract visual attributes: primary colors, material, style, and demographic.\n\n"
-            "4. CLARIFICATION & CONVERSATIONAL INTELLIGENCE:\n"
-            "   - If user query is VERY VAGUE / AMBIGUOUS (e.g. 'kuch acha dikhao', 'gift chahiye', 'kapray', 'dress', 'shoes dikhao' without specifics):\n"
-            "     Set needs_clarification = true, and provide a polite, natural clarification_question in Roman Urdu (e.g. asking occasion, gender, budget, or preferred style).\n"
-            "   - If the query has enough specifics (e.g. 'tea cattle', 'boys office suit', 'air fryer', 'perfume under 7000', or visual image uploaded):\n"
-            "     Set needs_clarification = false, clarification_question = null.\n\n"
+            "   - 'sitchen', 'kichen', 'moi/koi sitchen ka samaan', 'bartan', 'handi' -> target_item: 'cookware', category_hint: 'Crockery & Kitchenware', search_terms: ['cookware', 'granite', 'pot', 'pan'].\n"
+            "   - 'pent', 'pnt', 'pant', 'trouser' -> target_item: 'pant', category_hint: 'Clothes & Apparel'.\n"
+            "   - 'soot', 'suit', 'coatpant', 'coat pant' -> target_item: 'suit', 'coat pant', category_hint: 'Clothes & Apparel'.\n"
+            "   - 'jootay', 'jote', 'shoes', 'sneakers', 'oxford' -> target_item: 'shoes', category_hint: 'Shoes & Footwear'.\n"
+            "   - 'itarr', 'khushbu', 'perfume', 'oud' -> target_item: 'perfume', 'oud', category_hint: 'Cosmetics & Fragrances'.\n\n"
+            "5. GENDER TARGETING:\n"
+            "   - 'boys', 'larke', 'men', 'gents', 'mardana', 'dulha' -> gender_target: 'men', negative_terms: ['ladies', 'women', 'kurti', 'lawn', 'dupatta', 'chiffon', 'frock', 'female', 'girl', 'bridal'].\n"
+            "   - 'girls', 'larkiyan', 'women', 'ladies', 'zanana', 'dulhan' -> gender_target: 'women', negative_terms: ['gents', 'groom', 'boys coat', 'mens'].\n\n"
             "RETURN STRICT JSON SCHEMA ONLY:\n"
             "{\n"
-            '  "search_terms": ["term1", "term2", "term3"],\n'
-            '  "negative_terms": ["word1", "word2"],\n'
+            '  "search_terms": ["term1", "term2"],\n'
+            '  "negative_terms": ["neg1", "neg2"],\n'
             '  "gender_target": "men" | "women" | "kids" | "unisex" | null,\n'
-            '  "target_item": "e.g. electric kettle, coat pant, oxford shoes, cookware set",\n'
+            '  "target_item": "e.g. electric kettle, gift ideas, coat pant" | null,\n'
             '  "category_hint": "Home Appliances" | "Gadgets & Electronics" | "Clothes & Apparel" | "Shoes & Footwear" | "Cosmetics & Fragrances" | "Crockery & Kitchenware" | null,\n'
             '  "color": "color name" | null,\n'
             '  "min_price": number | null,\n'
             '  "max_price": number | null,\n'
-            '  "intent_type": "similar" | "matching" | "search" | "general",\n'
+            '  "is_gift_query": boolean,\n'
+            '  "is_conversational_only": boolean,\n'
             '  "needs_clarification": boolean,\n'
-            '  "clarification_question": "polite Roman Urdu question if ambiguous, else null",\n'
-            '  "visual_description": "short description of visual image if provided, else null"\n'
+            '  "clarification_question": "polite Roman Urdu question if underspecified, else null",\n'
+            '  "visual_description": "visual description if image provided, else null"\n'
             "}"
         )
 
         parts: List[Dict[str, Any]] = []
+        if history:
+            formatted_history = []
+            for h in history[-8:]:  # Last 8 turns
+                formatted_history.append(f"{h.get('role', 'user').upper()}: {h.get('content', '')}")
+            parts.append({"text": "Recent Chat History:\n" + "\n".join(formatted_history)})
+
         if image_url:
             img_data = self._fetch_image_base64(image_url)
             if img_data:
@@ -121,11 +134,11 @@ class GeminiProvider(AIProvider):
                         "data": b64
                     }
                 })
-                parts.append({"text": f"Visual Shopping Image Uploaded. User text: '{user_message}'. Analyze the image in detail and extract structured shopping intent."})
+                parts.append({"text": f"Latest User Query (with image attached): '{user_message}'"})
             else:
-                parts.append({"text": f"User query (image url was {image_url}): '{user_message}'"})
+                parts.append({"text": f"Latest User Query: '{user_message}'"})
         else:
-            parts.append({"text": f"User query: '{user_message}'"})
+            parts.append({"text": f"Latest User Query: '{user_message}'"})
 
         payload = {
             "contents": [{"parts": parts}],
@@ -152,36 +165,49 @@ class GeminiProvider(AIProvider):
         except Exception as e:
             logger.error(f"Gemini intent extraction failed: {e}")
 
-        return self._fallback_extract_intent(user_message)
+        return self._fallback_extract_intent(user_message, history=history)
 
     def generate_shopping_recommendation(
         self, 
         user_message: str, 
         candidate_products: List[Dict[str, Any]], 
         image_url: Optional[str] = None,
-        intent: Optional[Dict[str, Any]] = None
+        intent: Optional[Dict[str, Any]] = None,
+        history: Optional[List[Dict[str, str]]] = None
     ) -> Tuple[str, List[int]]:
         if not self.api_key:
             return self._fallback_recommendation(user_message, candidate_products)
+
+        # Handle Greetings / Small Talk
+        if intent and intent.get("is_conversational_only"):
+            msg_lower = user_message.lower().strip()
+            if any(w in msg_lower for w in ["salam", "assalam", "hello", "hi", "hey"]):
+                return "Walaikum Assalam! Main AI Plaza ka Shopping Assistant hoon. Aaj aap kis cheez ki shopping ya gift ke liye madad chahte hain?", []
+            if any(w in msg_lower for w in ["shukriya", "thanks", "thank you", "jazakallah"]):
+                return "Bohat shukriya! Agar mazeed koi product dekhna ho ya cart mein add karna ho toh zaroor batayein.", []
+            if any(w in msg_lower for w in ["theek", "ok", "acha", "sahi", "done"]):
+                return "Zabardast! Agar koi aur cheez dhoondni ho ya order place karna ho toh batayein.", []
 
         # Handle Ambiguous Queries with Direct Clarification
         if intent and intent.get("needs_clarification") and intent.get("clarification_question") and not candidate_products:
             return intent["clarification_question"], []
 
         system_instruction = (
-            "You are the friendly, intelligent AI Personal Shopping Advisor for 'AI Plaza', Pakistan's top multi-vendor online marketplace.\n\n"
-            "COMMUNICATION & CONVERSATION PRINCIPLES:\n"
+            "You are the friendly, expert AI Shopping Advisor for 'AI Plaza', Pakistan's premier online marketplace.\n\n"
+            "CONVERSATION & ADVISORY GUIDELINES:\n"
             "1. TONE & VOCABULARY:\n"
-            "   - Communicate in warm, natural Pakistani Roman Urdu and polite Urdu (e.g. 'Assalam-o-Alaikum!', 'Ji bilkul', 'Aap ke liye', 'Marketplace mein', 'Shukriya').\n"
-            "   - STRICTLY PROHIBITED: NEVER use Hindi words like 'swagat', 'namaste', 'dhanyawad', 'kripya', 'mitra'.\n"
-            "   - Speak naturally like an experienced in-store shopping advisor: explain the quality, features, material, or style benefits of the recommended items.\n\n"
-            "2. GENDER & CATEGORY INTEGRITY:\n"
-            "   - If the user asks for men's/boys' items (e.g. 'boys office suit'), ONLY recommend men's/boys' items (coatpant, pant shirt, oxford shoes, linen kurta). NEVER recommend ladies' dresses or kurti.\n"
-            "   - If the user asks for kitchen items (e.g. 'tea cattle', 'cookware set', 'air fryer'), recommend matching kitchen appliances/cookware.\n\n"
-            "3. VISUAL IMAGE REFERENCING:\n"
-            "   - If the user uploaded an image, acknowledge what you saw in the image (e.g. 'Aapki share ki gayi tasveer ke mutabiq...').\n\n"
+            "   - Warm, natural Pakistani Roman Urdu and polite Urdu (e.g. 'Assalam-o-Alaikum!', 'Ji bilkul', 'Aap ke liye', 'Marketplace mein', 'Shukriya').\n"
+            "   - STRICTLY FORBIDDEN: NEVER use Hindi words like 'swagat', 'namaste', 'dhanyawad', 'kripya', 'mitra'.\n"
+            "   - Sound like an expert in-store salesman: explain why the recommended products are great for the customer's goal.\n\n"
+            "2. MULTI-TURN MEMORY & ADAPTABILITY:\n"
+            "   - Follow the conversation history naturally.\n"
+            "   - If the user rejected previous items (e.g. 'nhi shoes nhi'), acknowledge their preference warmly (e.g. 'Bilkul samajh gaya, shoes ke ilawa gift ke liye hamare paas yeh zabardast options hain:') and present alternative gift categories (perfume, smartwatch, earbuds, cookware).\n"
+            "   - If the user asks for gift ideas, highlight diverse top-rated gift options (e.g. Royal Oud Perfume, Ultra Smartwatch, ANC Earbuds).\n\n"
+            "3. GENDER & CATEGORY INTEGRITY:\n"
+            "   - If user asks for men's/boys' items, NEVER recommend ladies' dresses/kurtis.\n"
+            "   - If user asks for kitchen/home items (e.g. 'tea cattle', 'cookware set'), recommend matching appliances.\n\n"
             "4. EXACT VS ALTERNATIVE PRODUCTS:\n"
-            "   - If exact product is found in candidate list, enthusiastically present it and explain its standout features.\n"
+            "   - If exact product is in candidate list, recommend it and highlight key features.\n"
             "   - If exact product is not in stock, but closest alternatives matching the demographic/purpose are in candidates, politely explain: 'Aapka exact item is waqt available nahi hai, lekin aap ke liye ye behtareen alternate options mojoud hain:' and explain the options.\n"
             "   - If candidate products list is EMPTY (or contains zero suitable items for the demographic), STRICTLY respond with:\n"
             "     'Filhal marketplace mein yeh product ya is ka alternate available nahi hai. Aap kuch din baad dobara check kar lijiye ga, main restock karwanay ki koshish karta hoon!' (with recommended_product_ids: []).\n\n"
@@ -192,14 +218,23 @@ class GeminiProvider(AIProvider):
             "}"
         )
 
+        formatted_history = []
+        if history:
+            for h in history[-6:]:
+                formatted_history.append(f"{h.get('role', 'user').upper()}: {h.get('content', '')}")
+
         prompt_context = {
             "user_query": user_message,
             "has_image": bool(image_url),
             "visual_description": intent.get("visual_description") if intent else None,
+            "negative_terms": intent.get("negative_terms") if intent else [],
             "available_marketplace_products": candidate_products
         }
 
         parts: List[Dict[str, Any]] = []
+        if formatted_history:
+            parts.append({"text": "Recent Chat History:\n" + "\n".join(formatted_history)})
+
         if image_url:
             img_data = self._fetch_image_base64(image_url)
             if img_data:
@@ -248,14 +283,26 @@ class GeminiProvider(AIProvider):
 
         return self._fallback_recommendation(user_message, candidate_products)
 
-    def _fallback_extract_intent(self, message: str) -> Dict[str, Any]:
-        """Rule-based fallback intent parser with typo correction."""
+    def _fallback_extract_intent(
+        self, 
+        message: str, 
+        history: Optional[List[Dict[str, str]]] = None
+    ) -> Dict[str, Any]:
+        """Rule-based fallback intent parser with typo correction and history awareness."""
         msg = message.lower()
         terms = []
         negative_terms = []
         category = None
         gender_target = None
         max_price = None
+        is_gift = "gift" in msg or "tohfa" in msg
+
+        # Negation check
+        if any(w in msg for w in ["nhi", "nahi", "not", "ke ilawa", "baghair", "chhor kar"]):
+            if "shoe" in msg or "joot" in msg:
+                negative_terms.extend(["shoes", "oxford", "sneakers", "leather shoes"])
+                terms.extend(["oud", "perfume", "smartwatch", "earbuds", "cookware"])
+                is_gift = True
 
         # Price detection
         import re
@@ -269,10 +316,14 @@ class GeminiProvider(AIProvider):
         # Gender Detection
         if any(w in msg for w in ["boy", "boys", "larke", "larka", "men", "mens", "gents", "mardana", "dulha"]):
             gender_target = "men"
-            negative_terms = ["ladies", "women", "kurti", "lawn", "dupatta", "female", "frock"]
+            negative_terms.extend(["ladies", "women", "kurti", "lawn", "dupatta", "female", "frock"])
         elif any(w in msg for w in ["girl", "girls", "larki", "larkiyan", "women", "ladies", "zanana", "frock", "kurti", "lawn"]):
             gender_target = "women"
-            negative_terms = ["gents", "groom", "boys coat"]
+            negative_terms.extend(["gents", "groom", "boys coat"])
+
+        # Gift handling
+        if is_gift and not terms:
+            terms = ["oud", "perfume", "smartwatch", "earbuds", "cookware", "kettle"]
 
         # Category & Item detection with typo handling
         if any(w in msg for w in ["cattle", "kettle", "ketle", "ketli", "ketal", "tea"]):
@@ -287,7 +338,7 @@ class GeminiProvider(AIProvider):
                 terms.extend(["coat", "pant", "shirt", "suit", "kurta", "shalwar"])
             else:
                 terms.extend(["kurti", "suit", "lawn", "dress", "shirt"])
-        elif any(w in msg for w in ["shoe", "shoes", "jootay", "jote", "sneaker", "oxford", "chappal", "sandals"]):
+        elif any(w in msg for w in ["shoe", "shoes", "jootay", "jote", "sneaker", "oxford", "chappal", "sandals"]) and "nhi" not in msg:
             category = "Shoes & Footwear"
             terms.extend(["shoe", "oxford", "sneakers", "leather"])
         elif any(w in msg for w in ["earbud", "smartwatch", "watch", "charger", "gadget", "headphone"]):
@@ -309,6 +360,8 @@ class GeminiProvider(AIProvider):
             "min_price": None,
             "max_price": max_price,
             "intent_type": "search",
+            "is_gift_query": is_gift,
+            "is_conversational_only": any(w in msg for w in ["salam", "hello", "hi", "shukriya", "thanks", "ok", "theek"]),
             "needs_clarification": False,
             "clarification_question": None,
             "target_item": terms[0] if terms else None,
