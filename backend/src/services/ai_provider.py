@@ -5,11 +5,30 @@ import time
 import random
 import base64
 import logging
+import threading
 from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any, Tuple
 import httpx
 
 logger = logging.getLogger(__name__)
+
+# Global throttle: ensures at least _MIN_INTERVAL seconds between Gemini API calls
+# to stay within free-tier rate limits (15-30 RPM).
+_MIN_INTERVAL = 4.0
+_last_request_time = 0.0
+_throttle_lock = threading.Lock()
+
+def _throttle():
+    """Block until at least _MIN_INTERVAL seconds have passed since the last Gemini call."""
+    global _last_request_time
+    with _throttle_lock:
+        now = time.monotonic()
+        elapsed = now - _last_request_time
+        if elapsed < _MIN_INTERVAL:
+            wait = _MIN_INTERVAL - elapsed
+            logger.debug(f"Throttle: waiting {wait:.1f}s (elapsed {elapsed:.1f}s < {_MIN_INTERVAL}s)")
+            time.sleep(wait)
+        _last_request_time = time.monotonic()
 
 class AIProvider(ABC):
     @abstractmethod
@@ -70,6 +89,7 @@ class GeminiProvider(AIProvider):
 
         for attempt in range(1, total_attempts + 1):
             try:
+                _throttle()
                 with httpx.Client(timeout=15.0) as client:
                     res = client.post(
                         self.base_url,
@@ -276,7 +296,6 @@ class GeminiProvider(AIProvider):
             "generation_config": {
                 "response_mime_type": "application/json",
                 "temperature": 0.2,
-                "thinkingConfig": {"thinkingBudget": 0},
             },
         }
 
