@@ -100,6 +100,8 @@ export const ai = {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 60000,
     }),
+    generateDescription: (title: string, categoryId?: number) =>
+        api.post('/ai/generate-description', { title, category_id: categoryId }),
 };
 
 export default api;

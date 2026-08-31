@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSeller } from '@/context/SellerContext';
-import { shops, products, categories, setAuthToken } from '@/services/api';
+import { shops, products, categories, ai, setAuthToken } from '@/services/api';
 import { useRouter } from 'next/navigation';
 import { IKUpload } from "imagekitio-next";
 
@@ -31,6 +31,34 @@ export default function ProductForm() {
     // Subcategory Creation State
     const [isCreatingSub, setIsCreatingSub] = useState(false);
     const [newSubName, setNewSubName] = useState('');
+    const [aiGenerating, setAiGenerating] = useState(false);
+
+    const handleGenerateAI = async () => {
+        if (!formData.name.trim()) {
+            alert("Please enter a Product Name first so AI can generate descriptions!");
+            return;
+        }
+        try {
+            setAiGenerating(true);
+            const res = await ai.generateDescription(
+                formData.name.trim(),
+                formData.main_category_id ? parseInt(formData.main_category_id) : undefined
+            );
+            if (res.data) {
+                setFormData(prev => ({
+                    ...prev,
+                    short_description: res.data.short_description || prev.short_description,
+                    long_description: res.data.long_description || prev.long_description
+                    // Notice: image_url & image_urls are left 100% untouched!
+                }));
+            }
+        } catch (err) {
+            console.error('AI generation error:', err);
+            alert("AI generation temporarily unavailable. You can enter descriptions manually.");
+        } finally {
+            setAiGenerating(false);
+        }
+    };
 
     useEffect(() => {
         if (!isLoaded) return;
@@ -192,6 +220,26 @@ export default function ProductForm() {
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* AI Copilot Description Generator */}
+                <div className="bg-purple-50/80 p-4 rounded-xl border border-purple-200 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                    <div>
+                        <div className="text-xs font-black text-[#A163F7] flex items-center gap-1.5 uppercase tracking-wider">
+                            <span>✨</span> Seller AI Description Copilot
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                            Auto-generate high-converting marketing descriptions. Your uploaded photos remain completely unchanged!
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleGenerateAI}
+                        disabled={aiGenerating}
+                        className="bg-gradient-to-r from-[#A163F7] to-[#6F88FC] text-white px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-xs hover:opacity-95 transition-all self-start sm:self-auto cursor-pointer"
+                    >
+                        {aiGenerating ? 'Generating...' : '✨ Generate with AI'}
+                    </button>
                 </div>
 
                 <div>
