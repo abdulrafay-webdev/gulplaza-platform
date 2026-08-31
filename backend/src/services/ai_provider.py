@@ -76,7 +76,9 @@ class GeminiProvider(AIProvider):
     def _post_with_retry(self, payload: Dict[str, Any], max_retries: int = 2) -> Optional[Dict[str, Any]]:
         """Execute Gemini API request with separate budgets for rate limits and server errors.
 
-        - 429 (rate limit): up to 4 retries, respects Retry-After header, exponential backoff
+        - 429 (rate limit): up to 4 retries, waits the delay Google reports in the error
+          body ("Please retry in Ns"); falls back immediately when the wait would blow
+          the request budget
         - 500/502/503/504: up to max_retries (default 2), short linear backoff
         - Transport errors: counted against the server error budget
         """
@@ -86,6 +88,8 @@ class GeminiProvider(AIProvider):
         rate_limit_remaining = 4
         server_remaining = max_retries
         total_attempts = max_retries + 4 + 1  # server + rate limit + initial
+        started_at = time.monotonic()
+        rate_deadline = 20.0  # stay inside the frontend's 30s request timeout
 
         for attempt in range(1, total_attempts + 1):
             try:
@@ -107,17 +111,31 @@ class GeminiProvider(AIProvider):
                             logger.error("Gemini 429 rate limit exhausted all 4 retries.")
                             return None
                         rate_limit_remaining -= 1
-                        retry_after = res.headers.get("Retry-After")
-                        if retry_after:
-                            try:
-                                sleep_time = min(float(retry_after), 30.0)
-                            except (ValueError, TypeError):
-                                sleep_time = min(5.0 * (2 ** (3 - rate_limit_remaining)), 30.0)
+                        # Google puts the retry delay in the error body
+                        # ("Please retry in 12.3s"), not the Retry-After header.
+                        retry_seconds = None
+                        m = re.search(r"Please retry in ([\d.]+)s", res.text)
+                        if m:
+                            retry_seconds = float(m.group(1))
                         else:
-                            sleep_time = min(5.0 * (2 ** (3 - rate_limit_remaining)), 30.0)
-                        sleep_time += random.uniform(0, 0.5)
+                            retry_after = res.headers.get("Retry-After")
+                            if retry_after:
+                                try:
+                                    retry_seconds = float(retry_after)
+                                except (ValueError, TypeError):
+                                    retry_seconds = None
+                        if retry_seconds is None:
+                            retry_seconds = min(5.0 * (2 ** (3 - rate_limit_remaining)), 30.0)
+                        budget_left = rate_deadline - (time.monotonic() - started_at)
+                        if retry_seconds > budget_left:
+                            logger.error(
+                                f"Gemini 429: quota needs {retry_seconds:.0f}s but only "
+                                f"{budget_left:.0f}s budget left; using fallback."
+                            )
+                            return None
+                        sleep_time = retry_seconds + random.uniform(0.2, 1.0)
                         logger.warning(
-                            f"Gemini 429 rate limit (retry-after={retry_after}s, "
+                            f"Gemini 429 rate limit (server asked ~{retry_seconds:.1f}s, "
                             f"waiting {sleep_time:.1f}s, {rate_limit_remaining} rate retries left)"
                         )
                         time.sleep(sleep_time)
