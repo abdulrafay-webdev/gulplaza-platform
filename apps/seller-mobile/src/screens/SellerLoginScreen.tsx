@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,39 +9,85 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
-  Alert
+  Alert,
+  ScrollView
 } from 'react-native';
-import { Store, Key, ArrowRight, ShieldCheck } from 'lucide-react-native';
+import { Store, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSignIn, useAuth } from '../lib/ClerkAuthContext';
 import { Theme } from '../shared/theme';
 import { useSellerAuth } from '../context/SellerAuthContext';
 import { api } from '../services/api';
 
 export default function SellerLoginScreen() {
   const { login } = useSellerAuth();
-  const [tokenInput, setTokenInput] = useState('');
+  const { signIn, setActive } = useSignIn();
+  const { getToken, isSignedIn } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [awaitingBackend, setAwaitingBackend] = useState(false);
+
+  useEffect(() => {
+    if (awaitingBackend && isSignedIn) {
+      completeBackendLogin();
+    }
+  }, [awaitingBackend, isSignedIn]);
+
+  const completeBackendLogin = async () => {
+    try {
+      const token = await getToken();
+      if (token) {
+        api.setAuthToken(token);
+        try {
+          const shopRes = await api.shops.getMe();
+          await login(token, shopRes.data);
+        } catch (e) {
+          await login(token);
+        }
+      }
+    } catch (err) {
+      console.error('Backend login error:', err);
+      Alert.alert('Error', 'Failed to connect to the marketplace. Please try again.');
+    } finally {
+      setLoading(false);
+      setAwaitingBackend(false);
+    }
+  };
 
   const handleSignIn = async () => {
-    if (!tokenInput.trim()) {
-      Alert.alert('Authentication Token Required', 'Please enter your Seller Merchant token or Clerk session token.');
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Missing Credentials', 'Please enter both your email and password.');
       return;
     }
 
     try {
       setLoading(true);
-      api.setAuthToken(tokenInput.trim());
-      const shopRes = await api.shops.getMe();
-      await login(tokenInput.trim(), shopRes.data);
+
+      const result = await signIn!.create({ identifier: email.trim() });
+
+      if (result.status === 'needs_first_factor') {
+        const attemptResult = await signIn!.attemptFirstFactor({
+          strategy: 'password',
+          password: password,
+        });
+
+        if (attemptResult.status === 'complete') {
+          await setActive!({ session: attemptResult.createdSessionId });
+          setAwaitingBackend(true);
+        } else {
+          Alert.alert('Sign In Incomplete', 'Additional verification is required.');
+          setLoading(false);
+        }
+      } else {
+        Alert.alert('Sign In Failed', 'Unexpected response. Please try again.');
+        setLoading(false);
+      }
     } catch (err: any) {
       console.error('Seller login error:', err);
-      // Fallback for bootstrap shop owner
-      if (tokenInput.trim().includes('user_') || tokenInput.trim().length > 10) {
-        await login(tokenInput.trim());
-      } else {
-        Alert.alert('Sign In Failed', 'Invalid Seller Merchant credentials. Please check your token.');
-      }
-    } finally {
+      const message = err?.errors?.[0]?.message || err?.message || 'Invalid email or password.';
+      Alert.alert('Sign In Failed', message);
       setLoading(false);
     }
   };
@@ -52,7 +98,11 @@ export default function SellerLoginScreen() {
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.content}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <LinearGradient colors={Theme.gradients.primary as any} style={styles.logoBox}>
             <Store color="#FFF" size={36} />
           </LinearGradient>
@@ -62,17 +112,38 @@ export default function SellerLoginScreen() {
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Merchant Access Key / Session Token</Text>
+              <Text style={styles.label}>Email Address</Text>
               <View style={styles.inputBox}>
-                <Key color="#94A3B8" size={18} />
+                <Mail color="#94A3B8" size={18} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter merchant authentication token"
+                  placeholder="Enter your email"
                   placeholderTextColor="#94A3B8"
-                  value={tokenInput}
-                  onChangeText={setTokenInput}
+                  value={email}
+                  onChangeText={setEmail}
                   autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoComplete="email"
                 />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Password</Text>
+              <View style={styles.inputBox}>
+                <Lock color="#94A3B8" size={18} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#94A3B8"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoComplete="password"
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  {showPassword ? <EyeOff color="#94A3B8" size={18} /> : <Eye color="#94A3B8" size={18} />}
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -86,21 +157,14 @@ export default function SellerLoginScreen() {
                   <ActivityIndicator color="#FFF" size="small" />
                 ) : (
                   <>
-                    <Text style={styles.submitBtnText}>Access Merchant Dashboard</Text>
+                    <Text style={styles.submitBtnText}>Sign In to Dashboard</Text>
                     <ArrowRight color="#FFF" size={16} />
                   </>
                 )}
               </LinearGradient>
             </TouchableOpacity>
-
-            <View style={styles.noticeBox}>
-              <ShieldCheck color="#10B981" size={18} />
-              <Text style={styles.noticeText}>
-                Authorized for verified Gul Plaza shop owners only. All inventory updates and orders sync directly with the live marketplace.
-              </Text>
-            </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -118,6 +182,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: 'center',
+    paddingVertical: 40,
   },
   logoBox: {
     width: 68,
@@ -186,21 +251,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '900',
-  },
-  noticeBox: {
-    flexDirection: 'row',
-    gap: 10,
-    backgroundColor: '#ECFDF5',
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-    marginTop: 8,
-  },
-  noticeText: {
-    fontSize: 11,
-    color: '#065F46',
-    flex: 1,
-    lineHeight: 16,
   },
 });

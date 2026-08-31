@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,33 +9,81 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
-  Alert
+  Alert,
+  ScrollView
 } from 'react-native';
-import { ShieldCheck, Key, ArrowRight } from 'lucide-react-native';
+import { ShieldCheck, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSignIn, useAuth } from '../lib/ClerkAuthContext';
 import { Theme } from '../shared/theme';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
 export default function AdminLoginScreen() {
   const { login } = useAdminAuth();
-  const [tokenInput, setTokenInput] = useState('');
+  const { signIn, setActive } = useSignIn();
+  const { getToken, isSignedIn } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [awaitingBackend, setAwaitingBackend] = useState(false);
+
+  useEffect(() => {
+    if (awaitingBackend && isSignedIn) {
+      completeBackendLogin();
+    }
+  }, [awaitingBackend, isSignedIn]);
+
+  const completeBackendLogin = async () => {
+    try {
+      const token = await getToken();
+      if (token) {
+        const success = await login(token);
+        if (!success) {
+          Alert.alert('Access Denied', 'This account does not have Super Admin privileges on AI Plaza.');
+        }
+      }
+    } catch (err) {
+      console.error('Admin backend login error:', err);
+      Alert.alert('Error', 'Failed to verify admin access. Please try again.');
+    } finally {
+      setLoading(false);
+      setAwaitingBackend(false);
+    }
+  };
 
   const handleSignIn = async () => {
-    if (!tokenInput.trim()) {
-      Alert.alert('Admin Token Required', 'Please enter your Super Admin access key or Clerk token.');
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Missing Credentials', 'Please enter both your email and password.');
       return;
     }
 
     try {
       setLoading(true);
-      const success = await login(tokenInput.trim());
-      if (!success) {
-        Alert.alert('Access Denied', 'This credential does not have Super Admin privileges on AI Plaza.');
+
+      const result = await signIn!.create({ identifier: email.trim() });
+
+      if (result.status === 'needs_first_factor') {
+        const attemptResult = await signIn!.attemptFirstFactor({
+          strategy: 'password',
+          password: password,
+        });
+
+        if (attemptResult.status === 'complete') {
+          await setActive!({ session: attemptResult.createdSessionId });
+          setAwaitingBackend(true);
+        } else {
+          Alert.alert('Sign In Incomplete', 'Additional verification is required.');
+          setLoading(false);
+        }
+      } else {
+        Alert.alert('Sign In Failed', 'Unexpected response. Please try again.');
+        setLoading(false);
       }
-    } catch (err) {
-      Alert.alert('Error', 'An unexpected error occurred.');
-    } finally {
+    } catch (err: any) {
+      console.error('Admin login error:', err);
+      const message = err?.errors?.[0]?.message || err?.message || 'Invalid email or password.';
+      Alert.alert('Sign In Failed', message);
       setLoading(false);
     }
   };
@@ -46,7 +94,11 @@ export default function AdminLoginScreen() {
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.content}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <LinearGradient colors={['#1E1B4B', '#0F172A']} style={styles.logoBox}>
             <ShieldCheck color="#A163F7" size={40} />
           </LinearGradient>
@@ -56,18 +108,38 @@ export default function AdminLoginScreen() {
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Super Admin Access Key</Text>
+              <Text style={styles.label}>Admin Email Address</Text>
               <View style={styles.inputBox}>
-                <Key color="#94A3B8" size={18} />
+                <Mail color="#94A3B8" size={18} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter administrator token"
+                  placeholder="Enter admin email"
                   placeholderTextColor="#94A3B8"
-                  value={tokenInput}
-                  onChangeText={setTokenInput}
+                  value={email}
+                  onChangeText={setEmail}
                   autoCapitalize="none"
-                  secureTextEntry
+                  keyboardType="email-address"
+                  autoComplete="email"
                 />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Password</Text>
+              <View style={styles.inputBox}>
+                <Lock color="#94A3B8" size={18} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter admin password"
+                  placeholderTextColor="#94A3B8"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoComplete="password"
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  {showPassword ? <EyeOff color="#94A3B8" size={18} /> : <Eye color="#94A3B8" size={18} />}
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -94,7 +166,7 @@ export default function AdminLoginScreen() {
               </Text>
             </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -112,6 +184,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     justifyContent: 'center',
+    paddingVertical: 40,
   },
   logoBox: {
     width: 72,

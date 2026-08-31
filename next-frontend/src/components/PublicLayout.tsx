@@ -18,7 +18,9 @@ import {
   Sparkles,
   Layers,
   ShieldAlert,
-  Bot
+  Bot,
+  Download,
+  Smartphone
 } from 'lucide-react';
 
 import { useCustomer } from "@/context/CustomerContext";
@@ -280,6 +282,41 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                   <Headphones className="w-4 h-4 text-[#FF7582] flex-shrink-0" />
                   <span>Direct Shop Contact & Support</span>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="py-6 border-t border-purple-900/30">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-5 h-5 text-[#45E3FF]" />
+                <h4 className="text-white font-bold text-sm">Download Our Mobile Apps</h4>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href="/downloads/ai-plaza-customer.apk"
+                  download
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-[#A163F7] to-[#7C3AED] text-white text-xs font-bold hover:opacity-90 transition-opacity shadow-md"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Customer App
+                </a>
+                <a
+                  href="/downloads/ai-plaza-seller.apk"
+                  download
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-[#45E3FF] to-[#0EA5E9] text-white text-xs font-bold hover:opacity-90 transition-opacity shadow-md"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Seller App
+                </a>
+                <a
+                  href="/downloads/ai-plaza-admin.apk"
+                  download
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-[#1E1B4B] to-[#312E81] text-white text-xs font-bold hover:opacity-90 transition-opacity shadow-md border border-purple-700/40"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Admin App
+                </a>
               </div>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSignOut } from '../lib/ClerkAuthContext';
 import { Shop, SellerUser } from '../shared/types';
 import { api } from '../services/api';
 
@@ -28,6 +29,7 @@ const SELLER_DATA_KEY = '@aiplaza_seller_data';
 const SELLER_SHOP_KEY = '@aiplaza_seller_shop';
 
 export const SellerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { signOut } = useSignOut();
   const [seller, setSeller] = useState<SellerUser | null>(null);
   const [shop, setShop] = useState<Shop | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -88,6 +90,7 @@ export const SellerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const logout = async () => {
+    try { await signOut(); } catch (e) { /* ignore */ }
     setToken(null);
     setSeller(null);
     setShop(null);

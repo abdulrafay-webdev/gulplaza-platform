@@ -18,6 +18,9 @@
         "backgroundColor": "#1E1B4B"
       },
       "package": "com.aiplaza.admin"
-    }
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSignOut } from '../lib/ClerkAuthContext';
 import { AdminUser } from '../shared/types';
 import { api } from '../services/api';
 
@@ -23,6 +24,7 @@ const ADMIN_TOKEN_KEY = '@aiplaza_admin_token';
 const ADMIN_DATA_KEY = '@aiplaza_admin_data';
 
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { signOut } = useSignOut();
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,6 +73,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const logout = async () => {
+    try { await signOut(); } catch (e) { /* ignore */ }
     setToken(null);
     setAdmin(null);
     api.setAuthToken(null);

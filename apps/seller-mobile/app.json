@@ -23,6 +23,9 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
       ]
-    }
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }
