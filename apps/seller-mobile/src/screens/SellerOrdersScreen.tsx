@@ -33,6 +33,8 @@ export default function SellerOrdersScreen() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updating, setUpdating] = useState(false);
 
+  const [refreshing, setRefreshing] = useState(false);
+
   useEffect(() => {
     loadOrders();
   }, []);
@@ -46,7 +48,13 @@ export default function SellerOrdersScreen() {
       console.error('Failed to load seller orders:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadOrders();
   };
 
   const handleStatusUpdate = async (orderId: number, newStatus: string) => {
@@ -111,13 +119,15 @@ export default function SellerOrdersScreen() {
         })}
       </View>
 
-      {loading ? (
+      {loading && !refreshing ? (
         <ActivityIndicator size="large" color={Theme.colors.primaryPurple} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={filteredOrders}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
           renderItem={({ item }) => {
             const st = getStatusStyle(item.status);
             return (
@@ -136,11 +146,26 @@ export default function SellerOrdersScreen() {
                   </TouchableOpacity>
                 </View>
 
+                {/* Ordered Items List */}
+                {item.items && item.items.length > 0 && (
+                  <View style={styles.itemsSummaryBox}>
+                    {item.items.map((it: any, idx: number) => (
+                      <View key={idx} style={styles.itemSummaryRow}>
+                        <Text style={styles.itemSummaryName} numberOfLines={1}>
+                          • {it.product?.name || `Product #${it.product_id}`}
+                        </Text>
+                        <Text style={styles.itemSummaryQty}>x{it.quantity}</Text>
+                        <Text style={styles.itemSummaryPrice}>{formatCurrency(it.price_at_purchase * it.quantity)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
                 {/* Customer Details */}
                 <View style={styles.detailsBlock}>
                   <View style={styles.infoRow}>
                     <User color="#64748B" size={14} />
-                    <Text style={styles.infoText}>{item.guest_name || 'Guest Shopper'}</Text>
+                    <Text style={styles.infoText}>{item.guest_name || 'Customer'}</Text>
                   </View>
                   <View style={styles.infoRow}>
                     <Phone color="#64748B" size={14} />
@@ -297,6 +322,35 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: '800',
+  },
+  itemsSummaryBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 8,
+    marginBottom: 10,
+    gap: 4,
+  },
+  itemSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  itemSummaryName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1E293B',
+    flex: 1,
+  },
+  itemSummaryQty: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  itemSummaryPrice: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   detailsBlock: {
     gap: 6,

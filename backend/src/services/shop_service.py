@@ -1,5 +1,6 @@
 from sqlmodel import Session, select
 from src.models.shop import Shop
+from src.models.user import User
 from typing import List, Optional
 
 def create_shop(session: Session, shop: Shop) -> Shop:
@@ -9,8 +10,23 @@ def create_shop(session: Session, shop: Shop) -> Shop:
     return shop
 
 def get_shop_by_owner(session: Session, owner_id: str) -> Optional[Shop]:
-    statement = select(Shop).where(Shop.owner_clerk_id == owner_id)
-    return session.exec(statement).first()
+    # 1. Look up by direct owner_clerk_id
+    statement = select(Shop).where(Shop.owner_clerk_id == str(owner_id))
+    shop = session.exec(statement).first()
+    if shop:
+        return shop
+
+    # 2. Look up via User table linked shop_id
+    user = session.get(User, str(owner_id))
+    if user and user.shop_id:
+        return session.get(Shop, user.shop_id)
+
+    # 3. Look up User by email or phone
+    user = session.exec(select(User).where((User.email == str(owner_id)) | (User.phone == str(owner_id)))).first()
+    if user and user.shop_id:
+        return session.get(Shop, user.shop_id)
+
+    return None
 
 def get_shop_by_id(session: Session, shop_id: int) -> Optional[Shop]:
     return session.get(Shop, shop_id)

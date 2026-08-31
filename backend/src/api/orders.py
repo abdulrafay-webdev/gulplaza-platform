@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlmodel import Session
+from sqlmodel import Session, select
 from typing import List, Optional
 from src.db.session import get_session
 from src.models.order import Order, OrderRead
+from src.models.shop import Shop
 from src.services import order_service, shop_service, customer_service
 from src.auth.deps import get_current_user
 from pydantic import BaseModel
+from jose import jwt
 
 router = APIRouter()
 security = HTTPBearer(auto_error=False)
@@ -17,22 +19,32 @@ class OrderStatusUpdate(BaseModel):
 @router.get("/orders", response_model=List[OrderRead])
 def list_orders(user = Depends(get_current_user), session: Session = Depends(get_session)):
     """
-    List orders contextually.
-    - Shop Owners see orders for their shop.
-    - Customers see their own orders.
+    List orders contextually based on user role:
+    - SUPER_ADMIN: Returns all orders on the marketplace.
+    - SELLER / SHOP_OWNER: Returns orders for their store.
+    - CUSTOMER: Returns orders placed by this customer.
     """
-    if user["role"] == "SHOP_OWNER":
-        # Get Shop ID
-        shop = shop_service.get_shop_by_owner(session, user["id"])
-        if not shop:
-             # If they don't have a shop yet, they have no orders
-             return []
-        return order_service.get_orders(session, shop_id=shop.id)
-    else:
-        # Assume Customer
-        return order_service.get_orders(session, customer_id=user["id"])
+    role = str(user.get("role", "")).upper()
+    user_id = str(user.get("id"))
+    shop_id = user.get("shop_id")
 
-from src.api.customers import get_current_customer
+    # 1. Super Admin sees all platform orders
+    if role == "SUPER_ADMIN" or user.get("email") == "abdullrrafay@gmail.com":
+        return order_service.get_all_orders(session)
+
+    # 2. Seller / Shop Owner sees their store orders
+    if role in ["SELLER", "SHOP_OWNER"] or shop_id:
+        shop = None
+        if shop_id:
+            shop = session.get(Shop, shop_id)
+        if not shop:
+            shop = shop_service.get_shop_by_owner(session, user_id)
+        if not shop:
+            return []
+        return order_service.get_orders(session, shop_id=shop.id)
+
+    # 3. Customer sees their placed orders
+    return order_service.get_orders(session, customer_id=user_id)
 
 @router.get("/orders/{order_id}", response_model=OrderRead)
 def get_order(
@@ -41,53 +53,43 @@ def get_order(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ):
     """
-    Get a single order details. 
-    Accessible by:
-    - Shop Owner who owns the product
-    - Admin
+    Get single order detail with security check:
+    - Super Admin
+    - Seller owning the shop
     - Customer who placed the order
     """
     order = order_service.get_order_by_id(session, order_id)
     if not order:
         raise HTTPException(404, "Order not found")
         
-    # Determine who is requesting
     token = credentials.credentials if credentials else None
     if not token:
         raise HTTPException(401, "Authentication required")
 
-    # 1. Try Clerk Auth (Seller/Admin)
     try:
-        from src.auth.deps import get_current_user
-        # We simulate the dependency check manually
-        # This is a bit hacky, but avoids circular dependency complexity in a single file
-        # In a larger app, we'd have a unified auth provider.
-        from jose import jwt as jose_jwt
-        import os
-        payload = jose_jwt.get_unverified_claims(token)
-        user_id = payload.get("sub")
-        role = payload.get("public_metadata", {}).get("role")
-        
-        # TEMPORARY BYPASS: Force SHOP_OWNER role for this specific user
-        if user_id == "user_38gxODtYHX94wosiJA1SvLD4M7C":
-            role = "SHOP_OWNER"
+        payload = jwt.decode(token, customer_service.SECRET_KEY, algorithms=[customer_service.ALGORITHM])
+        user_id = str(payload.get("sub"))
+        role = str(payload.get("role", "")).upper()
+        shop_id = payload.get("shop_id")
+        email = payload.get("email")
 
-        if role == "SUPER_ADMIN" or user_id == "user_38gxODtYHX94wosiJA1SvLD4M7C":
-            return order # Admin access
-            
-        if role == "SHOP_OWNER":
+        # 1. Super Admin
+        if role == "SUPER_ADMIN" or email == "abdullrrafay@gmail.com":
+            return order
+
+        # 2. Seller owning the shop
+        if role in ["SELLER", "SHOP_OWNER"] or shop_id:
+            if shop_id and order.shop_id == shop_id:
+                return order
             shop = shop_service.get_shop_by_owner(session, user_id)
             if shop and order.shop_id == shop.id:
-                return order # Seller access
-    except Exception:
-        pass # Not a Clerk token or invalid
+                return order
 
-    # 2. Try Customer Auth (Neon DB)
-    try:
-        payload = jose_jwt.decode(token, customer_service.SECRET_KEY, algorithms=[customer_service.ALGORITHM])
-        customer_id = int(payload.get("sub"))
-        if order.customer_id == customer_id:
-            return order # Customer access
+        # 3. Customer owning the order
+        if order.customer_id and str(order.customer_id) == user_id:
+            return order
+        if order.customer_clerk_id and str(order.customer_clerk_id) == user_id:
+            return order
     except Exception:
         pass
 
@@ -100,16 +102,26 @@ def update_status(
     user = Depends(get_current_user), 
     session: Session = Depends(get_session)
 ):
-    """Update status (Shop Owner only)."""
-    if user["role"] != "SHOP_OWNER":
-        raise HTTPException(403, "Only Shop Owners can update status")
-        
+    """Update order status (Shop Owner or Super Admin)."""
     order = order_service.get_order_by_id(session, order_id)
     if not order:
         raise HTTPException(404, "Order not found")
-        
-    shop = shop_service.get_shop_by_owner(session, user["id"])
-    if not shop or order.shop_id != shop.id:
-        raise HTTPException(403, "Not your order")
-        
-    return order_service.update_order_status(session, order, update.status)
+
+    role = str(user.get("role", "")).upper()
+
+    # 1. Super Admin has global override
+    if role == "SUPER_ADMIN" or user.get("email") == "abdullrrafay@gmail.com":
+        return order_service.update_order_status(session, order, update.status)
+
+    # 2. Seller must own the store
+    if role in ["SELLER", "SHOP_OWNER"] or user.get("shop_id"):
+        shop = None
+        if user.get("shop_id"):
+            shop = session.get(Shop, user["shop_id"])
+        if not shop:
+            shop = shop_service.get_shop_by_owner(session, user["id"])
+
+        if shop and order.shop_id == shop.id:
+            return order_service.update_order_status(session, order, update.status)
+
+    raise HTTPException(403, "Not authorized to update this order")

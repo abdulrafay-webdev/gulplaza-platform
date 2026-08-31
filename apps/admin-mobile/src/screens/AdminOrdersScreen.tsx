@@ -17,6 +17,7 @@ import { api } from '../services/api';
 export default function AdminOrdersScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadOrders();
@@ -31,7 +32,13 @@ export default function AdminOrdersScreen() {
       console.error('Failed to load platform orders:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadOrders();
   };
 
   const getBadge = (status: string) => {
@@ -53,16 +60,18 @@ export default function AdminOrdersScreen() {
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Platform Orders</Text>
-        <Text style={styles.headerSubtitle}>Real-time marketplace transactions & tracking</Text>
+        <Text style={styles.headerSubtitle}>{orders.length} total orders across marketplace</Text>
       </View>
 
-      {loading ? (
+      {loading && !refreshing ? (
         <ActivityIndicator size="large" color={Theme.colors.primaryPurple} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={orders}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
           renderItem={({ item }) => {
             const badge = getBadge(item.status);
             return (
@@ -77,6 +86,21 @@ export default function AdminOrdersScreen() {
                   </View>
                 </View>
 
+                {/* Ordered Products Breakdown */}
+                {item.items && item.items.length > 0 && (
+                  <View style={styles.itemsBox}>
+                    {item.items.map((it: any, idx: number) => (
+                      <View key={idx} style={styles.itemRow}>
+                        <Text style={styles.itemName} numberOfLines={1}>
+                          • {it.product?.name || `Product #${it.product_id}`}
+                        </Text>
+                        <Text style={styles.itemQty}>x{it.quantity}</Text>
+                        <Text style={styles.itemPrice}>{formatCurrency(it.price_at_purchase * it.quantity)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
                 <View style={styles.cardBody}>
                   <View style={styles.infoRow}>
                     <Store color="#64748B" size={14} />
@@ -84,12 +108,18 @@ export default function AdminOrdersScreen() {
                   </View>
                   <View style={styles.infoRow}>
                     <User color="#64748B" size={14} />
-                    <Text style={styles.infoText}>Customer: {item.guest_name || 'Guest Shopper'}</Text>
+                    <Text style={styles.infoText}>Customer: {item.guest_name || 'Customer'}</Text>
                   </View>
                   <View style={styles.infoRow}>
                     <Phone color="#64748B" size={14} />
                     <Text style={styles.infoText}>Contact: {item.guest_phone || 'N/A'}</Text>
                   </View>
+                  {item.guest_address && (
+                    <View style={styles.infoRow}>
+                      <MapPin color="#64748B" size={14} />
+                      <Text style={styles.infoText} numberOfLines={2}>{item.guest_address}</Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.cardFooter}>
@@ -103,6 +133,7 @@ export default function AdminOrdersScreen() {
             <View style={styles.emptyContainer}>
               <Package color="#CBD5E1" size={54} />
               <Text style={styles.emptyTitle}>No Orders Found</Text>
+              <Text style={styles.emptyDesc}>Marketplace orders will appear here automatically.</Text>
             </View>
           }
         />
@@ -174,6 +205,35 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
   },
+  itemsBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 8,
+    marginBottom: 10,
+    gap: 4,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  itemName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1E293B',
+    flex: 1,
+  },
+  itemQty: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  itemPrice: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
   cardBody: {
     gap: 6,
     marginBottom: 10,
@@ -214,5 +274,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0F172A',
     marginTop: 12,
+  },
+  emptyDesc: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 4,
   },
 });
