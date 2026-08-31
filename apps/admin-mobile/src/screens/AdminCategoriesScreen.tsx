@@ -7,10 +7,12 @@ import {
   TextInput,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   Alert,
-  Modal
+  Modal,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShoppingBag, Plus, Trash2, X, Check } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Category } from '../shared/types';
@@ -83,7 +85,7 @@ export default function AdminCategoriesScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Category Management</Text>
@@ -129,7 +131,10 @@ export default function AdminCategoriesScreen() {
 
       {/* Add Category Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add New Category</Text>
@@ -144,6 +149,7 @@ export default function AdminCategoriesScreen() {
               placeholderTextColor="#94A3B8"
               value={newCatName}
               onChangeText={setNewCatName}
+              autoFocus
             />
 
             <TouchableOpacity
@@ -160,7 +166,7 @@ export default function AdminCategoriesScreen() {
               </LinearGradient>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

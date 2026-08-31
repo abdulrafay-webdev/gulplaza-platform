@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   RefreshControl
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ShieldCheck,
   DollarSign,
@@ -57,7 +57,7 @@ export default function AdminDashboardScreen({ navigation }: any) {
 
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView edges={['top', 'left', 'right']} style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Theme.colors.primaryPurple} />
       </SafeAreaView>
     );
@@ -76,7 +76,7 @@ export default function AdminDashboardScreen({ navigation }: any) {
   const trending = analytics?.trending_ai_demands || [];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
         <View>
           <Text style={styles.headerSubtitle}>Super Admin Console</Text>

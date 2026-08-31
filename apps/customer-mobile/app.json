@@ -22,6 +22,7 @@
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.aiplaza.customer",
+      "softwareKeyboardLayoutMode": "pan",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",

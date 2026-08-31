@@ -8,9 +8,11 @@ import {
   Image,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
   Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Camera, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Product } from '../shared/types';
@@ -31,24 +33,20 @@ export default function EditProductScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(false);
 
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Camera roll permissions are required.');
-      return;
-    }
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
-      base64: true,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      const mime = asset.mimeType || 'image/jpeg';
-      const b64Uri = asset.base64 ? `data:${mime};base64,${asset.base64}` : asset.uri;
-      setSelectedImage(b64Uri);
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setSelectedImage(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.error('Image picker error:', err);
+      Alert.alert('Error', 'Failed to select image.');
     }
   };
 
@@ -60,17 +58,25 @@ export default function EditProductScreen({ route, navigation }: any) {
 
     try {
       setLoading(true);
+      let uploadedUrl = selectedImage;
+
+      if (selectedImage && selectedImage.startsWith('file:')) {
+        try {
+          const uploadRes = await api.ai.uploadImage(selectedImage);
+          uploadedUrl = uploadRes.data.url;
+        } catch (imgErr) {
+          console.warn('Image upload failed during edit:', imgErr);
+        }
+      }
+
       const payload: any = {
         name: name.trim(),
         price: parseFloat(price),
         stock_quantity: parseInt(stock, 10) || 0,
         short_description: shortDesc.trim() || undefined,
         long_description: longDesc.trim() || undefined,
+        image_url: uploadedUrl || undefined,
       };
-
-      if (selectedImage && selectedImage.startsWith('data:')) {
-        payload.image_urls = [selectedImage];
-      }
 
       await api.products.update(product.id, payload);
       Alert.alert('Success', 'Product updated successfully!');
@@ -84,7 +90,7 @@ export default function EditProductScreen({ route, navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.navBar}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ChevronLeft color="#0F172A" size={24} />
@@ -99,7 +105,16 @@ export default function EditProductScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Photo view */}
         <View style={styles.photoCard}>
           {selectedImage ? (
@@ -172,8 +187,9 @@ export default function EditProductScreen({ route, navigation }: any) {
 
         <View style={{ height: 60 }} />
       </ScrollView>
-    </SafeAreaView>
-  );
+    </KeyboardAvoidingView>
+  </SafeAreaView>
+);
 }
 
 const styles = StyleSheet.create({

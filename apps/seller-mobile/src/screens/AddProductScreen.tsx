@@ -8,9 +8,11 @@ import {
   Image,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
   Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ChevronLeft,
   Image as ImageIcon,
@@ -58,73 +60,85 @@ export default function AddProductScreen({ navigation }: any) {
   };
 
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Camera roll permissions are required to upload product photos.');
-      return;
-    }
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
-      base64: true,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      const mime = asset.mimeType || 'image/jpeg';
-      const b64Uri = asset.base64 ? `data:${mime};base64,${asset.base64}` : asset.uri;
-      setSelectedImage(b64Uri);
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setSelectedImage(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.error('Image picker error:', err);
+      Alert.alert('Error', 'Failed to select image.');
     }
   };
 
-  // Seller AI Product Copilot: Generates title and descriptions based on raw keywords!
-  const generateWithAI = async () => {
+  const handleGenerateAI = async () => {
     if (!name.trim()) {
-      Alert.alert('Product Hint Needed', 'Please type a basic product name or keyword first (e.g. "men leather wallet" or "electric kettle").');
+      Alert.alert('Product Title Needed', 'Please enter a product title first so AI can generate descriptions.');
       return;
     }
 
     try {
       setIsAiGenerating(true);
-      // Generate clean seller marketing description
-      const generatedShort = `Premium quality ${name.trim()} available directly from verified Gul Plaza store. Durable and stylish.`;
-      const generatedLong = `Experience authentic craft and premium utility with our ${name.trim()}. Specially sourced from top manufacturers in Karachi. Includes complete warranty and fast nationwide Cash on Delivery support across Pakistan.`;
-      
-      setShortDesc(generatedShort);
-      setLongDesc(generatedLong);
-      Alert.alert('AI Copilot Success', 'Descriptions generated! You can review and edit before saving.');
+      const res = await api.ai.generateDescription(name.trim(), selectedCatId || undefined);
+      if (res.data) {
+        setShortDesc(res.data.short_description || '');
+        setLongDesc(res.data.long_description || '');
+        Alert.alert('AI Generated! ✨', 'High-converting descriptions have been auto-generated for your product.');
+      }
+    } catch (err) {
+      console.error('AI generation error:', err);
+      Alert.alert('AI Unavailable', 'Could not generate descriptions automatically. You can write them manually.');
     } finally {
       setIsAiGenerating(false);
     }
   };
 
   const handleSave = async () => {
-    if (!shop) {
-      Alert.alert('Error', 'Shop not found.');
+    if (!name.trim() || !price || !selectedCatId) {
+      Alert.alert('Missing Required Fields', 'Please provide Product Name, Price, and select a Main Category.');
       return;
     }
-    if (!name.trim() || !price || isNaN(Number(price))) {
-      Alert.alert('Incomplete Form', 'Please provide a valid product name and price in PKR.');
+
+    const priceNum = parseFloat(price);
+    const stockNum = parseInt(stock, 10) || 0;
+
+    if (isNaN(priceNum) || priceNum <= 0) {
+      Alert.alert('Invalid Price', 'Please enter a valid price in PKR.');
       return;
     }
 
     try {
       setLoading(true);
-      const payload = {
+      let uploadedUrl: string | undefined = undefined;
+
+      if (selectedImage) {
+        try {
+          const uploadRes = await api.ai.uploadImage(selectedImage);
+          uploadedUrl = uploadRes.data.url;
+        } catch (imgErr) {
+          console.warn('Image upload failed, creating without image:', imgErr);
+        }
+      }
+
+      await api.products.create({
         name: name.trim(),
-        price: parseFloat(price),
-        stock_quantity: parseInt(stock, 10) || 1,
+        price: priceNum,
+        stock_quantity: stockNum,
         short_description: shortDesc.trim() || undefined,
         long_description: longDesc.trim() || undefined,
-        main_category_id: selectedCatId || undefined,
-        image_urls: selectedImage ? [selectedImage] : []
-      };
+        main_category_id: selectedCatId,
+        image_url: uploadedUrl,
+      });
 
-      await api.products.create(shop.id, payload);
-      Alert.alert('Product Published', 'Your product is now live on the AI Plaza marketplace!');
-      navigation.goBack();
+      Alert.alert('Product Published! 🎉', 'Your product is now live on AI Plaza marketplace.', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
     } catch (err) {
       console.error('Failed to create product:', err);
       Alert.alert('Failed to Publish', 'Could not create product. Please check your data.');
@@ -134,7 +148,7 @@ export default function AddProductScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.navBar}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ChevronLeft color="#0F172A" size={24} />
@@ -149,7 +163,16 @@ export default function AddProductScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Product Photo Upload */}
         <View style={styles.photoCard}>
           {selectedImage ? (
@@ -287,8 +310,9 @@ export default function AddProductScreen({ navigation }: any) {
 
         <View style={{ height: 80 }} />
       </ScrollView>
-    </SafeAreaView>
-  );
+    </KeyboardAvoidingView>
+  </SafeAreaView>
+);
 }
 
 const styles = StyleSheet.create({

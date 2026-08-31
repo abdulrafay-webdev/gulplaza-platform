@@ -8,9 +8,11 @@ import {
   Image,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
   Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Store,
   Camera,
@@ -35,24 +37,20 @@ export default function ShopSettingsScreen() {
   const [loading, setLoading] = useState(false);
 
   const pickLogo = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Camera roll permissions are required.');
-      return;
-    }
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
-      base64: true,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      const mime = asset.mimeType || 'image/jpeg';
-      const b64Uri = asset.base64 ? `data:${mime};base64,${asset.base64}` : asset.uri;
-      setLogoUrl(b64Uri);
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setLogoUrl(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.error('Image picker error:', err);
+      Alert.alert('Error', 'Failed to select image.');
     }
   };
 
@@ -64,13 +62,22 @@ export default function ShopSettingsScreen() {
 
     try {
       setLoading(true);
+      let uploadedLogo = logoUrl;
+
+      if (logoUrl && logoUrl.startsWith('file:')) {
+        try {
+          const uploadRes = await api.ai.uploadImage(logoUrl);
+          uploadedLogo = uploadRes.data.url;
+        } catch (imgErr) {
+          console.warn('Logo upload failed:', imgErr);
+        }
+      }
+
       const payload: any = {
         name: name.trim(),
         description: description.trim() || undefined,
+        logo_url: uploadedLogo || undefined,
       };
-      if (logoUrl && logoUrl.startsWith('data:')) {
-        payload.logo_url = logoUrl;
-      }
 
       await api.shops.update(payload);
       await refreshShop();
@@ -86,12 +93,21 @@ export default function ShopSettingsScreen() {
   const currentLogo = logoUrl || 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=200&q=80';
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Shop Profile & Settings</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Shop Logo Avatar */}
         <View style={styles.avatarSection}>
           <View style={styles.logoContainer}>
@@ -166,8 +182,9 @@ export default function ShopSettingsScreen() {
 
         <View style={{ height: 60 }} />
       </ScrollView>
-    </SafeAreaView>
-  );
+    </KeyboardAvoidingView>
+  </SafeAreaView>
+);
 }
 
 const styles = StyleSheet.create({

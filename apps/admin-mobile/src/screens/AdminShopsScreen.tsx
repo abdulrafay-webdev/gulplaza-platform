@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Store,
   CheckCircle,
@@ -99,7 +99,7 @@ export default function AdminShopsScreen({ route }: any) {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Shop Approvals & Management</Text>
         <Text style={styles.headerSubtitle}>{shops.length} total registered vendor stores</Text>

@@ -5,9 +5,9 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  StyleSheet,
-  SafeAreaView
+  StyleSheet
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Package, Store, User, Phone, MapPin } from 'lucide-react-native';
 import { Order } from '../shared/types';
 import { Theme } from '../shared/theme';
@@ -50,7 +50,7 @@ export default function AdminOrdersScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Platform Orders</Text>
         <Text style={styles.headerSubtitle}>Real-time marketplace transactions & tracking</Text>

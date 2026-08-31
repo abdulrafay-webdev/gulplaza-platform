@@ -8,9 +8,9 @@ import {
   TextInput,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, Search, Edit2, Trash2, Package, AlertCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Product } from '../shared/types';
@@ -71,7 +71,7 @@ export default function SellerProductsScreen({ navigation }: any) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Products Inventory</Text>

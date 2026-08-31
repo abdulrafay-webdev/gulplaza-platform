@@ -3,9 +3,9 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  SafeAreaView
+  StyleSheet
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Clock, ShieldAlert, RefreshCw, LogOut, Phone } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Theme } from '../shared/theme';
@@ -15,7 +15,7 @@ export default function PendingApprovalScreen() {
   const { shop, refreshShop, logout } = useSellerAuth();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.content}>
         <View style={styles.iconBox}>
           <Clock color="#D97706" size={48} />

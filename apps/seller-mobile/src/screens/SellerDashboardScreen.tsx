@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   RefreshControl
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Store,
   DollarSign,
@@ -58,7 +58,7 @@ export default function SellerDashboardScreen({ navigation }: any) {
 
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView edges={['top', 'left', 'right']} style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Theme.colors.primaryPurple} />
       </SafeAreaView>
     );
@@ -69,7 +69,7 @@ export default function SellerDashboardScreen({ navigation }: any) {
   const trending = analytics?.trending_ai_demands || [];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

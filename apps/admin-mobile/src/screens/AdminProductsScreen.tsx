@@ -8,9 +8,9 @@ import {
   TextInput,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Package, Search, Trash2, Store, AlertCircle } from 'lucide-react-native';
 import { Product } from '../shared/types';
 import { Theme } from '../shared/theme';
@@ -66,7 +66,7 @@ export default function AdminProductsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Marketplace Products</Text>
         <Text style={styles.headerSubtitle}>{products.length} live products across all shops</Text>

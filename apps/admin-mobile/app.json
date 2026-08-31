@@ -21,7 +21,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.aiplaza.admin"
+      "package": "com.aiplaza.admin",
+      "softwareKeyboardLayoutMode": "pan"
     },
     "plugins": [
       "expo-secure-store"
