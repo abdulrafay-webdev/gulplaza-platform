@@ -53,28 +53,23 @@ export default function AIChatScreen({ route, navigation }: any) {
 
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Authentication Guard
+  // Load chat history if authenticated
   useEffect(() => {
-    if (!user && !token) {
-      Alert.alert(
-        'Sign In Required',
-        'Please sign in to access your AI Shopping Advisor and save your conversation history.',
-        [
-          { text: 'Cancel', onPress: () => navigation.goBack() },
-          { text: 'Sign In', onPress: () => navigation.navigate('Login') }
-        ]
-      );
-      return;
+    if (user || token) {
+      loadChats();
     }
-    loadChats();
   }, [user, token]);
 
   // Handle initial message if passed from HomeScreen
   useEffect(() => {
-    if (initialMessage && user) {
-      handleSendMessage(initialMessage);
+    if (initialMessage) {
+      if (user || token) {
+        handleSendMessage(initialMessage);
+      } else {
+        setInputText(initialMessage);
+      }
     }
-  }, [initialMessage, user]);
+  }, [initialMessage, user, token]);
 
   const loadChats = async () => {
     try {
@@ -94,7 +89,7 @@ export default function AIChatScreen({ route, navigation }: any) {
       setCurrentChatId(chatId);
       setHistoryModalVisible(false);
       const res = await api.ai.getChat(chatId);
-      setMessages(res.data.messages || []);
+      setMessages(res.data?.messages || []);
     } catch (err) {
       console.error('Failed to load chat details:', err);
     }
@@ -120,30 +115,46 @@ export default function AIChatScreen({ route, navigation }: any) {
   };
 
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Camera roll permission is required to upload images for AI matching.');
-      return;
-    }
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Camera roll permission is required to upload images for AI matching.');
+        return;
+      }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 4],
-      quality: 0.7,
-      base64: true,
-    });
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 4],
+        quality: 0.7,
+      });
 
-    if (!result.canceled && result.assets && result.assets[0]) {
-      const asset = result.assets[0];
-      const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
-      setSelectedImage(base64Data);
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        setSelectedImage(base64Data);
+      }
+    } catch (err) {
+      console.error('Image picker error:', err);
+      Alert.alert('Error', 'Failed to select image.');
     }
   };
 
   const handleSendMessage = async (customText?: string) => {
     const textToSend = customText || inputText;
     if (!textToSend.trim() && !selectedImage) return;
+
+    if (!user && !token) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to chat with AI Advisor and save your conversation history.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => navigation.navigate('Login') }
+        ]
+      );
+      return;
+    }
 
     const userMsg: AIMessage = {
       role: 'user',
@@ -159,23 +170,35 @@ export default function AIChatScreen({ route, navigation }: any) {
     setIsThinking(true);
 
     try {
-      const res = await api.ai.sendMessage({
-        chat_id: currentChatId || undefined,
-        message: textToSend,
-        image_data: imageToSend || undefined
-      });
+      let assistantMsg: AIMessage;
 
-      const data = res.data;
-      if (data.chat_id) {
-        setCurrentChatId(data.chat_id);
+      if (!currentChatId) {
+        const res = await api.ai.createChat({
+          initial_message: textToSend,
+          image_url: imageToSend || undefined
+        });
+
+        if (res.data?.chat?.id) {
+          setCurrentChatId(res.data.chat.id);
+        }
+
+        assistantMsg = res.data?.assistant_message || {
+          role: 'assistant',
+          content: 'Here are matching products for your request.',
+          created_at: new Date().toISOString()
+        };
+      } else {
+        const res = await api.ai.sendMessage(currentChatId, {
+          content: textToSend,
+          image_url: imageToSend || undefined
+        });
+
+        assistantMsg = res.data?.assistant_message || {
+          role: 'assistant',
+          content: 'Here are matching products for your request.',
+          created_at: new Date().toISOString()
+        };
       }
-
-      const assistantMsg: AIMessage = {
-        role: 'assistant',
-        content: data.reply,
-        products: data.products || [],
-        created_at: new Date().toISOString()
-      };
 
       setMessages(prev => [...prev, assistantMsg]);
       loadChats();
@@ -230,6 +253,22 @@ export default function AIChatScreen({ route, navigation }: any) {
         </View>
       </View>
 
+      {/* Guest Banner if not signed in */}
+      {!user && !token && (
+        <TouchableOpacity
+          style={styles.guestBanner}
+          onPress={() => navigation.navigate('Login')}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.guestBannerTitle}>✨ Sign in for personal recommendations</Text>
+            <Text style={styles.guestBannerSub}>Save chat sessions & track order recommendations</Text>
+          </View>
+          <View style={styles.guestBannerBtn}>
+            <Text style={styles.guestBannerBtnText}>Sign In</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -270,11 +309,11 @@ export default function AIChatScreen({ route, navigation }: any) {
               </View>
             </View>
           ) : (
-            messages.map((m) => {
+            messages.map((m, idx) => {
               const isUser = m.role === 'user';
               return (
                 <View
-                  key={m.id}
+                  key={m.id ? `msg-${m.id}` : `msg-${idx}`}
                   style={[
                     styles.messageRow,
                     isUser ? styles.userRow : styles.assistantRow
@@ -839,5 +878,36 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 12,
     marginVertical: 20,
+  },
+  guestBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FAF5FF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9D5FF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  guestBannerTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B21A8',
+  },
+  guestBannerSub: {
+    fontSize: 10,
+    color: '#9333EA',
+    marginTop: 1,
+  },
+  guestBannerBtn: {
+    backgroundColor: '#9333EA',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  guestBannerBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
   },
 });

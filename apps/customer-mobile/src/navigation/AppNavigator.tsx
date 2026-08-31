@@ -54,10 +54,6 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
             if (!isFocused && !event.defaultPrevented) {
               if (isAI) {
-                if (!user && !token) {
-                  navigation.navigate('Login');
-                  return;
-                }
                 navigation.navigate('AIChat');
                 return;
               }
