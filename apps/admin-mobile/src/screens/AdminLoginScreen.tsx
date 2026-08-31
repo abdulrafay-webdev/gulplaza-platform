@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +8,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  ScrollView
+  ScrollView,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShieldCheck, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
@@ -56,9 +56,13 @@ export default function AdminLoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <LinearGradient colors={['#1E1B4B', '#0F172A']} style={styles.logoBox}>
-            <ShieldCheck color="#A163F7" size={40} />
-          </LinearGradient>
+          <View style={styles.logoBox}>
+            <Image 
+              source={require('../../assets/logo.png')} 
+              style={{ width: 68, height: 68 }} 
+              resizeMode="contain" 
+            />
+          </View>
 
           <Text style={styles.title}>Super Admin Console</Text>
           <Text style={styles.subtitle}>Protected administration portal for AI Plaza operations</Text>

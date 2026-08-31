@@ -88,10 +88,8 @@ export default function SellerRegisterPage() {
         <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
             <div className="max-w-lg w-full bg-white rounded-3xl p-8 border border-slate-200 shadow-2xl">
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#A163F7] to-[#6F88FC] p-0.5 mx-auto mb-4 shadow-lg shadow-purple-500/25 flex items-center justify-center">
-                        <div className="w-full h-full bg-[#161226] rounded-[14px] flex items-center justify-center">
-                            <Store className="w-8 h-8 text-[#45E3FF]" />
-                        </div>
+                    <div className="w-16 h-16 rounded-2xl bg-[#161226] border border-purple-500/30 p-1 mx-auto mb-4 shadow-lg shadow-purple-500/25 flex items-center justify-center">
+                        <img src="/images/logo.png" alt="AI Plaza Logo" className="w-full h-full object-contain rounded-xl" />
                     </div>
                     <h1 className="text-2xl font-black text-[#161226] tracking-tight">Open Your Shop on AI Plaza</h1>
                     <p className="text-xs text-slate-500 mt-1">Join the premier multi-shop shopping mall and reach shoppers directly</p>

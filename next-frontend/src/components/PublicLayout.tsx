@@ -74,10 +74,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             
             {/* Logo & Brand */}
             <Link href="/" className="flex items-center gap-2 group flex-shrink-0 min-w-0">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] p-0.5 shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform flex-shrink-0">
-                <div className="w-full h-full bg-[#161226] rounded-[10px] flex items-center justify-center">
-                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-[#45E3FF] group-hover:text-[#A163F7] transition-colors" />
-                </div>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform flex-shrink-0 bg-[#161226] border border-purple-500/30 flex items-center justify-center p-0.5">
+                <img src="/images/logo.png" alt="AI Plaza Logo" className="w-full h-full object-contain rounded-lg" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1 sm:gap-1.5">
@@ -318,7 +316,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
           {/* Bottom Footer Links & Copyright */}
           <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
+              <img src="/images/logo.png" alt="AI Plaza" className="w-6 h-6 object-contain rounded-md" />
               <span className="font-black text-white">AI PLAZA</span>
               <span>© {new Date().getFullYear()} AI Plaza Marketplace. All rights reserved.</span>
             </div>

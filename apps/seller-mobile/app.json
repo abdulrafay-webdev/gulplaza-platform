@@ -4,32 +4,41 @@
     "slug": "ai-plaza-seller",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0B0F19"
+      "backgroundColor": "#1E1B4B"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.aiplaza.seller"
+      "bundleIdentifier": "com.aiplaza.seller",
+      "icon": "./assets/icon.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#6F88FC"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1E1B4B"
       },
       "package": "com.aiplaza.seller",
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "plugins": [
-      "expo-secure-store"
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to upload product images."
+        }
+      ]
     ],
     "extra": {
       "eas": {
-        "projectId": "c97b2b4f-1948-43f8-9a70-94c92fd09b7f"
+        "projectId": "8b584eb2-3024-4f27-a066-e82eb0aaec04"
       }
     }
   }

@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +8,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  ScrollView
+  ScrollView,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Store, Mail, Lock, ArrowRight, ShieldCheck, UserPlus } from 'lucide-react-native';
@@ -51,9 +51,13 @@ export default function SellerLoginScreen({ navigation }: any) {
       >
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
-            <LinearGradient colors={['#7C3AED', '#4F46E5']} style={styles.logoBox}>
-              <Store color="#FFFFFF" size={38} />
-            </LinearGradient>
+            <View style={styles.logoBox}>
+              <Image 
+                source={require('../../assets/logo.png')} 
+                style={{ width: 64, height: 64 }} 
+                resizeMode="contain" 
+              />
+            </View>
 
             <Text style={styles.title}>Seller Merchant Portal</Text>
             <Text style={styles.subtitle}>Sign in to manage your inventory, track orders, and view AI shopper demand analytics</Text>

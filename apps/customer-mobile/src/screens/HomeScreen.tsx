@@ -96,12 +96,13 @@ export default function HomeScreen({ navigation }: any) {
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.logoRow}>
-          <LinearGradient
-            colors={Theme.gradients.primary as any}
-            style={styles.logoBadge}
-          >
-            <Bot color="#FFF" size={20} />
-          </LinearGradient>
+          <View style={styles.logoBadge}>
+            <Image 
+              source={require('../../assets/logo.png')} 
+              style={styles.logoImg} 
+              resizeMode="contain" 
+            />
+          </View>
           <View>
             <Text style={styles.logoTitle}>AI PLAZA</Text>
             <Text style={styles.logoSubtitle}>Smart Marketplace</Text>
@@ -404,6 +405,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  logoImg: {
+    width: 36,
+    height: 36,
   },
   logoTitle: {
     fontSize: 16,

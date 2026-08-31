@@ -71,9 +71,13 @@ export default function SignupScreen({ navigation }: any) {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.content}>
-            <LinearGradient colors={Theme.gradients.primary as any} style={styles.logoBadge}>
-              <Bot color="#FFF" size={32} />
-            </LinearGradient>
+            <View style={styles.logoBadge}>
+              <Image 
+                source={require('../../assets/logo.png')} 
+                style={{ width: 64, height: 64 }} 
+                resizeMode="contain" 
+              />
+            </View>
 
             <Text style={styles.title}>Create Customer Account</Text>
             <Text style={styles.subtitle}>Join Pakistan's smart AI-powered marketplace</Text>

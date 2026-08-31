@@ -63,8 +63,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
           
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#A163F7] to-[#45E3FF] flex items-center justify-center text-[#161226] font-black text-xs shadow-xs">
-              AI
+            <div className="w-8 h-8 rounded-lg bg-[#161226] border border-purple-500/30 p-0.5 flex items-center justify-center shadow-xs">
+              <img src="/images/logo.png" alt="AI Plaza Logo" className="w-full h-full object-contain rounded-md" />
             </div>
             <div>
               <span className="text-sm font-black text-slate-900 block leading-tight">{shop?.name || seller?.full_name || "Seller Portal"}</span>
@@ -128,8 +128,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div>
           <div className="p-6 border-b border-slate-100">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#A163F7] to-[#45E3FF] flex items-center justify-center text-[#161226] font-black text-sm shadow-md">
-                AI
+              <div className="w-10 h-10 rounded-xl bg-[#161226] border border-purple-500/30 p-1 flex items-center justify-center shadow-md">
+                <img src="/images/logo.png" alt="AI Plaza Logo" className="w-full h-full object-contain rounded-lg" />
               </div>
               <div>
                 <Link href="/" className="text-base font-black text-[#161226] hover:text-[#A163F7] transition-colors block leading-tight">

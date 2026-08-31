@@ -40,10 +40,8 @@ export default function AdminLoginPage() {
         <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
             <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200 shadow-2xl">
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#1E1B4B] to-[#0F172A] p-0.5 mx-auto mb-4 shadow-lg flex items-center justify-center">
-                        <div className="w-full h-full bg-[#0F172A] rounded-[14px] flex items-center justify-center">
-                            <ShieldCheck className="w-8 h-8 text-[#45E3FF]" />
-                        </div>
+                    <div className="w-16 h-16 rounded-2xl bg-[#0F172A] border border-purple-500/30 p-1 mx-auto mb-4 shadow-lg flex items-center justify-center">
+                        <img src="/images/logo.png" alt="AI Plaza Logo" className="w-full h-full object-contain rounded-xl" />
                     </div>
                     <h1 className="text-2xl font-black text-[#161226] tracking-tight">Super Admin Console</h1>
                     <p className="text-xs text-slate-500 mt-1">Platform moderation, store approvals, and KPI analytics</p>

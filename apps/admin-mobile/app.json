@@ -4,18 +4,22 @@
     "slug": "ai-plaza-admin",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0F172A"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.aiplaza.admin"
+      "bundleIdentifier": "com.aiplaza.admin",
+      "icon": "./assets/icon.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#1E1B4B"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
       },
       "package": "com.aiplaza.admin"
     },

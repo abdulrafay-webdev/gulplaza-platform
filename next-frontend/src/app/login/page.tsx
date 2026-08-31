@@ -38,8 +38,8 @@ function LoginForm() {
     return (
         <div className="max-w-md mx-auto my-8 sm:my-14 bg-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-purple-500/5 border border-slate-200 space-y-6">
             <div className="text-center space-y-2">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#A163F7] to-[#6F88FC] text-white flex items-center justify-center mx-auto shadow-md shadow-purple-500/20">
-                    <LogIn className="w-6 h-6" />
+                <div className="w-14 h-14 rounded-2xl bg-[#161226] border border-purple-500/30 p-1 flex items-center justify-center mx-auto shadow-md shadow-purple-500/20">
+                    <img src="/images/logo.png" alt="AI Plaza Logo" className="w-full h-full object-contain rounded-xl" />
                 </div>
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight">Customer Login</h1>
                 <p className="text-xs text-slate-500">

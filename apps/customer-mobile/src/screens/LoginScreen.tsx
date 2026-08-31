@@ -63,9 +63,13 @@ export default function LoginScreen({ navigation }: any) {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.content}>
-            <LinearGradient colors={Theme.gradients.primary as any} style={styles.logoBadge}>
-              <Bot color="#FFF" size={32} />
-            </LinearGradient>
+            <View style={styles.logoBadge}>
+              <Image 
+                source={require('../../assets/logo.png')} 
+                style={{ width: 64, height: 64 }} 
+                resizeMode="contain" 
+              />
+            </View>
 
             <Text style={styles.title}>Welcome Back!</Text>
             <Text style={styles.subtitle}>Sign in to access your orders and AI advisor</Text>
