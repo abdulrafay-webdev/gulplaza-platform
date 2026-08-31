@@ -13,6 +13,13 @@ export const setAuthToken = (token: string | null) => {
     }
 };
 
+export const auth = {
+    sellerRegister: (data: any) => api.post('/auth/seller/register', data),
+    sellerLogin: (data: any) => api.post('/auth/seller/login', data),
+    adminLogin: (data: any) => api.post('/auth/admin/login', data),
+    getMe: () => api.get('/auth/me'),
+};
+
 export const shops = {
     create: (data: any) => api.post('/shops/', data),
     update: (data: any) => api.put('/shops/me', data),

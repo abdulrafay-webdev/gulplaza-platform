@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useSeller } from '@/context/SellerContext';
 import { reviews as reviewsApi, setAuthToken } from '@/services/api';
 import { 
   MessageSquare, 
@@ -18,21 +18,19 @@ import {
 import Link from 'next/link';
 
 export default function SellerReviewsPage() {
-    const { getToken, isLoaded, userId } = useAuth();
+    const { token, isLoaded } = useSeller();
     const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('all');
     const [actionLoading, setActionLoading] = useState<number | null>(null);
 
     const loadReviews = async () => {
-        if (!userId) return;
-        const token = await getToken();
         if (!token) return;
         setAuthToken(token);
 
         try {
             const res = await reviewsApi.getMyReviews();
-            setReviews(res.data);
+            setReviews(res.data || []);
         } catch (err) {
             console.error("Error loading store reviews:", err);
         } finally {
@@ -41,15 +39,14 @@ export default function SellerReviewsPage() {
     };
 
     useEffect(() => {
-        if (isLoaded && userId) {
+        if (token) {
             loadReviews();
         }
-    }, [getToken, isLoaded, userId]);
+    }, [token]);
 
     const handleApprove = async (reviewId: number) => {
         setActionLoading(reviewId);
-        const token = await getToken();
-        setAuthToken(token);
+        if (token) setAuthToken(token);
 
         try {
             await reviewsApi.approveReview(reviewId);
@@ -64,8 +61,7 @@ export default function SellerReviewsPage() {
     const handleDelete = async (reviewId: number) => {
         if (!confirm("Are you sure you want to delete/reject this review?")) return;
         setActionLoading(reviewId);
-        const token = await getToken();
-        setAuthToken(token);
+        if (token) setAuthToken(token);
 
         try {
             await reviewsApi.deleteReview(reviewId);

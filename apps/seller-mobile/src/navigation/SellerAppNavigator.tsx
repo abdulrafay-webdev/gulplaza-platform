@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -8,8 +8,7 @@ import {
   Package,
   PlusCircle,
   ShoppingBag,
-  Settings,
-  Store
+  Settings
 } from 'lucide-react-native';
 
 import SellerDashboardScreen from '../screens/SellerDashboardScreen';
@@ -20,6 +19,7 @@ import SellerOrdersScreen from '../screens/SellerOrdersScreen';
 import ShopSettingsScreen from '../screens/ShopSettingsScreen';
 import PendingApprovalScreen from '../screens/PendingApprovalScreen';
 import SellerLoginScreen from '../screens/SellerLoginScreen';
+import SellerRegisterScreen from '../screens/SellerRegisterScreen';
 
 import { Theme } from '../shared/theme';
 import { useSellerAuth } from '../context/SellerAuthContext';
@@ -101,9 +101,16 @@ export default function SellerAppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!token ? (
-          <Stack.Screen name="SellerLogin" component={SellerLoginScreen} />
+          <>
+            <Stack.Screen name="SellerLogin" component={SellerLoginScreen} />
+            <Stack.Screen name="SellerRegister" component={SellerRegisterScreen} />
+          </>
         ) : shop && !shop.is_approved ? (
-          <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
+          <>
+            <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
+            <Stack.Screen name="SellerLogin" component={SellerLoginScreen} />
+            <Stack.Screen name="SellerRegister" component={SellerRegisterScreen} />
+          </>
         ) : (
           <>
             <Stack.Screen name="SellerTabs" component={SellerTabNavigator} />

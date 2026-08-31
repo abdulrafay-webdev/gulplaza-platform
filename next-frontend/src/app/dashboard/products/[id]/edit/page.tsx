@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useSeller } from '@/context/SellerContext';
 import { products, categories, setAuthToken } from '@/services/api';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -9,7 +9,7 @@ import { IKUpload } from "imagekitio-next";
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const { getToken, isLoaded, userId } = useAuth();
+    const { token, isLoaded } = useSeller();
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -36,11 +36,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     const [newSubName, setNewSubName] = useState('');
 
     useEffect(() => {
-        if (!isLoaded || !userId) return;
+        if (!isLoaded) return;
 
         const loadData = async () => {
-            const token = await getToken();
-            setAuthToken(token);
+            if (token) setAuthToken(token);
             try {
                 // Fetch categories
                 const cats = await categories.list();
@@ -59,24 +58,25 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     price: p.price,
                     stock_quantity: p.stock_quantity,
                     image_url: p.image_url || '',
-                    image_urls: p.images ? p.images.map((img: any) => img.url) : [],
-                    main_category_id: p.main_category_id?.toString() || '',
-                    sub_category_id: p.sub_category_id?.toString() || ''
+                    image_urls: p.image_urls || (p.image_url ? [p.image_url] : []),
+                    main_category_id: p.main_category_id ? p.main_category_id.toString() : '',
+                    sub_category_id: p.sub_category_id ? p.sub_category_id.toString() : ''
                 });
             } catch (err) {
-                console.error(err);
+                console.error("Error loading product", err);
                 alert("Failed to load product data");
             } finally {
                 setLoading(false);
             }
         };
         loadData();
-    }, [id, getToken, isLoaded, userId]);
+    }, [token, isLoaded, id]);
 
     const authenticator = async () => {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
             const response = await fetch(`${apiUrl}/imagekit-auth`);
+            if (!response.ok) throw new Error("Authentication failed");
             return await response.json();
         } catch (error) {
             throw new Error(`Authentication request failed: ${error}`);
@@ -108,8 +108,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
     const handleCreateSubCategory = async () => {
         if (!newSubName || !formData.main_category_id) return;
-        const token = await getToken();
-        setAuthToken(token);
+        if (token) setAuthToken(token);
         try {
             const res = await categories.createSub(parseInt(formData.main_category_id), { name: newSubName });
             setSubCategories([...subCategories, res.data]);
@@ -129,15 +128,14 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         }
         
         setSaving(true);
-        const token = await getToken();
-        setAuthToken(token);
+        if (token) setAuthToken(token);
         try {
             await products.update(id, {
                 ...formData,
                 main_category_id: parseInt(formData.main_category_id),
                 sub_category_id: formData.sub_category_id ? parseInt(formData.sub_category_id) : null
             });
-            alert("Product updated!");
+            alert("Product updated successfully!");
             router.push('/dashboard/products');
         } catch (err) {
             alert("Error updating product");

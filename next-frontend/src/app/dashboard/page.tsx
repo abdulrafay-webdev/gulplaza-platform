@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useSeller } from '@/context/SellerContext';
 import { shops, setAuthToken } from '@/services/api';
 import { IKUpload } from "imagekitio-next";
 import { 
@@ -25,7 +25,7 @@ import {
 import Link from 'next/link';
 
 export default function SellerDashboardHome() {
-    const { getToken, isLoaded, userId } = useAuth();
+    const { token, seller } = useSeller();
     const [shop, setShop] = useState<any>(null);
     const [analytics, setAnalytics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -39,10 +39,7 @@ export default function SellerDashboardHome() {
     });
 
     const loadData = async () => {
-        if (!userId) return;
-        const token = await getToken();
         if (!token) return;
-        
         setAuthToken(token);
         try {
             const [shopRes, analyticsRes] = await Promise.all([
@@ -65,16 +62,15 @@ export default function SellerDashboardHome() {
     };
 
     useEffect(() => {
-        if (isLoaded && userId) {
+        if (token) {
             loadData();
         }
-    }, [getToken, isLoaded, userId]);
+    }, [token]);
 
     const handleProfileSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
-        const token = await getToken();
-        setAuthToken(token);
+        if (token) setAuthToken(token);
         try {
             if (shop) {
                 const res = await shops.update(formData);

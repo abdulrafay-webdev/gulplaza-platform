@@ -1,30 +1,29 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useSeller } from '@/context/SellerContext';
 import { orders, setAuthToken } from '@/services/api';
 import Link from 'next/link';
 
 export default function OrderList() {
-    const { getToken } = useAuth();
+    const { token } = useSeller();
     const [orderList, setOrderList] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadOrders = async () => {
-            const token = await getToken();
-            setAuthToken(token);
+            if (token) setAuthToken(token);
             try {
                 const res = await orders.list();
-                setOrderList(res.data);
+                setOrderList(res.data || []);
             } catch (err) {
                 console.error(err);
             } finally {
                 setLoading(false);
             }
         };
-        loadOrders();
-    }, [getToken]);
+        if (token) loadOrders();
+    }, [token]);
 
     if (loading) return <div>Loading orders...</div>;
 

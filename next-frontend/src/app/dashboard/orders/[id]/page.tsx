@@ -1,19 +1,18 @@
 "use client";
 
 import { useEffect, useState, use } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useSeller } from '@/context/SellerContext';
 import { orders, setAuthToken } from '@/services/api';
 
 export default function OrderDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const { getToken } = useAuth();
+    const { token } = useSeller();
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadOrder = async () => {
-            const token = await getToken();
-            setAuthToken(token);
+            if (token) setAuthToken(token);
             try {
                 const res = await orders.get(id);
                 setOrder(res.data);
@@ -23,12 +22,11 @@ export default function OrderDetail({ params }: { params: Promise<{ id: string }
                 setLoading(false);
             }
         };
-        loadOrder();
-    }, [id, getToken]);
+        if (token) loadOrder();
+    }, [id, token]);
 
     const handleStatusChange = async (newStatus: string) => {
-        const token = await getToken();
-        setAuthToken(token);
+        if (token) setAuthToken(token);
         try {
             await orders.updateStatus(id, newStatus);
             setOrder({ ...order, status: newStatus });

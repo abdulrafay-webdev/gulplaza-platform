@@ -19,9 +19,10 @@
       },
       "package": "com.aiplaza.customer",
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -31,6 +32,11 @@
           "photosPermission": "The app accesses your photos to search for matching products with AI."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "501322a4-c109-4a01-929a-44d69fa52ae3"
+      }
+    }
   }
 }

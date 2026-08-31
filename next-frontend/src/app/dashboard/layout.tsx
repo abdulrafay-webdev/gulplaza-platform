@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { UserButton, useAuth } from "@clerk/nextjs";
-import { usePathname } from "next/navigation";
-import { shops, setAuthToken } from "@/services/api";
+import { useRouter, usePathname } from "next/navigation";
+import { useSeller } from "@/context/SellerContext";
 import { 
   Store, 
   Layers, 
@@ -15,40 +14,24 @@ import {
   X,
   Sparkles,
   BarChart3,
-  MessageSquare
+  MessageSquare,
+  LogOut
 } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { getToken, isLoaded, userId } = useAuth();
-  const [shop, setShop] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { seller, shop, token, isLoaded, logout, refreshProfile } = useSeller();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) return;
+    if (!token) {
+      router.push("/seller/login");
+    }
+  }, [isLoaded, token, router]);
 
-    const checkShop = async () => {
-        if (!userId) {
-            setLoading(false); 
-            return;
-        }
-        
-        try {
-            const token = await getToken();
-            setAuthToken(token);
-            const res = await shops.getMe();
-            setShop(res.data);
-        } catch (err: any) {
-            console.log("Shop check:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-    checkShop();
-  }, [isLoaded, userId, getToken]);
-
-  if (!isLoaded || loading) {
+  if (!isLoaded || !token) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FAFAFE] text-slate-500 font-bold">
         <Sparkles className="w-5 h-5 text-[#A163F7] animate-spin mr-2" />
@@ -68,7 +51,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-[#FAFAFE] flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
-      {/* Mobile Top Header with Hamburger Button */}
+      {/* Mobile Top Header */}
       <div className="md:hidden bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center sticky top-0 z-50 shadow-xs">
         <div className="flex items-center gap-2.5">
           <button 
@@ -84,19 +67,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               AI
             </div>
             <div>
-              <span className="text-sm font-black text-slate-900 block leading-tight">{shop?.name || "Seller Portal"}</span>
+              <span className="text-sm font-black text-slate-900 block leading-tight">{shop?.name || seller?.full_name || "Seller Portal"}</span>
               <span className="text-[9px] font-bold text-[#A163F7] uppercase tracking-wider block">Vendor Control</span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/" className="text-xs font-bold text-[#6F88FC] hover:underline mr-1">
-            Site
-          </Link>
-          <div className="ring-2 ring-purple-500/20 rounded-full p-0.5">
-            <UserButton afterSignOutUrl="/" />
-          </div>
+          <button 
+            onClick={() => { logout(); router.push("/seller/login"); }}
+            className="text-xs font-bold text-rose-500 hover:underline flex items-center gap-1"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </div>
 
@@ -188,8 +172,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span>Visit Marketplace</span>
           </Link>
           <div className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-xl">
-            <span className="text-[11px] font-bold text-slate-700">Account</span>
-            <UserButton afterSignOutUrl="/" />
+            <div className="min-w-0 pr-2">
+              <p className="text-[11px] font-bold text-slate-800 truncate">{seller?.full_name || seller?.email}</p>
+              <p className="text-[9px] text-slate-400 truncate">{seller?.email}</p>
+            </div>
+            <button
+              onClick={() => { logout(); router.push("/seller/login"); }}
+              className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </aside>
@@ -202,9 +195,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link href="/" className="text-xs font-bold text-[#6F88FC] hover:underline">
                 View AI Plaza Store &rarr;
               </Link>
-              <div className="ring-2 ring-purple-500/30 rounded-full p-0.5">
-                <UserButton afterSignOutUrl="/" />
-              </div>
+              <button
+                onClick={() => { logout(); router.push("/seller/login"); }}
+                className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-rose-500 bg-slate-50 hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-slate-200 transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
             </div>
         </header>
         <main className="p-4 sm:p-6 md:p-8 relative flex-1 overflow-x-hidden">
@@ -216,14 +213,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </div>
                       <h1 className="text-2xl font-black text-slate-900 mb-2">Account Pending Approval</h1>
                       <p className="text-slate-500 text-xs mb-6">
-                          Your store application for <strong>{shop.name}</strong> is currently being reviewed by the AI Plaza admin team.
+                          Your store application for <strong>{shop?.name || "Your Store"}</strong> is currently being reviewed by the AI Plaza super admin team.
                       </p>
                       <div className="bg-amber-50 text-amber-900 p-4 rounded-2xl text-xs mb-6 border border-amber-200 font-semibold">
-                          Dashboard product management will be unlocked as soon as approval is granted.
+                          Dashboard product management and order fulfillment will be unlocked as soon as approval is granted.
                       </div>
-                      <Link href="/" className="bg-[#A163F7] text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow-md inline-block">
-                          &larr; Back to AI Plaza
-                      </Link>
+                      <div className="flex items-center justify-center gap-3">
+                        <button 
+                          onClick={refreshProfile}
+                          className="bg-[#A163F7] text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md cursor-pointer hover:opacity-95"
+                        >
+                          Check Status
+                        </button>
+                        <Link href="/" className="bg-slate-100 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-slate-200">
+                          Visit Marketplace
+                        </Link>
+                      </div>
                   </div>
               </div>
           ) : (

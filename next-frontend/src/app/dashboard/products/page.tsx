@@ -1,19 +1,18 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useSeller } from '@/context/SellerContext';
 import { shops, products, setAuthToken } from '@/services/api';
 import Link from 'next/link';
 
 export default function ProductList() {
-    const { getToken } = useAuth();
+    const { token, shop } = useSeller();
     const [productList, setProductList] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadProducts = async () => {
-            const token = await getToken();
-            setAuthToken(token);
+            if (token) setAuthToken(token);
             try {
                 const shopRes = await shops.getMe();
                 const prodRes = await products.list(shopRes.data.id);
@@ -24,13 +23,12 @@ export default function ProductList() {
                 setLoading(false);
             }
         };
-        loadProducts();
-    }, [getToken]);
+        if (token) loadProducts();
+    }, [token]);
 
     const handleDelete = async (id: number) => {
         if (!confirm("Are you sure you want to delete this product?")) return;
-        const token = await getToken();
-        setAuthToken(token);
+        if (token) setAuthToken(token);
         try {
             await products.delete(id);
             setProductList(prev => prev.filter(p => p.id !== id));

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useCustomer } from '@/context/CustomerContext';
-import { useUser, useAuth } from '@clerk/nextjs';
+import { useSeller } from '@/context/SellerContext';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { ai, setAuthToken } from '@/services/api';
@@ -42,8 +42,7 @@ const thinkingStatuses = [
 export default function AIAssistantPage() {
     const router = useRouter();
     const { customer, isLoaded: customerLoaded } = useCustomer();
-    const { user, isLoaded: userLoaded } = useUser();
-    const { getToken } = useAuth();
+    const { seller, token, isLoaded: sellerLoaded } = useSeller();
     const { addToCart } = useCart();
 
     const [chats, setChats] = useState<any[]>([]);
@@ -120,17 +119,11 @@ export default function AIAssistantPage() {
         }
     };
 
-    const displayName = customer?.full_name || user?.firstName || user?.username || 'AI Plaza Customer';
+    const displayName = customer?.full_name || seller?.full_name || seller?.email || 'AI Plaza Customer';
 
     const ensureAuthToken = async () => {
         if (customer) return;
-        if (!user) return;
-        try {
-            const token = await getToken();
-            if (token) setAuthToken(token);
-        } catch (e) {
-            console.error("Failed to refresh Clerk token:", e);
-        }
+        if (token) setAuthToken(token);
     };
 
     const describeAxiosError = (err: any): string => {
@@ -152,9 +145,9 @@ export default function AIAssistantPage() {
 
     // Immediate Authentication Validation & Redirect Gate
     useEffect(() => {
-        if (!customerLoaded || !userLoaded) return;
+        if (!customerLoaded || !sellerLoaded) return;
 
-        if (!customer && !user) {
+        if (!customer && !seller) {
             router.replace('/login?redirect=/ai');
             return;
         }
@@ -168,14 +161,16 @@ export default function AIAssistantPage() {
                 if (chatList.length > 0) {
                     loadChatDetail(chatList[0].id);
                 }
-            } catch (err) {
-                console.error("Failed to load AI chats:", err);
+            } catch (err: any) {
+                console.error("Failed to load chats:", err);
+                setErrorBanner(describeAxiosError(err));
             } finally {
                 setLoadingChats(false);
             }
         };
+
         fetchChats();
-    }, [customerLoaded, userLoaded, customer, user, router]);
+    }, [customerLoaded, sellerLoaded, customer, seller, router]);
 
     const loadChatDetail = async (chatId: number) => {
         try {
@@ -348,7 +343,7 @@ export default function AIAssistantPage() {
         "Is red dress ke saath matching dupatta dhoondo"
     ];
 
-    if (!customerLoaded || !userLoaded || (!customer && !user)) {
+    if (!customerLoaded || !sellerLoaded || (!customer && !seller)) {
         return (
             <PublicLayout>
                 <div className="min-h-[70vh] flex flex-col items-center justify-center text-center p-6 space-y-4">

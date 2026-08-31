@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useSeller } from '@/context/SellerContext';
 import { categories, setAuthToken } from '@/services/api';
 import { 
   Layers, 
@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export default function AdminCategories() {
-    const { getToken } = useAuth();
+    const { token } = useSeller();
     const [categoryList, setCategoryList] = useState<any[]>([]);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -50,8 +50,7 @@ export default function AdminCategories() {
         if (!name.trim()) return;
 
         setLoading(true);
-        const token = await getToken();
-        setAuthToken(token);
+        if (token) setAuthToken(token);
         try {
             await categories.create({ 
                 name: name.trim(), 
@@ -73,8 +72,7 @@ export default function AdminCategories() {
     const handleDelete = async (categoryId: number, categoryName: string) => {
         if (!confirm(`Are you sure you want to delete "${categoryName}"? Products in this category will be unlinked.`)) return;
 
-        const token = await getToken();
-        setAuthToken(token);
+        if (token) setAuthToken(token);
         try {
             await categories.delete(categoryId);
             setFeedbackMessage(`Category "${categoryName}" deleted.`);

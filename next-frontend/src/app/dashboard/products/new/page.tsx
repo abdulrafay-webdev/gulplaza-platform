@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useSeller } from '@/context/SellerContext';
 import { shops, products, categories, setAuthToken } from '@/services/api';
 import { useRouter } from 'next/navigation';
 import { IKUpload } from "imagekitio-next";
 
 export default function ProductForm() {
-    const { getToken, isLoaded, userId } = useAuth();
+    const { token, isLoaded } = useSeller();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     
@@ -33,14 +33,13 @@ export default function ProductForm() {
     const [newSubName, setNewSubName] = useState('');
 
     useEffect(() => {
-        if (!isLoaded || !userId) return;
+        if (!isLoaded) return;
 
         const loadData = async () => {
             try {
                 const cats = await categories.list();
                 setMainCategories(cats.data);
                 
-                const token = await getToken();
                 if (token) {
                     setAuthToken(token);
                     const subs = await categories.listSub();
@@ -51,7 +50,7 @@ export default function ProductForm() {
             }
         };
         loadData();
-    }, [getToken, isLoaded, userId]);
+    }, [token, isLoaded]);
 
     const authenticator = async () => {
         try {
@@ -89,8 +88,7 @@ export default function ProductForm() {
 
     const handleCreateSubCategory = async () => {
         if (!newSubName || !formData.main_category_id) return;
-        const token = await getToken();
-        setAuthToken(token);
+        if (token) setAuthToken(token);
         try {
             const res = await categories.createSub(parseInt(formData.main_category_id), { name: newSubName });
             setSubCategories([...subCategories, res.data]);
@@ -110,8 +108,7 @@ export default function ProductForm() {
         }
         
         setLoading(true);
-        const token = await getToken();
-        setAuthToken(token);
+        if (token) setAuthToken(token);
         try {
             const shopRes = await shops.getMe();
             await products.create(shopRes.data.id, {

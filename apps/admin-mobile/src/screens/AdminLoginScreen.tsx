@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -14,43 +14,15 @@ import {
 } from 'react-native';
 import { ShieldCheck, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useSignIn, useAuth } from '../lib/ClerkAuthContext';
 import { Theme } from '../shared/theme';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
 export default function AdminLoginScreen() {
   const { login } = useAdminAuth();
-  const { signIn, setActive } = useSignIn();
-  const { getToken, isSignedIn } = useAuth();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('abdullrrafay@gmail.com');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [awaitingBackend, setAwaitingBackend] = useState(false);
-
-  useEffect(() => {
-    if (awaitingBackend && isSignedIn) {
-      completeBackendLogin();
-    }
-  }, [awaitingBackend, isSignedIn]);
-
-  const completeBackendLogin = async () => {
-    try {
-      const token = await getToken();
-      if (token) {
-        const success = await login(token);
-        if (!success) {
-          Alert.alert('Access Denied', 'This account does not have Super Admin privileges on AI Plaza.');
-        }
-      }
-    } catch (err) {
-      console.error('Admin backend login error:', err);
-      Alert.alert('Error', 'Failed to verify admin access. Please try again.');
-    } finally {
-      setLoading(false);
-      setAwaitingBackend(false);
-    }
-  };
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) {
@@ -60,30 +32,14 @@ export default function AdminLoginScreen() {
 
     try {
       setLoading(true);
-
-      const result = await signIn!.create({ identifier: email.trim() });
-
-      if (result.status === 'needs_first_factor') {
-        const attemptResult = await signIn!.attemptFirstFactor({
-          strategy: 'password',
-          password: password,
-        });
-
-        if (attemptResult.status === 'complete') {
-          await setActive!({ session: attemptResult.createdSessionId });
-          setAwaitingBackend(true);
-        } else {
-          Alert.alert('Sign In Incomplete', 'Additional verification is required.');
-          setLoading(false);
-        }
-      } else {
-        Alert.alert('Sign In Failed', 'Unexpected response. Please try again.');
-        setLoading(false);
+      const res = await login(email.trim(), password);
+      if (!res.success) {
+        Alert.alert('Access Denied', res.error || 'Invalid Super Admin email or password.');
       }
     } catch (err: any) {
       console.error('Admin login error:', err);
-      const message = err?.errors?.[0]?.message || err?.message || 'Invalid email or password.';
-      Alert.alert('Sign In Failed', message);
+      Alert.alert('Sign In Failed', 'Failed to authenticate. Please check your credentials.');
+    } finally {
       setLoading(false);
     }
   };
@@ -113,13 +69,12 @@ export default function AdminLoginScreen() {
                 <Mail color="#94A3B8" size={18} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter admin email"
+                  placeholder="e.g. abdullrrafay@gmail.com"
                   placeholderTextColor="#94A3B8"
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
                   keyboardType="email-address"
-                  autoComplete="email"
                 />
               </View>
             </View>
@@ -135,7 +90,6 @@ export default function AdminLoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
-                  autoComplete="password"
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                   {showPassword ? <EyeOff color="#94A3B8" size={18} /> : <Eye color="#94A3B8" size={18} />}

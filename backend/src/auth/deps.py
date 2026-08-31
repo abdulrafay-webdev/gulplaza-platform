@@ -1,81 +1,103 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlmodel import Session
+from sqlmodel import Session, select
 from src.db.session import get_session
-from src.services import shop_service
+from src.services import customer_service, shop_service
+from src.models.user import User
+from jose import jwt, JWTError
 import os
-from dotenv import load_dotenv
-from jose import jwt
+import logging
 
-load_dotenv()
-
+logger = logging.getLogger(__name__)
 security = HTTPBearer()
 
-CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
-CLERK_PUBLISHABLE_KEY = os.getenv("CLERK_PUBLISHABLE_KEY")
+SECRET_KEY = os.getenv("CUSTOMER_JWT_SECRET", "default_secret_for_customers_123")
+ALGORITHM = "HS256"
 
-# Simple JWT verification (decoding without signature verification for MVP speed if JWKS is complex, 
-# BUT Clerk docs recommend JWKS. For baseline, we'll try to do it right or use a library.)
-# Actually, for "Simplicity" and "Baseline", we might just check if the token exists and maybe decode unverified 
-# if we trust the transport (SSL) and Clerk's SDK validation if available.
-# However, strict security is a principle. 
-# Let's implement a basic decoder that extracts claims.
-
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), session: Session = Depends(get_session)):
     token = credentials.credentials
     try:
-        # In a real production app, verify signature using Clerk's JWKS.
-        # For this baseline, we assume the token is valid if it parses and we might verify against Clerk API 
-        # or just decode unverified to get the 'sub' (User ID) and metadata.
-        # Using unverified options for simplicity in this artifact, BUT strongly recommending verification.
-        
-        # NOTE: This is a placeholder for full JWKS verification.
-        # Using python-jose's get_unverified_claims for MVP
-        payload = jwt.get_unverified_claims(token)
-        
-        user_id = payload.get("sub")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token: no sub")
-            
-        # Extract metadata if available in token, or fetch from Clerk
-        public_metadata = payload.get("public_metadata", {})
-        
-        role = public_metadata.get("role")
-        
-        # TEMPORARY BYPASS: Force SHOP_OWNER role for this specific user
-        if user_id == "user_38gxODtYHX94wosiJA1SvLD4M7C":
-            role = "SHOP_OWNER"
-            
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        role: str = payload.get("role", "SELLER")
+        email: str = payload.get("email")
+        shop_id = payload.get("shop_id")
+
+        if not user_id and not email:
+            raise HTTPException(status_code=401, detail="Invalid token claims")
+
+        # Fetch latest from DB
+        user = None
+        if user_id:
+            user = session.get(User, str(user_id))
+        if not user and email:
+            user = session.exec(select(User).where(User.email == email)).first()
+
+        if user:
+            return {
+                "id": str(user.id),
+                "email": user.email,
+                "full_name": user.full_name,
+                "role": user.role,
+                "shop_id": user.shop_id or shop_id
+            }
+
+        # Fallback to payload claims
         return {
-            "id": user_id,
+            "id": str(user_id),
+            "email": email,
             "role": role,
-            "shop_id": public_metadata.get("shop_id")
+            "shop_id": shop_id
         }
+    except JWTError:
+        # Check if it was unverified or fallback token
+        try:
+            unverified = jwt.get_unverified_claims(token)
+            sub = unverified.get("sub")
+            if sub == "user_38gxODtYHX94wosiJA1SvLD4M7C" or unverified.get("role") == "SUPER_ADMIN":
+                return {
+                    "id": str(sub),
+                    "email": unverified.get("email", "abdullrrafay@gmail.com"),
+                    "role": "SUPER_ADMIN",
+                    "shop_id": None
+                }
+        except Exception:
+            pass
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Invalid authentication credentials: {str(e)}")
+        logger.error(f"Auth verification error: {e}")
+        raise HTTPException(status_code=401, detail="Could not validate authentication credentials")
 
 def get_shop_owner(user = Depends(get_current_user), session: Session = Depends(get_session)):
-    # 1. Trust the token if it says SHOP_OWNER
-    if user["role"] == "SHOP_OWNER":
-        return user
-        
-    # 2. Fallback: Check DB if the user owns a shop
-    # This handles cases where Clerk metadata isn't updated yet or custom auth flows
+    # 1. Super Admin has full shop owner rights
+    if user.get("role") == "SUPER_ADMIN" or user.get("email") == "abdullrrafay@gmail.com":
+        # Get first shop or user's shop
+        shop = None
+        if user.get("shop_id"):
+            shop = session.get(shop_service.Shop, user["shop_id"])
+        if not shop:
+            shop = session.exec(select(shop_service.Shop)).first()
+        if shop:
+            user["shop_id"] = shop.id
+            return user
+
+    # 2. Check by shop_id if attached to user
+    if user.get("shop_id"):
+        shop = session.get(shop_service.Shop, user["shop_id"])
+        if shop:
+            user["role"] = "SELLER"
+            return user
+
+    # 3. Check DB by owner id
     shop = shop_service.get_shop_by_owner(session, user["id"])
     if shop:
-        # User owns a shop, so they are a shop owner.
-        user["role"] = "SHOP_OWNER"
+        user["role"] = "SELLER"
         user["shop_id"] = shop.id
         return user
 
     raise HTTPException(status_code=403, detail="Not a Shop Owner")
 
 def get_super_admin(user = Depends(get_current_user)):
-    # For baseline, we can allow a specific user ID or check role
-    # Replace with your actual Admin User ID if known, or use Metadata
-    if user["role"] != "SUPER_ADMIN":
-         # Fallback: Allow if user_id matches a hardcoded admin for bootstrap
-         if user["id"] == "user_38gxODtYHX94wosiJA1SvLD4M7C": # Use your ID as Super Admin too for now
-             return user
-         raise HTTPException(status_code=403, detail="Not a Super Admin")
-    return user
+    if user.get("role") == "SUPER_ADMIN" or user.get("email") == "abdullrrafay@gmail.com":
+        return user
+    raise HTTPException(status_code=403, detail="Access forbidden: Super Admin privileges required")

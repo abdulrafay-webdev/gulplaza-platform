@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { UserButton, useUser } from "@clerk/nextjs";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useSeller } from "@/context/SellerContext";
 import { 
   ShieldAlert, 
   Store, 
@@ -13,13 +13,23 @@ import {
   BarChart3, 
   Menu, 
   X,
-  Sparkles
+  Sparkles,
+  LogOut,
+  Lock
 } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, isLoaded } = useUser();
+  const router = useRouter();
+  const { seller, token, isLoaded, isAdmin, logout } = useSeller();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!token || !isAdmin) {
+      router.push("/admin/login");
+    }
+  }, [isLoaded, token, isAdmin, router]);
 
   const navItems = [
     { name: 'Dashboard & Analytics', href: '/admin', icon: BarChart3 },
@@ -27,29 +37,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Main Categories', href: '/admin/categories', icon: Layers },
   ];
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAFAFE] text-[#161226] font-bold">
-        <Sparkles className="w-5 h-5 text-[#A163F7] animate-spin mr-2" />
-        Loading AI Plaza Admin Panel...
-      </div>
-    );
-  }
-
-  // Access Control
-  const isAdmin = user?.id === "user_38gxODtYHX94wosiJA1SvLD4M7C" || user?.publicMetadata?.role === "SUPER_ADMIN";
-  if (!isAdmin) {
+  if (!isLoaded || !token || !isAdmin) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center p-4 bg-[#FAFAFE]">
-        <div className="w-16 h-16 rounded-full bg-[#FF7582]/10 text-[#FF7582] flex items-center justify-center mb-4">
-          <ShieldAlert className="w-8 h-8" />
+        <div className="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+          <Lock className="w-8 h-8" />
         </div>
-        <h1 className="text-xl font-black text-[#161226] mb-2">Access Denied: Super Admins Only</h1>
+        <h1 className="text-xl font-black text-[#161226] mb-2">Super Admin Authentication Required</h1>
         <p className="text-slate-500 text-xs mb-6 max-w-sm">
-          You do not have permission to access the AI Plaza Super Admin Portal.
+          Please authenticate with your Super Admin credentials to access platform controls.
         </p>
-        <Link href="/" className="bg-[#A163F7] text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow-md">
-          Back to AI Plaza
+        <Link href="/admin/login" className="bg-[#1E1B4B] text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow-md">
+          Sign In to Admin Console
         </Link>
       </div>
     );
@@ -80,12 +79,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/" className="text-xs font-bold text-[#6F88FC] hover:underline mr-1">
-            Site
-          </Link>
-          <div className="ring-2 ring-purple-500/20 rounded-full p-0.5">
-            <UserButton afterSignOutUrl="/" />
-          </div>
+          <button 
+            onClick={() => { logout(); router.push("/admin/login"); }}
+            className="text-xs font-bold text-rose-500 hover:underline flex items-center gap-1"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </div>
 
@@ -178,9 +178,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
           <div className="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-xl">
             <div className="text-[11px] font-bold text-slate-700 truncate max-w-[140px]">
-              {user.primaryEmailAddress?.emailAddress}
+              {seller?.email || "Super Admin"}
             </div>
-            <UserButton afterSignOutUrl="/" />
+            <button
+              onClick={() => { logout(); router.push("/admin/login"); }}
+              className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </aside>
@@ -196,9 +202,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link href="/" className="text-xs font-bold text-[#6F88FC] hover:underline">
                 View Live Site &rarr;
               </Link>
-              <div className="ring-2 ring-purple-500/30 rounded-full p-0.5">
-                <UserButton afterSignOutUrl="/" />
-              </div>
+              <button
+                onClick={() => { logout(); router.push("/admin/login"); }}
+                className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-rose-500 bg-slate-50 hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-slate-200 transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
             </div>
         </header>
         <main className="p-4 sm:p-6 md:p-8 flex-1 overflow-x-hidden">

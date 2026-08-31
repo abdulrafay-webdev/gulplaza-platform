@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useSeller } from '@/context/SellerContext';
 import { admin, setAuthToken } from '@/services/api';
 import { 
   Store, 
@@ -20,7 +20,7 @@ import {
 import Link from 'next/link';
 
 export default function AdminShopsManagement() {
-    const { getToken } = useAuth();
+    const { token } = useSeller();
     const [shops, setShops] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -29,8 +29,7 @@ export default function AdminShopsManagement() {
 
     const loadShops = async () => {
         try {
-            const token = await getToken();
-            setAuthToken(token);
+            if (token) setAuthToken(token);
             const res = await admin.listShops();
             setShops(res.data || []);
         } catch (err) {
@@ -42,12 +41,11 @@ export default function AdminShopsManagement() {
 
     useEffect(() => {
         loadShops();
-    }, [getToken]);
+    }, [token]);
 
     const handleApprove = async (shopId: number) => {
         try {
-            const token = await getToken();
-            setAuthToken(token);
+            if (token) setAuthToken(token);
             await admin.approveShop(shopId);
             setActionMessage("Store approved successfully!");
             await loadShops();
@@ -59,8 +57,7 @@ export default function AdminShopsManagement() {
 
     const handleToggleActive = async (shopId: number) => {
         try {
-            const token = await getToken();
-            setAuthToken(token);
+            if (token) setAuthToken(token);
             await admin.toggleActive(shopId);
             await loadShops();
         } catch (err) {
@@ -71,8 +68,7 @@ export default function AdminShopsManagement() {
     const handleDelete = async (shopId: number) => {
         if (!confirm("Are you sure? This will delete the store and ALL its products permanently.")) return;
         try {
-            const token = await getToken();
-            setAuthToken(token);
+            if (token) setAuthToken(token);
             await admin.deleteShop(shopId);
             setActionMessage("Store deleted.");
             await loadShops();

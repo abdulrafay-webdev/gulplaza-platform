@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useSignOut } from '../lib/ClerkAuthContext';
 import { AdminUser } from '../shared/types';
 import { api } from '../services/api';
 
@@ -8,7 +7,7 @@ interface AdminAuthContextType {
   admin: AdminUser | null;
   token: string | null;
   isLoading: boolean;
-  login: (token: string) => Promise<boolean>;
+  login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -16,7 +15,7 @@ const AdminAuthContext = createContext<AdminAuthContextType>({
   admin: null,
   token: null,
   isLoading: true,
-  login: async () => false,
+  login: async () => ({ success: false }),
   logout: async () => {},
 });
 
@@ -24,7 +23,6 @@ const ADMIN_TOKEN_KEY = '@aiplaza_admin_token';
 const ADMIN_DATA_KEY = '@aiplaza_admin_data';
 
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { signOut } = useSignOut();
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,30 +48,26 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  const login = async (authToken: string): Promise<boolean> => {
+  const login = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      api.setAuthToken(authToken);
-      await api.admin.getAnalytics();
+      const res = await api.auth.adminLogin({ email, password: pass });
+      const { access_token, user: userData } = res.data;
 
-      const adminData: AdminUser = {
-        id: 'admin',
-        role: 'SUPER_ADMIN'
-      };
+      setToken(access_token);
+      setAdmin(userData);
+      api.setAuthToken(access_token);
 
-      setToken(authToken);
-      setAdmin(adminData);
-      await AsyncStorage.setItem(ADMIN_TOKEN_KEY, authToken);
-      await AsyncStorage.setItem(ADMIN_DATA_KEY, JSON.stringify(adminData));
-      return true;
-    } catch (err) {
-      console.error('Admin validation error:', err);
+      await AsyncStorage.setItem(ADMIN_TOKEN_KEY, access_token);
+      await AsyncStorage.setItem(ADMIN_DATA_KEY, JSON.stringify(userData));
+      return { success: true };
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || 'Invalid Super Admin email or password';
       api.setAuthToken(null);
-      return false;
+      return { success: false, error: msg };
     }
   };
 
   const logout = async () => {
-    try { await signOut(); } catch (e) { /* ignore */ }
     setToken(null);
     setAdmin(null);
     api.setAuthToken(null);

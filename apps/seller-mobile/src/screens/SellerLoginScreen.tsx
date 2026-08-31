@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -12,82 +12,32 @@ import {
   Alert,
   ScrollView
 } from 'react-native';
-import { Store, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
+import { Store, Mail, Lock, ArrowRight, ShieldCheck, UserPlus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useSignIn, useAuth } from '../lib/ClerkAuthContext';
 import { Theme } from '../shared/theme';
 import { useSellerAuth } from '../context/SellerAuthContext';
-import { api } from '../services/api';
 
-export default function SellerLoginScreen() {
+export default function SellerLoginScreen({ navigation }: any) {
   const { login } = useSellerAuth();
-  const { signIn, setActive } = useSignIn();
-  const { getToken, isSignedIn } = useAuth();
-  const [email, setEmail] = useState('');
+  const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [awaitingBackend, setAwaitingBackend] = useState(false);
-
-  useEffect(() => {
-    if (awaitingBackend && isSignedIn) {
-      completeBackendLogin();
-    }
-  }, [awaitingBackend, isSignedIn]);
-
-  const completeBackendLogin = async () => {
-    try {
-      const token = await getToken();
-      if (token) {
-        api.setAuthToken(token);
-        try {
-          const shopRes = await api.shops.getMe();
-          await login(token, shopRes.data);
-        } catch (e) {
-          await login(token);
-        }
-      }
-    } catch (err) {
-      console.error('Backend login error:', err);
-      Alert.alert('Error', 'Failed to connect to the marketplace. Please try again.');
-    } finally {
-      setLoading(false);
-      setAwaitingBackend(false);
-    }
-  };
 
   const handleSignIn = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Missing Credentials', 'Please enter both your email and password.');
+    if (!loginId.trim() || !password.trim()) {
+      Alert.alert('Required Fields', 'Please enter your seller email/phone and password.');
       return;
     }
 
     try {
       setLoading(true);
-
-      const result = await signIn!.create({ identifier: email.trim() });
-
-      if (result.status === 'needs_first_factor') {
-        const attemptResult = await signIn!.attemptFirstFactor({
-          strategy: 'password',
-          password: password,
-        });
-
-        if (attemptResult.status === 'complete') {
-          await setActive!({ session: attemptResult.createdSessionId });
-          setAwaitingBackend(true);
-        } else {
-          Alert.alert('Sign In Incomplete', 'Additional verification is required.');
-          setLoading(false);
-        }
-      } else {
-        Alert.alert('Sign In Failed', 'Unexpected response. Please try again.');
-        setLoading(false);
+      const result = await login(loginId.trim(), password);
+      if (!result.success) {
+        Alert.alert('Sign In Failed', result.error || 'Invalid email/phone or password.');
       }
     } catch (err: any) {
-      console.error('Seller login error:', err);
-      const message = err?.errors?.[0]?.message || err?.message || 'Invalid email or password.';
-      Alert.alert('Sign In Failed', message);
+      Alert.alert('Error', 'An unexpected error occurred during sign in.');
+    } finally {
       setLoading(false);
     }
   };
@@ -98,71 +48,84 @@ export default function SellerLoginScreen() {
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <LinearGradient colors={Theme.gradients.primary as any} style={styles.logoBox}>
-            <Store color="#FFF" size={36} />
-          </LinearGradient>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.content}>
+            <LinearGradient colors={['#7C3AED', '#4F46E5']} style={styles.logoBox}>
+              <Store color="#FFFFFF" size={38} />
+            </LinearGradient>
 
-          <Text style={styles.title}>Seller Merchant Portal</Text>
-          <Text style={styles.subtitle}>Sign in to manage your Gul Plaza store & fulfill customer orders</Text>
+            <Text style={styles.title}>Seller Merchant Portal</Text>
+            <Text style={styles.subtitle}>Sign in to manage your inventory, track orders, and view AI shopper demand analytics</Text>
 
-          <View style={styles.form}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address</Text>
-              <View style={styles.inputBox}>
-                <Mail color="#94A3B8" size={18} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your email"
-                  placeholderTextColor="#94A3B8"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  autoComplete="email"
-                />
+            <View style={styles.form}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Seller Email or Phone</Text>
+                <View style={styles.inputBox}>
+                  <Mail color="#94A3B8" size={18} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. creative@aiplaza.com or 0300..."
+                    placeholderTextColor="#94A3B8"
+                    value={loginId}
+                    onChangeText={setLoginId}
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Password</Text>
+                <View style={styles.inputBox}>
+                  <Lock color="#94A3B8" size={18} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter password"
+                    placeholderTextColor="#94A3B8"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.submitBtn}
+                onPress={handleSignIn}
+                disabled={loading}
+              >
+                <LinearGradient colors={Theme.gradients.primary as any} style={styles.submitGrad}>
+                  {loading ? (
+                    <ActivityIndicator color="#FFF" size="small" />
+                  ) : (
+                    <>
+                      <Text style={styles.submitBtnText}>Sign In to Dashboard</Text>
+                      <ArrowRight color="#FFF" size={16} />
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>NEW VENDOR?</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <TouchableOpacity
+                style={styles.registerBtn}
+                onPress={() => navigation.navigate('SellerRegister')}
+              >
+                <UserPlus color="#7C3AED" size={18} />
+                <Text style={styles.registerBtnText}>Open / Register a New Shop</Text>
+              </TouchableOpacity>
+
+              <View style={styles.noticeBox}>
+                <ShieldCheck color="#10B981" size={16} />
+                <Text style={styles.noticeText}>
+                  Protected Multi-Vendor Merchant Access. Registered stores receive real-time order alerts and AI product optimizations.
+                </Text>
               </View>
             </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.inputBox}>
-                <Lock color="#94A3B8" size={18} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your password"
-                  placeholderTextColor="#94A3B8"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  autoComplete="password"
-                />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  {showPassword ? <EyeOff color="#94A3B8" size={18} /> : <Eye color="#94A3B8" size={18} />}
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={styles.submitBtn}
-              onPress={handleSignIn}
-              disabled={loading}
-            >
-              <LinearGradient colors={Theme.gradients.primary as any} style={styles.submitGrad}>
-                {loading ? (
-                  <ActivityIndicator color="#FFF" size="small" />
-                ) : (
-                  <>
-                    <Text style={styles.submitBtnText}>Sign In to Dashboard</Text>
-                    <ArrowRight color="#FFF" size={16} />
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -178,16 +141,18 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 20,
+  },
+  content: {
+    paddingHorizontal: 24,
   },
   logoBox: {
-    width: 68,
-    height: 68,
-    borderRadius: 22,
+    width: 72,
+    height: 72,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
@@ -207,7 +172,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
     marginBottom: 28,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
   },
   form: {
     gap: 16,
@@ -238,7 +203,7 @@ const styles = StyleSheet.create({
   submitBtn: {
     borderRadius: 14,
     overflow: 'hidden',
-    marginTop: 4,
+    marginTop: 6,
   },
   submitGrad: {
     flexDirection: 'row',
@@ -249,7 +214,56 @@ const styles = StyleSheet.create({
   },
   submitBtnText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 10,
+    gap: 10,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  dividerText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94A3B8',
+  },
+  registerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    borderRadius: 14,
+    paddingVertical: 13,
+  },
+  registerBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#7C3AED',
+  },
+  noticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 6,
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: 10,
+    color: '#64748B',
+    lineHeight: 14,
   },
 });

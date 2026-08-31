@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useAuth, useUser } from '@clerk/nextjs';
+import { useSeller } from '@/context/SellerContext';
 import { admin, setAuthToken } from '@/services/api';
 import { 
   Store, 
@@ -24,15 +24,13 @@ import {
 import Link from 'next/link';
 
 export default function AdminDashboard() {
-    const { getToken } = useAuth();
-    const { user } = useUser();
+    const { token, seller } = useSeller();
     const [analytics, setAnalytics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     const loadData = async () => {
         try {
-            const token = await getToken();
-            setAuthToken(token);
+            if (token) setAuthToken(token);
             const res = await admin.getAnalytics();
             setAnalytics(res.data);
         } catch (err) {
@@ -44,7 +42,7 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         loadData();
-    }, [getToken]);
+    }, [token]);
 
     if (loading) {
         return (

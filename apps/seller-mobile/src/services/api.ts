@@ -47,6 +47,42 @@ export class APIClient {
     }
   }
 
+  auth = {
+    sellerRegister: (data: {
+      full_name: string;
+      email: string;
+      phone?: string;
+      password: string;
+      shop_name: string;
+      shop_description?: string;
+    }) => this.instance.post<{
+      access_token: string;
+      token_type: string;
+      user: any;
+      shop: Shop;
+      message: string;
+    }>('/auth/seller/register', data),
+
+    sellerLogin: (data: { login_id: string; password: string }) =>
+      this.instance.post<{
+        access_token: string;
+        token_type: string;
+        user: any;
+        shop: Shop;
+      }>('/auth/seller/login', data),
+
+    adminLogin: (data: { email: string; password: string }) =>
+      this.instance.post<{
+        access_token: string;
+        token_type: string;
+        user: any;
+        message: string;
+      }>('/auth/admin/login', data),
+
+    getMe: () =>
+      this.instance.get<{ user: any; shop?: Shop }>('/auth/me'),
+  };
+
   customers = {
     signup: (data: { full_name: string; email?: string; phone?: string; password: string }) =>
       this.instance.post<{ message: string; customer_id: number }>('/customers/signup', data),
