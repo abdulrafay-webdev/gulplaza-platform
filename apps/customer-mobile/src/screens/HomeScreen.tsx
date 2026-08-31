@@ -8,9 +8,10 @@ import {
   TextInput,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
-  Dimensions
+  Dimensions,
+  RefreshControl
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   Search, 
   Sparkles, 
@@ -20,7 +21,10 @@ import {
   Bot, 
   ArrowRight,
   ShieldCheck,
-  Flame
+  Flame,
+  Grid,
+  Tag,
+  CheckCircle2
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Product, Shop, Category } from '../shared/types';
@@ -36,8 +40,10 @@ export default function HomeScreen({ navigation }: any) {
   const [products, setProducts] = useState<Product[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [cartSuccessId, setCartSuccessId] = useState<number | null>(null);
 
   useEffect(() => {
     loadHomeData();
@@ -47,7 +53,7 @@ export default function HomeScreen({ navigation }: any) {
     try {
       setLoading(true);
       const [prodRes, shopRes, catRes] = await Promise.all([
-        api.products.listAll({ limit: 12 }),
+        api.products.listAll({ limit: 60 }),
         api.shops.list(),
         api.categories.list()
       ]);
@@ -58,7 +64,19 @@ export default function HomeScreen({ navigation }: any) {
       console.error('Failed to load home data:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadHomeData();
+  };
+
+  const handleAddToCart = (product: Product) => {
+    addToCart(product, 1);
+    setCartSuccessId(product.id);
+    setTimeout(() => setCartSuccessId(null), 1800);
   };
 
   const samplePrompts = [
@@ -66,6 +84,12 @@ export default function HomeScreen({ navigation }: any) {
     { title: 'Gift Ideas', prompt: 'Kisi ko gift dena hai 5000 ke andar best options dikhao' },
     { title: 'Tea Kettle', prompt: 'Fast electric kettle dikhao kitchen ke liye' },
   ];
+
+  // Trending (Top 6) vs All Products
+  const trendingProducts = products.slice(0, 6);
+  const filteredAllProducts = selectedCategory 
+    ? products.filter(p => p.main_category_id === selectedCategory) 
+    : products;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -98,8 +122,14 @@ export default function HomeScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Search Bar Bar */}
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#A163F7']} />
+        }
+      >
+        {/* Search Bar */}
         <TouchableOpacity 
           style={styles.searchBar}
           activeOpacity={0.8}
@@ -205,20 +235,108 @@ export default function HomeScreen({ navigation }: any) {
           ))}
         </ScrollView>
 
-        {/* Trending Marketplace Products Grid */}
+        {/* 1. Trending Marketplace Products */}
         <View style={styles.sectionHeader}>
           <View style={styles.trendTag}>
             <Flame color="#EF4444" size={16} />
             <Text style={styles.sectionTitle}>Trending Products</Text>
           </View>
+          <View style={styles.hotBadge}>
+            <Text style={styles.hotBadgeText}>HOT</Text>
+          </View>
         </View>
 
+        {/* Horizontal Trending Cards Carousel */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.trendingRow}>
+          {trendingProducts.map((p) => {
+            const thumb = p.image_url || (p.images && p.images[0]?.url) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
+            const isAdded = cartSuccessId === p.id;
+            return (
+              <TouchableOpacity 
+                key={p.id} 
+                style={styles.trendingCard}
+                activeOpacity={0.9}
+                onPress={() => navigation.navigate('ProductDetail', { productId: p.id })}
+              >
+                <Image source={{ uri: thumb }} style={styles.trendingThumb} />
+                <View style={styles.trendingTag}>
+                  <Flame color="#FFF" size={10} />
+                  <Text style={styles.trendingTagText}>Trending</Text>
+                </View>
+                <View style={styles.trendingBody}>
+                  <Text style={styles.productShop} numberOfLines={1}>{p.shop?.name || p.shop_name || 'AI Plaza'}</Text>
+                  <Text style={styles.productTitle} numberOfLines={1}>{p.name}</Text>
+                  <Text style={styles.productPrice}>{formatCurrency(p.price)}</Text>
+                  <TouchableOpacity 
+                    style={[styles.addCartBtn, isAdded && { backgroundColor: '#10B981' }]}
+                    onPress={() => handleAddToCart(p)}
+                  >
+                    {isAdded ? (
+                      <>
+                        <CheckCircle2 color="#FFF" size={13} />
+                        <Text style={styles.addCartBtnText}>Added!</Text>
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag color="#FFF" size={13} />
+                        <Text style={styles.addCartBtnText}>Add Cart</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* 2. All Products / Full Marketplace Catalog Section */}
+        <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+          <View style={styles.trendTag}>
+            <Grid color="#A163F7" size={16} />
+            <Text style={styles.sectionTitle}>All Products</Text>
+          </View>
+          <Text style={styles.itemCountText}>{filteredAllProducts.length} items</Text>
+        </View>
+
+        {/* Category Filter Pills */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterPillsRow}>
+          <TouchableOpacity
+            style={[styles.pillBtn, selectedCategory === null && styles.pillBtnActive]}
+            onPress={() => setSelectedCategory(null)}
+          >
+            <Text style={[styles.pillText, selectedCategory === null && styles.pillTextActive]}>
+              All Categories
+            </Text>
+          </TouchableOpacity>
+          {categories.map((c) => {
+            const isActive = selectedCategory === c.id;
+            return (
+              <TouchableOpacity
+                key={c.id}
+                style={[styles.pillBtn, isActive && styles.pillBtnActive]}
+                onPress={() => setSelectedCategory(isActive ? null : c.id)}
+              >
+                <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
+                  {c.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* All Products Grid */}
         {loading ? (
           <ActivityIndicator size="large" color={Theme.colors.primaryPurple} style={{ marginTop: 24 }} />
+        ) : filteredAllProducts.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <ShoppingBag color="#94A3B8" size={36} />
+            <Text style={styles.emptyText}>No products found in this category</Text>
+          </View>
         ) : (
           <View style={styles.productsGrid}>
-            {products.map((p) => {
+            {filteredAllProducts.map((p) => {
               const thumb = p.image_url || (p.images && p.images[0]?.url) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
+              const isAdded = cartSuccessId === p.id;
               return (
                 <TouchableOpacity 
                   key={p.id} 
@@ -232,11 +350,20 @@ export default function HomeScreen({ navigation }: any) {
                     <Text style={styles.productTitle} numberOfLines={2}>{p.name}</Text>
                     <Text style={styles.productPrice}>{formatCurrency(p.price)}</Text>
                     <TouchableOpacity 
-                      style={styles.addCartBtn}
-                      onPress={() => addToCart(p, 1)}
+                      style={[styles.addCartBtn, isAdded && { backgroundColor: '#10B981' }]}
+                      onPress={() => handleAddToCart(p)}
                     >
-                      <ShoppingBag color="#FFF" size={13} />
-                      <Text style={styles.addCartBtnText}>Add Cart</Text>
+                      {isAdded ? (
+                        <>
+                          <CheckCircle2 color="#FFF" size={13} />
+                          <Text style={styles.addCartBtnText}>Added!</Text>
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingBag color="#FFF" size={13} />
+                          <Text style={styles.addCartBtnText}>Add Cart</Text>
+                        </>
+                      )}
                     </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
@@ -400,6 +527,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
+  hotBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  hotBadgeText: {
+    color: '#EF4444',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  itemCountText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '700',
+  },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '800',
@@ -503,6 +646,70 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#10B981',
   },
+  trendingRow: {
+    marginBottom: 10,
+  },
+  trendingCard: {
+    width: 170,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginRight: 12,
+    position: 'relative',
+    ...Theme.shadows.sm,
+  },
+  trendingThumb: {
+    width: '100%',
+    height: 120,
+    backgroundColor: '#F1F5F9',
+  },
+  trendingTag: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  trendingTagText: {
+    color: '#FFF',
+    fontSize: 8,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  trendingBody: {
+    padding: 10,
+  },
+  filterPillsRow: {
+    marginBottom: 16,
+  },
+  pillBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginRight: 8,
+  },
+  pillBtnActive: {
+    backgroundColor: '#7C3AED',
+    borderColor: '#7C3AED',
+  },
+  pillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  pillTextActive: {
+    color: '#FFFFFF',
+  },
   productsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -558,5 +765,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '800',
+  },
+  emptyBox: {
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 8,
   },
 });

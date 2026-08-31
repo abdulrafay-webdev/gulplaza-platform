@@ -6,11 +6,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
-  Alert
+  Alert,
+  ScrollView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bot, Mail, Lock, ChevronLeft, ArrowRight, User } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Theme } from '../shared/theme';
