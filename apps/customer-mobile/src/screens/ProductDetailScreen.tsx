@@ -20,7 +20,8 @@ import {
   Plus,
   Minus,
   CheckCircle,
-  Truck
+  Truck,
+  Zap
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Product } from '../shared/types';
@@ -33,7 +34,7 @@ const { width } = Dimensions.get('window');
 
 export default function ProductDetailScreen({ route, navigation }: any) {
   const { productId } = route.params;
-  const { addToCart } = useCart();
+  const { addToCart, cartCount } = useCart();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,6 +68,12 @@ export default function ProductDetailScreen({ route, navigation }: any) {
     }
   };
 
+  const handleBuyNow = () => {
+    if (!product || product.stock_quantity <= 0) return;
+    addToCart(product, quantity);
+    navigation.navigate('Checkout');
+  };
+
   if (loading || !product) {
     return (
       <SafeAreaView edges={['top', 'left', 'right']} style={styles.loadingContainer}>
@@ -87,8 +94,18 @@ export default function ProductDetailScreen({ route, navigation }: any) {
           <ChevronLeft color="#0F172A" size={24} />
         </TouchableOpacity>
         <Text style={styles.navTitle} numberOfLines={1}>{product.name}</Text>
-        <TouchableOpacity style={styles.navBtn} onPress={() => navigation.navigate('Cart')}>
-          <ShoppingBag color="#0F172A" size={20} />
+        <TouchableOpacity 
+          style={styles.navBtn} 
+          onPress={() => navigation.navigate('MainTabs', { screen: 'CartTab' })}
+        >
+          <View style={{ position: 'relative' }}>
+            <ShoppingBag color="#0F172A" size={22} />
+            {cartCount > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>{cartCount}</Text>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -173,27 +190,42 @@ export default function ProductDetailScreen({ route, navigation }: any) {
             style={styles.qtyBtn} 
             onPress={() => setQuantity(q => Math.max(1, q - 1))}
           >
-            <Minus color="#0F172A" size={16} />
+            <Minus color="#0F172A" size={15} />
           </TouchableOpacity>
           <Text style={styles.qtyText}>{quantity}</Text>
           <TouchableOpacity 
             style={styles.qtyBtn} 
             onPress={() => setQuantity(q => q + 1)}
           >
-            <Plus color="#0F172A" size={16} />
+            <Plus color="#0F172A" size={15} />
           </TouchableOpacity>
         </View>
 
+        {/* Add to Cart Button */}
         <TouchableOpacity 
           style={styles.addToCartBtn} 
           onPress={handleAdd}
           disabled={product.stock_quantity <= 0}
+          activeOpacity={0.85}
         >
-          <LinearGradient colors={Theme.gradients.primary as any} style={styles.addToCartGrad}>
-            <ShoppingBag color="#FFF" size={18} />
-            <Text style={styles.addToCartText}>
-              {addedToast ? 'Added to Cart ✓' : `Add to Cart • ${formatCurrency(product.price * quantity)}`}
+          <View style={[styles.addToCartInner, addedToast && styles.addToCartAdded]}>
+            <ShoppingBag color={addedToast ? "#059669" : "#7C3AED"} size={16} />
+            <Text style={[styles.addToCartText, addedToast && styles.addToCartTextAdded]}>
+              {addedToast ? 'Added ✓' : 'Add to Cart'}
             </Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Buy Now Button */}
+        <TouchableOpacity 
+          style={styles.buyNowBtn} 
+          onPress={handleBuyNow}
+          disabled={product.stock_quantity <= 0}
+          activeOpacity={0.85}
+        >
+          <LinearGradient colors={['#7C3AED', '#4F46E5']} style={styles.buyNowGrad}>
+            <Zap color="#FFF" size={16} />
+            <Text style={styles.buyNowText}>Buy Now</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -231,6 +263,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginHorizontal: 12,
   },
+  cartBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    backgroundColor: '#FF7582',
+    borderRadius: 10,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+  },
   scrollContent: {
     paddingBottom: 24,
   },
@@ -259,62 +308,63 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: 'rgba(255,255,255,0.4)',
   },
   activeDot: {
     backgroundColor: '#FFFFFF',
-    width: 18,
+    width: 16,
   },
   bodyContainer: {
-    padding: 18,
+    padding: 20,
   },
   shopBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#F3E8FF',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
     alignSelf: 'flex-start',
-    marginBottom: 8,
+    backgroundColor: '#F5F3FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+    marginBottom: 12,
   },
   shopBadgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
-    color: '#A163F7',
+    color: '#7C3AED',
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
     color: '#0F172A',
-    marginBottom: 6,
-    lineHeight: 24,
+    lineHeight: 28,
+    marginBottom: 8,
   },
   price: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#A163F7',
     marginBottom: 16,
   },
   infoBox: {
     backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    padding: 12,
-    gap: 8,
+    borderRadius: 16,
+    padding: 14,
+    gap: 10,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    marginBottom: 16,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   infoText: {
     fontSize: 12,
     color: '#475569',
     fontWeight: '600',
+    flex: 1,
   },
   askAiCard: {
     borderRadius: 16,
@@ -356,8 +406,9 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 13,
+    color: '#64748B',
     lineHeight: 20,
-    color: '#475569',
+    marginBottom: 20,
   },
   bottomBar: {
     position: 'absolute',
@@ -366,44 +417,75 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
-    gap: 12,
+    gap: 10,
+    ...Theme.shadows.md,
   },
   quantitySelector: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F1F5F9',
-    borderRadius: 14,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
   },
   qtyBtn: {
-    padding: 6,
+    padding: 5,
   },
   qtyText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: '#0F172A',
-    marginHorizontal: 8,
+    marginHorizontal: 6,
   },
   addToCartBtn: {
     flex: 1,
     borderRadius: 14,
     overflow: 'hidden',
   },
-  addToCartGrad: {
+  addToCartInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 8,
+    paddingVertical: 12,
+    gap: 6,
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1.5,
+    borderColor: '#DDD6FE',
+    borderRadius: 14,
+  },
+  addToCartAdded: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
   },
   addToCartText: {
+    color: '#7C3AED',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  addToCartTextAdded: {
+    color: '#059669',
+  },
+  buyNowBtn: {
+    flex: 1.1,
+    borderRadius: 14,
+    overflow: 'hidden',
+    ...Theme.shadows.sm,
+  },
+  buyNowGrad: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 13,
+    gap: 6,
+  },
+  buyNowText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
   },
 });

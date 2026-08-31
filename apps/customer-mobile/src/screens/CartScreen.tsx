@@ -1,11 +1,11 @@
-import React from 'react';
 import {
   View,
   Text,
   ScrollView,
   Image,
   TouchableOpacity,
-  StyleSheet
+  StyleSheet,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -128,7 +128,7 @@ export default function CartScreen({ navigation }: any) {
             </View>
           </View>
 
-          <View style={{ height: 110 }} />
+          <View style={{ height: 20 }} />
         </ScrollView>
       )}
 
@@ -143,6 +143,7 @@ export default function CartScreen({ navigation }: any) {
           <TouchableOpacity
             style={styles.checkoutBtn}
             onPress={() => navigation.navigate('Checkout')}
+            activeOpacity={0.85}
           >
             <LinearGradient colors={Theme.gradients.primary as any} style={styles.checkoutGrad}>
               <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
@@ -355,18 +356,16 @@ const styles = StyleSheet.create({
     color: '#A163F7',
   },
   bottomCheckoutBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 96 : 80,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    ...Theme.shadows.md,
   },
   barTotalLabel: {
     fontSize: 10,
