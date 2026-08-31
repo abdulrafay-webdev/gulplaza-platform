@@ -9,10 +9,14 @@ backend/__pycache__/
 backend/*.pyc
 
 # Node
+node_modules/
 next-frontend/node_modules/
 next-frontend/.next/
 next-frontend/out/
 next-frontend/build/
+apps/*/node_modules/
+apps/*/.expo/
+.expo/
 
 # General
 .DS_Store
