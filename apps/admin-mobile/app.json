@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "AI Plaza Admin",
+    "slug": "ai-plaza-admin",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aiplaza.admin"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1E1B4B"
+      },
+      "package": "com.aiplaza.admin"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "AI Plaza Seller",
+    "slug": "ai-plaza-seller",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0B0F19"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aiplaza.seller"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#6F88FC"
+      },
+      "package": "com.aiplaza.seller",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    }
+  }
+}

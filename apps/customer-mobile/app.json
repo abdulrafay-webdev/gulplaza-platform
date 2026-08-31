@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "AI Plaza",
+    "slug": "ai-plaza-customer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aiplaza.customer"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#A163F7"
+      },
+      "package": "com.aiplaza.customer",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to search for matching products with AI."
+        }
+      ]
+    ]
+  }
+}

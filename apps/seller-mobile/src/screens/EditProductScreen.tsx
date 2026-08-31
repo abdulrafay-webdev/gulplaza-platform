@@ -1,0 +1,285 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  ActivityIndicator,
+  StyleSheet,
+  SafeAreaView,
+  Alert
+} from 'react-native';
+import { ChevronLeft, Camera, Image as ImageIcon } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Product } from '../../../../mobile-shared/src/types';
+import { Theme } from '../../../../mobile-shared/src/theme';
+import { api } from '../services/api';
+
+export default function EditProductScreen({ route, navigation }: any) {
+  const { product }: { product: Product } = route.params;
+
+  const [name, setName] = useState(product.name);
+  const [price, setPrice] = useState(product.price.toString());
+  const [stock, setStock] = useState(product.stock_quantity.toString());
+  const [shortDesc, setShortDesc] = useState(product.short_description || '');
+  const [longDesc, setLongDesc] = useState(product.long_description || '');
+  const [selectedImage, setSelectedImage] = useState<string | null>(
+    product.image_url || (product.images && product.images[0]?.url) || null
+  );
+  const [loading, setLoading] = useState(false);
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Camera roll permissions are required.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const mime = asset.mimeType || 'image/jpeg';
+      const b64Uri = asset.base64 ? `data:${mime};base64,${asset.base64}` : asset.uri;
+      setSelectedImage(b64Uri);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!name.trim() || !price) {
+      Alert.alert('Missing Fields', 'Please provide a name and price.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const payload: any = {
+        name: name.trim(),
+        price: parseFloat(price),
+        stock_quantity: parseInt(stock, 10) || 0,
+        short_description: shortDesc.trim() || undefined,
+        long_description: longDesc.trim() || undefined,
+      };
+
+      if (selectedImage && selectedImage.startsWith('data:')) {
+        payload.image_urls = [selectedImage];
+      }
+
+      await api.products.update(product.id, payload);
+      Alert.alert('Success', 'Product updated successfully!');
+      navigation.goBack();
+    } catch (err) {
+      console.error('Failed to update product:', err);
+      Alert.alert('Error', 'Failed to update product.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.navBar}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <ChevronLeft color="#0F172A" size={24} />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>Edit Product</Text>
+        <TouchableOpacity onPress={handleUpdate} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator size="small" color="#A163F7" />
+          ) : (
+            <Text style={styles.saveNavText}>Save</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Photo view */}
+        <View style={styles.photoCard}>
+          {selectedImage ? (
+            <View style={styles.previewContainer}>
+              <Image source={{ uri: selectedImage }} style={styles.uploadedPhoto} />
+              <TouchableOpacity style={styles.changePhotoBtn} onPress={pickImage}>
+                <Camera color="#FFF" size={16} />
+                <Text style={styles.changePhotoText}>Change Photo</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.uploadPlaceholder} onPress={pickImage}>
+              <ImageIcon color="#A163F7" size={36} />
+              <Text style={styles.uploadTitle}>Change Product Image</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.formCard}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Product Title</Text>
+            <TextInput
+              style={styles.textInput}
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
+
+          <View style={styles.rowTwo}>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.label}>Price (PKR)</Text>
+              <TextInput
+                style={styles.textInput}
+                keyboardType="numeric"
+                value={price}
+                onChangeText={setPrice}
+              />
+            </View>
+
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={styles.label}>Stock Quantity</Text>
+              <TextInput
+                style={styles.textInput}
+                keyboardType="numeric"
+                value={stock}
+                onChangeText={setStock}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Short Summary</Text>
+            <TextInput
+              style={styles.textInput}
+              value={shortDesc}
+              onChangeText={setShortDesc}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Full Description</Text>
+            <TextInput
+              style={[styles.textInput, { height: 100, textAlignVertical: 'top' }]}
+              multiline
+              value={longDesc}
+              onChangeText={setLongDesc}
+            />
+          </View>
+        </View>
+
+        <View style={{ height: 60 }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  navBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  backBtn: {
+    padding: 4,
+  },
+  navTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  saveNavText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#A163F7',
+  },
+  scrollContent: {
+    padding: 16,
+  },
+  photoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+    marginBottom: 14,
+    ...Theme.shadows.sm,
+  },
+  previewContainer: {
+    position: 'relative',
+    height: 180,
+  },
+  uploadedPhoto: {
+    width: '100%',
+    height: '100%',
+  },
+  changePhotoBtn: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  changePhotoText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  uploadPlaceholder: {
+    paddingVertical: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginTop: 6,
+  },
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 12,
+    ...Theme.shadows.sm,
+  },
+  inputGroup: {},
+  label: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: 6,
+  },
+  textInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: '#0F172A',
+  },
+  rowTwo: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+});
