@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  StyleSheet,
-  SafeAreaView
+  StyleSheet
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Store, Search, ShieldCheck, ChevronRight, MapPin } from 'lucide-react-native';
 import { Shop } from '../shared/types';
 import { Theme } from '../shared/theme';
@@ -42,7 +42,7 @@ export default function ShopsScreen({ navigation }: any) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Gul Plaza Verified Shops</Text>
         <Text style={styles.headerSubtitle}>Direct authentic stores with fast delivery</Text>

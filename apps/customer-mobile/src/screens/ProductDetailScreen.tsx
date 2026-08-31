@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   Dimensions,
   Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ChevronLeft,
   ShoppingBag,
@@ -69,7 +69,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
 
   if (loading || !product) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView edges={['top', 'left', 'right']} style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Theme.colors.primaryPurple} />
       </SafeAreaView>
     );
@@ -80,7 +80,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
     : [product.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80'];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       {/* Top Navbar */}
       <View style={styles.navBar}>
         <TouchableOpacity style={styles.navBtn} onPress={() => navigation.goBack()}>

@@ -7,9 +7,11 @@ import {
   ScrollView,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
-  Alert
+  Alert,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ChevronLeft,
   Truck,
@@ -78,7 +80,7 @@ export default function CheckoutScreen({ navigation }: any) {
 
   if (orderSuccess) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
         <View style={styles.successContainer}>
           <CheckCircle2 color="#10B981" size={72} />
           <Text style={styles.successTitle}>Order Placed Successfully!</Text>
@@ -92,7 +94,7 @@ export default function CheckoutScreen({ navigation }: any) {
 
           <TouchableOpacity
             style={styles.homeBtn}
-            onPress={() => navigation.navigate('Home')}
+            onPress={() => navigation.navigate('HomeTab')}
           >
             <LinearGradient colors={Theme.gradients.primary as any} style={styles.homeGrad}>
               <Text style={styles.homeBtnText}>Return to Marketplace</Text>
@@ -104,16 +106,25 @@ export default function CheckoutScreen({ navigation }: any) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft color="#0F172A" size={24} />
-        </TouchableOpacity>
-        <Text style={styles.navTitle}>Checkout</Text>
-        <View style={{ width: 32 }} />
-      </View>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+      >
+        <View style={styles.navBar}>
+          <TouchableOpacity style={styles.navBtn} onPress={() => navigation.goBack()}>
+            <ChevronLeft color="#0F172A" size={24} />
+          </TouchableOpacity>
+          <Text style={styles.navTitle}>Checkout</Text>
+          <View style={{ width: 32 }} />
+        </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Delivery Details Form */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Delivery Information</Text>
@@ -225,6 +236,7 @@ export default function CheckoutScreen({ navigation }: any) {
           </LinearGradient>
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

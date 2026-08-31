@@ -8,13 +8,13 @@ import {
   Image,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Alert,
   Modal,
   FlatList
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Bot,
   Send,
@@ -103,97 +103,90 @@ export default function AIChatScreen({ route, navigation }: any) {
   const handleNewChat = () => {
     setCurrentChatId(null);
     setMessages([]);
-    setInputText('');
     setSelectedImage(null);
-    setHistoryModalVisible(false);
+    setInputText('');
+  };
+
+  const handleDeleteChat = async (chatId: number) => {
+    try {
+      await api.ai.deleteChat(chatId);
+      setChats(prev => prev.filter(c => c.id !== chatId));
+      if (currentChatId === chatId) {
+        handleNewChat();
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Failed to delete chat session.');
+    }
   };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Camera roll permission is required to upload images.');
+      Alert.alert('Permission Denied', 'Camera roll permission is required to upload images for AI matching.');
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
+      aspect: [4, 4],
       quality: 0.7,
       base64: true,
     });
 
-    if (!result.canceled && result.assets[0]) {
+    if (!result.canceled && result.assets && result.assets[0]) {
       const asset = result.assets[0];
-      const mime = asset.mimeType || 'image/jpeg';
-      const b64Uri = asset.base64 ? `data:${mime};base64,${asset.base64}` : asset.uri;
-      setSelectedImage(b64Uri);
+      const base64Data = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+      setSelectedImage(base64Data);
     }
   };
 
   const handleSendMessage = async (customText?: string) => {
-    const textToSend = customText !== undefined ? customText : inputText;
+    const textToSend = customText || inputText;
     if (!textToSend.trim() && !selectedImage) return;
 
-    setIsThinking(true);
+    const userMsg: AIMessage = {
+      role: 'user',
+      content: textToSend,
+      image_url: selectedImage || undefined,
+      created_at: new Date().toISOString()
+    };
+
+    setMessages(prev => [...prev, userMsg]);
     setInputText('');
     const imageToSend = selectedImage;
     setSelectedImage(null);
-
-    // Optimistic user message preview
-    const tempMsg: AIMessage = {
-      id: Date.now(),
-      chat_id: currentChatId || 0,
-      role: 'user',
-      content: textToSend,
-      image_url: imageToSend || undefined,
-      created_at: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, tempMsg]);
+    setIsThinking(true);
 
     try {
-      if (!currentChatId) {
-        // Create new chat
-        const createRes = await api.ai.createChat({
-          initial_message: textToSend,
-          image_url: imageToSend || undefined
-        });
+      const res = await api.ai.sendMessage({
+        chat_id: currentChatId || undefined,
+        message: textToSend,
+        image_data: imageToSend || undefined
+      });
 
-        if (createRes.data.chat) {
-          const newChatId = createRes.data.chat.id;
-          setCurrentChatId(newChatId);
-          if (createRes.data.assistant_message && createRes.data.user_message) {
-            setMessages([createRes.data.user_message, createRes.data.assistant_message]);
-          }
-          loadChats();
-        }
-      } else {
-        // Existing chat
-        const res = await api.ai.sendMessage(currentChatId, {
-          content: textToSend,
-          image_url: imageToSend || undefined
-        });
-
-        if (res.data.assistant_message) {
-          setMessages(prev => {
-            const filtered = prev.filter(m => m.id !== tempMsg.id);
-            return [...filtered, res.data.user_message, res.data.assistant_message];
-          });
-        }
-        loadChats();
+      const data = res.data;
+      if (data.chat_id) {
+        setCurrentChatId(data.chat_id);
       }
-    } catch (err) {
+
+      const assistantMsg: AIMessage = {
+        role: 'assistant',
+        content: data.reply,
+        products: data.products || [],
+        created_at: new Date().toISOString()
+      };
+
+      setMessages(prev => [...prev, assistantMsg]);
+      loadChats();
+    } catch (err: any) {
       console.error('AI chat error:', err);
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          chat_id: currentChatId || 0,
-          role: 'assistant',
-          content: 'Maaf kijiye, response process karne mein issue aaya hai. Baraye meharbani dobara try karein.',
-          created_at: new Date().toISOString(),
-          products: []
-        }
-      ]);
+      const errMsg: AIMessage = {
+        role: 'assistant',
+        content: 'Maazrat, abhi AI server busy hai. Baraye meharbani kuch lamhe baad dobara koshish karein.',
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, errMsg]);
     } finally {
       setIsThinking(false);
     }
@@ -207,7 +200,7 @@ export default function AIChatScreen({ route, navigation }: any) {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       {/* Top Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -239,13 +232,15 @@ export default function AIChatScreen({ route, navigation }: any) {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 20}
       >
         {/* Messages List */}
         <ScrollView
           ref={scrollViewRef}
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
+          keyboardShouldPersistTaps="handled"
           onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
         >
           {messages.length === 0 ? (

@@ -92,7 +92,7 @@ export default function HomeScreen({ navigation }: any) {
     : products;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       {/* Top Header */}
       <View style={styles.header}>
         <View style={styles.logoRow}>

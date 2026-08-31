@@ -5,9 +5,9 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  StyleSheet,
-  SafeAreaView
+  StyleSheet
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Package, ChevronRight, Clock, CheckCircle, Truck, AlertCircle } from 'lucide-react-native';
 import { Order } from '../shared/types';
 import { Theme } from '../shared/theme';
@@ -54,7 +54,7 @@ export default function OrdersScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Your Orders</Text>
         <Text style={styles.headerSubtitle}>Track past marketplace purchases</Text>

@@ -6,11 +6,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
-  Alert
+  Alert,
+  ScrollView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bot, Mail, Lock, ChevronLeft, ArrowRight, User, Phone } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Theme } from '../shared/theme';
@@ -40,7 +41,7 @@ export default function SignupScreen({ navigation }: any) {
       });
 
       if (success) {
-        navigation.navigate('Home');
+        navigation.navigate('HomeTab');
       } else {
         Alert.alert('Registration Failed', 'Could not create account. Please check your details.');
       }
@@ -52,7 +53,7 @@ export default function SignupScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.navBar}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ChevronLeft color="#0F172A" size={24} />
@@ -61,102 +62,109 @@ export default function SignupScreen({ navigation }: any) {
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
       >
-        <View style={styles.content}>
-          <LinearGradient colors={Theme.gradients.primary as any} style={styles.logoBadge}>
-            <Bot color="#FFF" size={32} />
-          </LinearGradient>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            <LinearGradient colors={Theme.gradients.primary as any} style={styles.logoBadge}>
+              <Bot color="#FFF" size={32} />
+            </LinearGradient>
 
-          <Text style={styles.title}>Create Customer Account</Text>
-          <Text style={styles.subtitle}>Join Pakistan's smart AI-powered marketplace</Text>
+            <Text style={styles.title}>Create Customer Account</Text>
+            <Text style={styles.subtitle}>Join Pakistan's smart AI-powered marketplace</Text>
 
-          <View style={styles.form}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Name *</Text>
-              <View style={styles.inputBox}>
-                <User color="#94A3B8" size={18} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Your Name"
-                  placeholderTextColor="#94A3B8"
-                  value={fullName}
-                  onChangeText={setFullName}
-                />
+            <View style={styles.form}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Full Name *</Text>
+                <View style={styles.inputBox}>
+                  <User color="#94A3B8" size={18} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Your Name"
+                    placeholderTextColor="#94A3B8"
+                    value={fullName}
+                    onChangeText={setFullName}
+                  />
+                </View>
               </View>
-            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address (Optional)</Text>
-              <View style={styles.inputBox}>
-                <Mail color="#94A3B8" size={18} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="name@example.com"
-                  placeholderTextColor="#94A3B8"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                />
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email Address (Optional)</Text>
+                <View style={styles.inputBox}>
+                  <Mail color="#94A3B8" size={18} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="name@example.com"
+                    placeholderTextColor="#94A3B8"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                </View>
               </View>
-            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Phone Number (03XXXXXXXXX) *</Text>
-              <View style={styles.inputBox}>
-                <Phone color="#94A3B8" size={18} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="03XXXXXXXXX"
-                  placeholderTextColor="#94A3B8"
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                />
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Phone Number (Optional)</Text>
+                <View style={styles.inputBox}>
+                  <Phone color="#94A3B8" size={18} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="03XXXXXXXXX"
+                    placeholderTextColor="#94A3B8"
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                  />
+                </View>
               </View>
-            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password *</Text>
-              <View style={styles.inputBox}>
-                <Lock color="#94A3B8" size={18} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Create secure password"
-                  placeholderTextColor="#94A3B8"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                />
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Password *</Text>
+                <View style={styles.inputBox}>
+                  <Lock color="#94A3B8" size={18} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Create a strong password"
+                    placeholderTextColor="#94A3B8"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                  />
+                </View>
               </View>
-            </View>
 
-            <TouchableOpacity
-              style={styles.submitBtn}
-              onPress={handleSignup}
-              disabled={loading}
-            >
-              <LinearGradient colors={Theme.gradients.primary as any} style={styles.submitGrad}>
-                {loading ? (
-                  <ActivityIndicator color="#FFF" size="small" />
-                ) : (
-                  <>
-                    <Text style={styles.submitBtnText}>Create Account</Text>
-                    <ArrowRight color="#FFF" size={16} />
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <View style={styles.footerRow}>
-              <Text style={styles.footerText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={styles.loginLink}>Sign In</Text>
+              <TouchableOpacity
+                style={styles.submitBtn}
+                onPress={handleSignup}
+                disabled={loading}
+              >
+                <LinearGradient colors={Theme.gradients.primary as any} style={styles.submitGrad}>
+                  {loading ? (
+                    <ActivityIndicator color="#FFF" size="small" />
+                  ) : (
+                    <>
+                      <Text style={styles.submitBtnText}>Create Account</Text>
+                      <ArrowRight color="#FFF" size={16} />
+                    </>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
+
+              <View style={styles.loginPrompt}>
+                <Text style={styles.loginPromptText}>Already have an account? </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                  <Text style={styles.loginLink}>Sign In</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -172,88 +180,98 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backBtn: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   keyboardView: {
     flex: 1,
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 24,
-    justifyContent: 'center',
+    paddingBottom: 40,
+  },
+  content: {
+    alignItems: 'center',
   },
   logoBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
+    width: 64,
+    height: 64,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
-    alignSelf: 'center',
+    marginBottom: 18,
     ...Theme.shadows.md,
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
     color: '#0F172A',
-    textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   subtitle: {
     fontSize: 12,
     color: '#64748B',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+    lineHeight: 18,
   },
   form: {
-    gap: 12,
+    width: '100%',
+    gap: 14,
   },
-  inputGroup: {},
+  inputGroup: {
+    gap: 6,
+  },
   label: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
-    marginBottom: 4,
+    color: '#334155',
   },
   inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    gap: 8,
   },
   input: {
     flex: 1,
     fontSize: 13,
     color: '#0F172A',
-    paddingVertical: 10,
   },
   submitBtn: {
     borderRadius: 14,
     overflow: 'hidden',
-    marginTop: 8,
+    marginTop: 10,
+    ...Theme.shadows.sm,
   },
   submitGrad: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 13,
+    paddingVertical: 14,
   },
   submitBtnText: {
     color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 14,
+    fontWeight: '800',
   },
-  footerRow: {
+  loginPrompt: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 10,
+    marginTop: 14,
   },
-  footerText: {
+  loginPromptText: {
     fontSize: 12,
     color: '#64748B',
   },

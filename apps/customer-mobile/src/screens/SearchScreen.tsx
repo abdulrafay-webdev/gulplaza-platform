@@ -8,9 +8,9 @@ import {
   Image,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   Dimensions
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, X, ShoppingBag, ArrowLeft, Filter } from 'lucide-react-native';
 import { Product, Category } from '../shared/types';
 import { Theme } from '../shared/theme';
@@ -63,7 +63,7 @@ export default function SearchScreen({ route, navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       {/* Search Header Bar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>

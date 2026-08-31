@@ -5,9 +5,9 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  StyleSheet,
-  SafeAreaView
+  StyleSheet
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Trash2,
   Plus,
@@ -29,7 +29,7 @@ export default function CartScreen({ navigation }: any) {
   const grandTotal = cartTotal + deliveryFee;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View>
