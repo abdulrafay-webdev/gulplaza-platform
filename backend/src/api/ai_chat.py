@@ -213,3 +213,51 @@ async def upload_chat_image(
         b64 = base64.b64encode(file_bytes).decode("utf-8")
         data_uri = f"data:{file.content_type};base64,{b64}"
         return {"url": data_uri}
+
+from pydantic import BaseModel
+from src.models.category import Category
+import json
+
+class GenerateDescriptionRequest(BaseModel):
+    title: str
+    category_id: Optional[int] = None
+
+@router.post("/generate-description")
+def generate_product_description(
+    data: GenerateDescriptionRequest,
+    session: Session = Depends(get_session)
+):
+    """Auto-generate high converting product description using AI."""
+    title = data.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Title is required")
+
+    cat_name = "General"
+    if data.category_id:
+        cat = session.get(Category, data.category_id)
+        if cat:
+            cat_name = cat.name
+
+    provider = ai_shopping_service.get_ai_provider()
+    prompt = (
+        f"You are an expert ecommerce copywriter for Pakistan's AI Plaza marketplace. "
+        f"Generate a short summary (1-2 punchy sentences) and a detailed bulleted product description for:\n"
+        f"Product Title: {title}\n"
+        f"Category: {cat_name}\n\n"
+        f"Return ONLY a valid JSON object with keys 'short_description' and 'long_description'. No markdown fences."
+    )
+    
+    try:
+        raw_text = provider.generate_response(prompt)
+        clean_json = raw_text.replace("```json", "").replace("```", "").strip()
+        parsed = json.loads(clean_json)
+        return {
+            "short_description": parsed.get("short_description", f"Premium quality {title} with long-lasting performance."),
+            "long_description": parsed.get("long_description", f"• High quality {title}\n• Ideal for daily use\n• 100% genuine guaranteed")
+        }
+    except Exception as e:
+        logger.error(f"Description generation fallback: {e}")
+        return {
+            "short_description": f"Top quality {title} designed for reliable durability and peak performance.",
+            "long_description": f"• Genuine quality guaranteed\n• Premium {cat_name} product\n• Fast delivery across Pakistan\n• Reliable build and sleek design"
+        }

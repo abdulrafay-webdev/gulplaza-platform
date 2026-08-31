@@ -126,7 +126,8 @@ export default function AddProductScreen({ navigation }: any) {
         }
       }
 
-      await api.products.create({
+      const targetShopId = shop?.id || 1;
+      await api.products.create(targetShopId, {
         name: name.trim(),
         price: priceNum,
         stock_quantity: stockNum,
@@ -266,7 +267,7 @@ export default function AddProductScreen({ navigation }: any) {
           </Text>
           <TouchableOpacity
             style={styles.generateBtn}
-            onPress={generateWithAI}
+            onPress={handleGenerateAI}
             disabled={isAiGenerating}
           >
             <LinearGradient colors={Theme.gradients.primary as any} style={styles.generateGrad}>

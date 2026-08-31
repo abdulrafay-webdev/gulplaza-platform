@@ -207,6 +207,12 @@ export class APIClient {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 45000,
       }),
+
+    generateDescription: (title: string, categoryId?: number) =>
+      this.instance.post<{ short_description: string; long_description: string }>('/ai/generate-description', {
+        title,
+        category_id: categoryId,
+      }),
   };
 
   admin = {
