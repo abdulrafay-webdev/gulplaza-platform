@@ -39,32 +39,48 @@ export default function SellerDashboardHome() {
     });
 
     const loadData = async () => {
-        if (!token) return;
-        setAuthToken(token);
+        const activeToken = token || (typeof window !== 'undefined' ? localStorage.getItem('aiplaza_seller_token') : null);
+        if (!activeToken) {
+            setLoading(false);
+            return;
+        }
+        setAuthToken(activeToken);
         try {
-            const [shopRes, analyticsRes] = await Promise.all([
-                shops.getMe(),
-                shops.getAnalytics()
-            ]);
-            setShop(shopRes.data);
-            setAnalytics(analyticsRes.data);
-            setFormData({ 
-                name: shopRes.data.name, 
-                description: shopRes.data.description || '',
-                logo_url: shopRes.data.logo_url || '',
-                cover_image_url: shopRes.data.cover_image_url || ''
-            });
-        } catch (err) {
-            console.log("No shop found, ready to create.");
+            // 1. Fetch Shop details
+            try {
+                const shopRes = await shops.getMe();
+                if (shopRes.data) {
+                    setShop(shopRes.data);
+                    setFormData({ 
+                        name: shopRes.data.name, 
+                        description: shopRes.data.description || '',
+                        logo_url: shopRes.data.logo_url || '',
+                        cover_image_url: shopRes.data.cover_image_url || ''
+                    });
+                }
+            } catch (shopErr) {
+                console.log("No store registered yet for this account.");
+            }
+
+            // 2. Fetch Analytics
+            try {
+                const analyticsRes = await shops.getAnalytics();
+                if (analyticsRes.data) {
+                    setAnalytics(analyticsRes.data);
+                    if (!shop && analyticsRes.data.shop) {
+                        setShop(analyticsRes.data.shop);
+                    }
+                }
+            } catch (analyticsErr) {
+                console.log("Analytics loading error:", analyticsErr);
+            }
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        if (token) {
-            loadData();
-        }
+        loadData();
     }, [token]);
 
     const handleProfileSubmit = async (e: React.FormEvent) => {
