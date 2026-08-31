@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CartItem, Product } from '../../../../mobile-shared/src/types';
+import { CartItem, Product } from '../shared/types';
 
 interface CartContextType {
   cart: CartItem[];
@@ -87,7 +87,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
-  // Group items by shop for multi-shop checkout
   const itemsByShop: Record<number, { shopName: string; items: CartItem[]; shopTotal: number }> = {};
   cart.forEach((item) => {
     const shopId = item.product.shop_id || 1;

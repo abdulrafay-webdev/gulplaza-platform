@@ -19,8 +19,8 @@ import {
   ShieldCheck,
   Clock
 } from 'lucide-react-native';
-import { Shop } from '../../../../mobile-shared/src/types';
-import { Theme } from '../../../../mobile-shared/src/theme';
+import { Shop } from '../shared/types';
+import { Theme } from '../shared/theme';
 import { api } from '../services/api';
 
 export default function AdminShopsScreen({ route }: any) {

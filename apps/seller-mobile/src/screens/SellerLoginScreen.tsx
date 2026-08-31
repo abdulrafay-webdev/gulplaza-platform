@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Store, Key, ArrowRight, ShieldCheck } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Theme } from '../../../../mobile-shared/src/theme';
+import { Theme } from '../shared/theme';
 import { useSellerAuth } from '../context/SellerAuthContext';
 import { api } from '../services/api';
 

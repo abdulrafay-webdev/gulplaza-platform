@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Bot, Mail, Lock, ChevronLeft, ArrowRight, User, Phone } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Theme } from '../../../../mobile-shared/src/theme';
+import { Theme } from '../shared/theme';
 import { useAuth } from '../context/AuthContext';
 
 export default function SignupScreen({ navigation }: any) {

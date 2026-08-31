@@ -19,9 +19,9 @@ import {
   Sparkles
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Shop, Product } from '../../../../mobile-shared/src/types';
-import { Theme } from '../../../../mobile-shared/src/theme';
-import { formatCurrency } from '../../../../mobile-shared/src/utils/formatters';
+import { Shop, Product } from '../shared/types';
+import { Theme } from '../shared/theme';
+import { formatCurrency } from '../shared/formatters';
 import { api } from '../services/api';
 import { useCart } from '../context/CartContext';
 

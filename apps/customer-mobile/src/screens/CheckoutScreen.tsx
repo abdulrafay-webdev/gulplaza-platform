@@ -21,8 +21,8 @@ import {
   CreditCard
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Theme } from '../../../../mobile-shared/src/theme';
-import { formatCurrency } from '../../../../mobile-shared/src/utils/formatters';
+import { Theme } from '../shared/theme';
+import { formatCurrency } from '../shared/formatters';
 import { api } from '../services/api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';

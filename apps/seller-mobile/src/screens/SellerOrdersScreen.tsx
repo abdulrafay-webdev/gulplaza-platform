@@ -21,9 +21,9 @@ import {
   Truck,
   X
 } from 'lucide-react-native';
-import { Order } from '../../../../mobile-shared/src/types';
-import { Theme } from '../../../../mobile-shared/src/theme';
-import { formatCurrency, formatDateTime } from '../../../../mobile-shared/src/utils/formatters';
+import { Order } from '../shared/types';
+import { Theme } from '../shared/theme';
+import { formatCurrency, formatDateTime } from '../shared/formatters';
 import { api } from '../services/api';
 
 export default function SellerOrdersScreen() {

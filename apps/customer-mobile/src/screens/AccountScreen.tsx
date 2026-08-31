@@ -19,7 +19,7 @@ import {
   LogIn
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Theme } from '../../../../mobile-shared/src/theme';
+import { Theme } from '../shared/theme';
 import { useAuth } from '../context/AuthContext';
 
 export default function AccountScreen({ navigation }: any) {

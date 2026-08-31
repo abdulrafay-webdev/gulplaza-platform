@@ -22,7 +22,7 @@ import {
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Theme } from '../../../../mobile-shared/src/theme';
+import { Theme } from '../shared/theme';
 import { api } from '../services/api';
 import { useSellerAuth } from '../context/SellerAuthContext';
 

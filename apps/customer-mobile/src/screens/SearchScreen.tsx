@@ -12,9 +12,9 @@ import {
   Dimensions
 } from 'react-native';
 import { Search, X, ShoppingBag, ArrowLeft, Filter } from 'lucide-react-native';
-import { Product, Category } from '../../../../mobile-shared/src/types';
-import { Theme } from '../../../../mobile-shared/src/theme';
-import { formatCurrency } from '../../../../mobile-shared/src/utils/formatters';
+import { Product, Category } from '../shared/types';
+import { Theme } from '../shared/theme';
+import { formatCurrency } from '../shared/formatters';
 import { api } from '../services/api';
 import { useCart } from '../context/CartContext';
 

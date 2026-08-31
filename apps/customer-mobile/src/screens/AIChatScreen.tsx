@@ -31,9 +31,9 @@ import {
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AIChat, AIMessage, Product } from '../../../../mobile-shared/src/types';
-import { Theme } from '../../../../mobile-shared/src/theme';
-import { formatCurrency } from '../../../../mobile-shared/src/utils/formatters';
+import { AIChat, AIMessage, Product } from '../shared/types';
+import { Theme } from '../shared/theme';
+import { formatCurrency } from '../shared/formatters';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';

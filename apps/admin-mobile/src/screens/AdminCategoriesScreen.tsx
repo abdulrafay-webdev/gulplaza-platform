@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import { ShoppingBag, Plus, Trash2, X, Check } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Category } from '../../../../mobile-shared/src/types';
-import { Theme } from '../../../../mobile-shared/src/theme';
+import { Category } from '../shared/types';
+import { Theme } from '../shared/theme';
 import { api } from '../services/api';
 
 export default function AdminCategoriesScreen() {

@@ -13,9 +13,9 @@ import {
 } from 'react-native';
 import { Plus, Search, Edit2, Trash2, Package, AlertCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Product } from '../../../../mobile-shared/src/types';
-import { Theme } from '../../../../mobile-shared/src/theme';
-import { formatCurrency } from '../../../../mobile-shared/src/utils/formatters';
+import { Product } from '../shared/types';
+import { Theme } from '../shared/theme';
+import { formatCurrency } from '../shared/formatters';
 import { api } from '../services/api';
 import { useSellerAuth } from '../context/SellerAuthContext';
 

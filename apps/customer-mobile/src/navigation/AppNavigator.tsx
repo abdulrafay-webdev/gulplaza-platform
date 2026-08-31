@@ -26,7 +26,7 @@ import OrdersScreen from '../screens/OrdersScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
 
-import { Theme } from '../../../../mobile-shared/src/theme';
+import { Theme } from '../shared/theme';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 

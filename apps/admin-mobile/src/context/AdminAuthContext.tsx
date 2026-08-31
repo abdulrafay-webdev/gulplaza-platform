@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AdminUser } from '../../../../mobile-shared/src/types';
+import { AdminUser } from '../shared/types';
 import { api } from '../services/api';
 
 interface AdminAuthContextType {
@@ -51,7 +51,6 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const login = async (authToken: string): Promise<boolean> => {
     try {
       api.setAuthToken(authToken);
-      // Validate that token has admin permissions by hitting admin analytics
       await api.admin.getAnalytics();
 
       const adminData: AdminUser = {

@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import { ChevronLeft, Camera, Image as ImageIcon } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Product } from '../../../../mobile-shared/src/types';
-import { Theme } from '../../../../mobile-shared/src/theme';
+import { Product } from '../shared/types';
+import { Theme } from '../shared/theme';
 import { api } from '../services/api';
 
 export default function EditProductScreen({ route, navigation }: any) {

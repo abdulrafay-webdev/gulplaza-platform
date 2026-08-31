@@ -18,8 +18,8 @@ import {
   ShieldCheck
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Theme } from '../../../../mobile-shared/src/theme';
-import { formatCurrency } from '../../../../mobile-shared/src/utils/formatters';
+import { Theme } from '../shared/theme';
+import { formatCurrency } from '../shared/formatters';
 import { useCart } from '../context/CartContext';
 
 export default function CartScreen({ navigation }: any) {

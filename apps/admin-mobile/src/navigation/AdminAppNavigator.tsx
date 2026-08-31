@@ -18,7 +18,7 @@ import AdminOrdersScreen from '../screens/AdminOrdersScreen';
 import AdminCategoriesScreen from '../screens/AdminCategoriesScreen';
 import AdminLoginScreen from '../screens/AdminLoginScreen';
 
-import { Theme } from '../../../../mobile-shared/src/theme';
+import { Theme } from '../shared/theme';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
 const Tab = createBottomTabNavigator();

@@ -22,9 +22,9 @@ import {
   Plus
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SellerAnalytics } from '../../../../mobile-shared/src/types';
-import { Theme } from '../../../../mobile-shared/src/theme';
-import { formatCurrency, formatDate } from '../../../../mobile-shared/src/utils/formatters';
+import { SellerAnalytics } from '../shared/types';
+import { Theme } from '../shared/theme';
+import { formatCurrency, formatDate } from '../shared/formatters';
 import { api } from '../services/api';
 import { useSellerAuth } from '../context/SellerAuthContext';
 

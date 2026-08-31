@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { ShieldCheck, Key, ArrowRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Theme } from '../../../../mobile-shared/src/theme';
+import { Theme } from '../shared/theme';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
 export default function AdminLoginScreen() {

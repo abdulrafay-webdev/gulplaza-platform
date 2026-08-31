@@ -21,8 +21,8 @@ import {
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Category } from '../../../../mobile-shared/src/types';
-import { Theme } from '../../../../mobile-shared/src/theme';
+import { Category, SubCategory } from '../shared/types';
+import { Theme } from '../shared/theme';
 import { api } from '../services/api';
 import { useSellerAuth } from '../context/SellerAuthContext';
 

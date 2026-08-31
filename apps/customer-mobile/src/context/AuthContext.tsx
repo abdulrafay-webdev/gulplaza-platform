@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CustomerUser } from '../../../../mobile-shared/src/types';
+import { CustomerUser } from '../shared/types';
 import { api } from '../services/api';
 
 interface AuthContextType {
@@ -67,7 +67,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (data: { full_name: string; email?: string; phone?: string; password: string }): Promise<boolean> => {
     try {
       await api.customers.signup(data);
-      // Automatically log in after signup
       return await login(data.email || data.phone || '', data.password);
     } catch (err) {
       console.error('Signup error:', err);

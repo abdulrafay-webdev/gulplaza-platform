@@ -21,7 +21,7 @@ import ShopSettingsScreen from '../screens/ShopSettingsScreen';
 import PendingApprovalScreen from '../screens/PendingApprovalScreen';
 import SellerLoginScreen from '../screens/SellerLoginScreen';
 
-import { Theme } from '../../../../mobile-shared/src/theme';
+import { Theme } from '../shared/theme';
 import { useSellerAuth } from '../context/SellerAuthContext';
 
 const Tab = createBottomTabNavigator();

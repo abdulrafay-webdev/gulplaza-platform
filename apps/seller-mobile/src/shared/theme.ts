@@ -1,0 +1,56 @@
+export const Theme = {
+  colors: {
+    primaryPurple: '#A163F7',
+    primaryBlue: '#6F88FC',
+    darkBg: '#0B0F19',
+    darkCard: '#151C2C',
+    lightBg: '#F8FAFC',
+    cardBg: '#FFFFFF',
+    textPrimary: '#0F172A',
+    textSecondary: '#64748B',
+    textMuted: '#94A3B8',
+    border: '#E2E8F0',
+    borderDark: '#1E293B',
+    success: '#10B981',
+    warning: '#F59E0B',
+    danger: '#EF4444',
+    purpleGlow: 'rgba(161, 99, 247, 0.25)',
+    blueGlow: 'rgba(111, 136, 252, 0.25)',
+  },
+  gradients: {
+    primary: ['#A163F7', '#6F88FC'],
+    aiGlow: ['#A163F7', '#8B5CF6', '#6F88FC'],
+    darkCard: ['#1A2234', '#131A29'],
+    accent: ['#EC4899', '#8B5CF6'],
+  },
+  borderRadius: {
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 24,
+    full: 9999,
+  },
+  shadows: {
+    sm: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    md: {
+      shadowColor: '#A163F7',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    aiFloating: {
+      shadowColor: '#A163F7',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.35,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+  }
+};

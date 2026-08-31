@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Shop, SellerUser } from '../../../../mobile-shared/src/types';
+import { Shop, SellerUser } from '../shared/types';
 import { api } from '../services/api';
 
 interface SellerAuthContextType {
@@ -49,7 +49,6 @@ export const SellerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (storedSeller) setSeller(JSON.parse(storedSeller));
         if (storedShop) setShop(JSON.parse(storedShop));
 
-        // Fetch fresh shop status
         try {
           const res = await api.shops.getMe();
           setShop(res.data);

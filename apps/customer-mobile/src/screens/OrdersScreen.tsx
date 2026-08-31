@@ -9,9 +9,9 @@ import {
   SafeAreaView
 } from 'react-native';
 import { Package, ChevronRight, Clock, CheckCircle, Truck, AlertCircle } from 'lucide-react-native';
-import { Order } from '../../../../mobile-shared/src/types';
-import { Theme } from '../../../../mobile-shared/src/theme';
-import { formatCurrency, formatDate } from '../../../../mobile-shared/src/utils/formatters';
+import { Order } from '../shared/types';
+import { Theme } from '../shared/theme';
+import { formatCurrency, formatDate } from '../shared/formatters';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 

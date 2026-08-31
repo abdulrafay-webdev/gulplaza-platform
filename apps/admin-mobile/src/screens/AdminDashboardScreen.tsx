@@ -21,9 +21,9 @@ import {
   AlertCircle
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { PlatformAnalytics } from '../../../../mobile-shared/src/types';
-import { Theme } from '../../../../mobile-shared/src/theme';
-import { formatCurrency, formatDateTime } from '../../../../mobile-shared/src/utils/formatters';
+import { PlatformAnalytics } from '../shared/types';
+import { Theme } from '../shared/theme';
+import { formatCurrency, formatDateTime } from '../shared/formatters';
 import { api } from '../services/api';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
