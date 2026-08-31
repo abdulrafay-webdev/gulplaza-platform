@@ -18,19 +18,26 @@ import {
   X, 
   ShoppingBag, 
   Store, 
-  ExternalLink, 
   CheckCircle, 
-  Clock, 
   ArrowRight, 
   MessageSquare, 
-  Layers, 
-  Lock,
-  ChevronLeft,
-  Paperclip,
-  Check,
-  ChevronRight,
-  Flame
+  Flame,
+  ChevronDown,
+  Loader2
 } from 'lucide-react';
+
+const capabilities = [
+  { icon: ImageIcon, label: "Visual Search", desc: "Photo se products" },
+  { icon: Sparkles, label: "Style Matching", desc: "Outfit combos" },
+  { icon: Flame, label: "Budget Deals", desc: "Best prices" },
+];
+
+const thinkingStatuses = [
+  "AI Plaza ka catalog scan kar raha hoon...",
+  "Products analyze kar raha hoon...",
+  "Best prices compare kar raha hoon...",
+  "Aapke liye perfect matches chun raha hoon...",
+];
 
 export default function AIAssistantPage() {
     const router = useRouter();
@@ -51,17 +58,69 @@ export default function AIAssistantPage() {
     const [historyOpen, setHistoryOpen] = useState(false);
     const [cartToast, setCartToast] = useState<string | null>(null);
     const [errorBanner, setErrorBanner] = useState<string | null>(null);
+    const [isNearBottom, setIsNearBottom] = useState(true);
+    const [thinkingStep, setThinkingStep] = useState(0);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    const handleScroll = () => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+        setIsNearBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 120);
+    };
+
+    // Auto-scroll when new messages arrive, but never yank the user away
+    // while they are reading older history (unless they just sent a message).
     useEffect(() => {
-        scrollToBottom();
+        const lastMsg = messages[messages.length - 1];
+        if (isNearBottom || lastMsg?.role === 'user' || isThinking) {
+            scrollToBottom();
+        }
     }, [messages, isThinking]);
+
+    // Reset scroll state when switching chats
+    useEffect(() => {
+        setIsNearBottom(true);
+        scrollToBottom();
+    }, [currentChatId]);
+
+    // Rotate the thinking status line while the AI is working
+    useEffect(() => {
+        if (!isThinking) {
+            setThinkingStep(0);
+            return;
+        }
+        const interval = setInterval(() => setThinkingStep(s => s + 1), 2600);
+        return () => clearInterval(interval);
+    }, [isThinking]);
+
+    const formatTime = (ts: string) => {
+        try {
+            return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch {
+            return '';
+        }
+    };
+
+    const formatChatDate = (ts: string) => {
+        try {
+            const d = new Date(ts);
+            const diffDays = Math.floor((Date.now() - d.getTime()) / 86400000);
+            if (diffDays <= 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        } catch {
+            return '';
+        }
+    };
+
+    const displayName = customer?.full_name || user?.firstName || user?.username || 'AI Plaza Customer';
 
     const ensureAuthToken = async () => {
         if (customer) return;
@@ -293,15 +352,18 @@ export default function AIAssistantPage() {
         return (
             <PublicLayout>
                 <div className="min-h-[70vh] flex flex-col items-center justify-center text-center p-6 space-y-4">
-                    <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] flex items-center justify-center text-white mx-auto shadow-lg shadow-purple-500/25">
-                        <Bot className="w-8 h-8 animate-pulse" />
+                    <div className="relative w-16 h-16">
+                        <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] opacity-40 blur-xl" />
+                        <div className="relative w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] flex items-center justify-center text-white mx-auto shadow-lg shadow-purple-500/25 anim-glow-pulse">
+                            <Bot className="w-8 h-8" />
+                        </div>
                     </div>
                     <div className="space-y-1">
                         <h2 className="text-lg font-black text-slate-900">Validating Login Session...</h2>
                         <p className="text-xs text-slate-500">Redirecting to customer login to unlock your personalized AI Shopping Assistant.</p>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-[#A163F7] font-bold">
-                        <Sparkles className="w-4 h-4 animate-spin" /> Diverting to login...
+                        <Loader2 className="w-4 h-4 animate-spin" /> Diverting to login...
                     </div>
                 </div>
             </PublicLayout>
@@ -312,64 +374,95 @@ export default function AIAssistantPage() {
         <PublicLayout>
             {/* Added to Cart Feedback Toast */}
             {cartToast && (
-                <div className="fixed bottom-24 right-4 z-[120] bg-[#161226] text-white px-4 py-3 rounded-2xl shadow-2xl border border-purple-500/30 flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-200">
-                    <div className="w-7 h-7 rounded-full bg-[#45E3FF]/20 text-[#45E3FF] flex items-center justify-center font-bold">
-                        <CheckCircle className="w-4 h-4" />
+                <div className="fixed bottom-24 right-4 z-[120] bg-[#161226] text-white px-4 py-3 rounded-2xl shadow-2xl border border-purple-500/30 flex items-center gap-3 anim-slide-up">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                        <CheckCircle className="w-4.5 h-4.5" />
                     </div>
                     <div>
                         <p className="text-xs font-bold text-white truncate max-w-[200px]">{cartToast}</p>
-                        <p className="text-[10px] text-[#45E3FF] font-semibold">Added to cart successfully!</p>
+                        <p className="text-[10px] text-emerald-400 font-semibold">Added to cart successfully!</p>
                     </div>
                 </div>
             )}
 
-            <div className="max-w-6xl mx-auto w-full h-[calc(100vh-140px)] md:h-[750px] flex rounded-3xl border border-slate-200/80 bg-white shadow-xl overflow-hidden relative">
-                
+            <div className="max-w-6xl mx-auto w-full h-[calc(100dvh-225px)] sm:h-[calc(100dvh-215px)] md:h-[calc(100dvh-175px)] md:min-h-[580px] md:max-h-[820px] flex rounded-[28px] border border-slate-200/80 bg-white shadow-2xl shadow-purple-500/5 overflow-hidden relative">
+
                 {/* 1. CHAT HISTORY SIDEBAR (Desktop & Mobile Drawer) */}
                 <aside className={`
-                    absolute md:relative inset-y-0 left-0 z-30 w-72 bg-slate-50 border-r border-slate-200 flex flex-col justify-between transition-transform duration-300
-                    ${historyOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                    absolute md:relative inset-y-0 left-0 z-30 w-72 bg-[#161226] text-white flex flex-col transition-transform duration-300
+                    ${historyOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'}
                 `}>
-                    <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#A163F7] to-[#45E3FF] flex items-center justify-center text-[#161226] font-black text-xs shadow-xs">
-                                AI
-                            </div>
-                            <span className="text-xs font-black uppercase tracking-wider text-slate-800">Chat History</span>
+                    {/* Brand Header */}
+                    <div className="p-4 flex items-center gap-2.5 border-b border-white/10 flex-shrink-0">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] flex items-center justify-center shadow-lg shadow-purple-500/30 flex-shrink-0">
+                            <Bot className="w-5 h-5 text-[#161226]" />
                         </div>
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-black tracking-tight">AI Plaza</span>
+                                <span className="bg-[#A163F7]/20 text-[#A163F7] border border-[#A163F7]/40 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                    Chat
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 font-medium">Shopping Intelligence</p>
+                        </div>
+                        <button
+                            onClick={() => setHistoryOpen(false)}
+                            className="md:hidden ml-auto p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    {/* New Chat Button */}
+                    <div className="p-3 flex-shrink-0">
                         <button 
                             onClick={handleCreateNewChat}
-                            className="p-1.5 rounded-lg bg-[#A163F7] text-white hover:bg-[#8738F6] transition-colors flex items-center gap-1 text-[11px] font-bold px-2 cursor-pointer"
-                            title="New Chat"
+                            className="w-full bg-gradient-to-r from-[#A163F7] to-[#6F88FC] hover:opacity-95 text-white font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25 transition-all active:scale-[0.98] cursor-pointer"
                         >
-                            <Plus className="w-3.5 h-3.5" /> New
+                            <Plus className="w-4 h-4" /> New Chat
                         </button>
                     </div>
 
                     {/* Chat History List */}
-                    <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+                    <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 px-2 pt-1 pb-2">
+                            Recent Conversations
+                        </p>
+
+                        {loadingChats && (
+                            <div className="space-y-1.5">
+                                {[1, 2, 3, 4].map(i => (
+                                    <div key={i} className="h-14 rounded-xl bg-white/5 anim-shimmer" />
+                                ))}
+                            </div>
+                        )}
+
                         {chats.map(c => (
                             <div 
                                 key={c.id}
                                 onClick={() => loadChatDetail(c.id)}
-                                className={`p-3 rounded-2xl text-xs font-medium flex items-center justify-between gap-2 transition-all cursor-pointer group ${
+                                className={`relative p-3 rounded-xl text-xs flex items-center justify-between gap-2 transition-all cursor-pointer group ${
                                     currentChatId === c.id 
-                                    ? 'bg-white shadow-sm border border-purple-200 text-slate-900 font-bold' 
-                                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                    ? 'bg-white/10' 
+                                    : 'hover:bg-white/5'
                                 }`}
                             >
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                    <MessageSquare className={`w-4 h-4 flex-shrink-0 ${currentChatId === c.id ? 'text-[#A163F7]' : 'text-slate-400'}`} />
-                                    <div className="min-w-0">
-                                        <p className="truncate text-xs">{c.title}</p>
-                                        <p className="text-[10px] text-slate-400 font-normal">
-                                            {new Date(c.updated_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                {currentChatId === c.id && (
+                                    <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-full bg-gradient-to-b from-[#A163F7] to-[#45E3FF]" />
+                                )}
+                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                    <MessageSquare className={`w-4 h-4 flex-shrink-0 ${currentChatId === c.id ? 'text-[#45E3FF]' : 'text-slate-500 group-hover:text-slate-300'} transition-colors`} />
+                                    <div className="min-w-0 flex-1">
+                                        <p className={`truncate text-xs leading-snug ${currentChatId === c.id ? 'text-white font-bold' : 'text-slate-300 font-medium group-hover:text-white'} transition-colors`}>{c.title}</p>
+                                        <p className="text-[10px] text-slate-500 font-normal mt-0.5">
+                                            {formatChatDate(c.updated_at)}
                                         </p>
                                     </div>
                                 </div>
                                 <button 
                                     onClick={(e) => handleDeleteChat(e, c.id)}
-                                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-[#FF7582] transition-opacity"
+                                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-[#FF7582] transition-all flex-shrink-0"
                                     title="Delete Chat"
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -378,14 +471,24 @@ export default function AIAssistantPage() {
                         ))}
 
                         {chats.length === 0 && !loadingChats && (
-                            <div className="p-8 text-center text-slate-400 text-xs">
-                                No previous conversations.
+                            <div className="py-10 px-4 text-center">
+                                <MessageSquare className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                                <p className="text-slate-400 text-xs">No conversations yet.</p>
+                                <p className="text-slate-500 text-[10px] mt-1">Start a new chat to begin!</p>
                             </div>
                         )}
                     </div>
 
-                    <div className="p-3 border-t border-slate-200 bg-white/50 text-[11px] text-slate-500 font-medium text-center">
-                        AI Plaza Shopping Intelligence
+                    {/* Sidebar Footer */}
+                    <div className="p-3 border-t border-white/10 flex items-center gap-2.5 flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#A163F7] to-[#45E3FF] flex items-center justify-center text-[#161226] font-black text-xs flex-shrink-0">
+                            {displayName?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-bold truncate">{displayName}</p>
+                            <p className="text-[9px] text-slate-400">Verified Customer</p>
+                        </div>
+                        <Sparkles className="w-3.5 h-3.5 text-[#45E3FF] flex-shrink-0" />
                     </div>
                 </aside>
 
@@ -393,78 +496,103 @@ export default function AIAssistantPage() {
                 {historyOpen && (
                     <div 
                         onClick={() => setHistoryOpen(false)}
-                        className="md:hidden fixed inset-0 bg-[#161226]/40 backdrop-blur-xs z-20"
+                        className="md:hidden fixed inset-0 bg-[#161226]/60 backdrop-blur-sm z-20 anim-fade-in"
                     ></div>
                 )}
 
                 {/* 2. MAIN CHAT AREA */}
-                <section className="flex-1 flex flex-col min-w-0 bg-[#FAFAFE]">
+                <section className="flex-1 flex flex-col min-w-0 bg-[#FAFAFE] relative">
                     {/* Chat Header */}
-                    <header className="p-3.5 sm:p-4 bg-white border-b border-slate-200 flex items-center justify-between flex-shrink-0 shadow-xs">
-                        <div className="flex items-center gap-3">
+                    <header className="px-3.5 sm:px-4 py-3 bg-white/90 backdrop-blur-sm border-b border-slate-200/80 flex items-center justify-between flex-shrink-0">
+                        <div className="flex items-center gap-3 min-w-0">
                             <button 
                                 onClick={() => setHistoryOpen(true)}
-                                className="md:hidden p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+                                className="md:hidden p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors flex-shrink-0"
                             >
                                 <MessageSquare className="w-4 h-4 text-[#A163F7]" />
                             </button>
                             
-                            <div className="flex items-center gap-2.5">
-                                <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] flex items-center justify-center text-white shadow-md shadow-purple-500/20">
+                            <div className="relative flex-shrink-0">
+                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] flex items-center justify-center text-white shadow-md shadow-purple-500/25">
                                     <Bot className="w-5 h-5" />
                                 </div>
-                                <div>
-                                    <h2 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
-                                        AI Shopping Assistant
-                                        <span className="bg-emerald-100 text-emerald-800 text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase">
-                                            Online
-                                        </span>
-                                    </h2>
-                                    <p className="text-[10px] text-slate-400 font-medium">Bilingual Urdu/English • Multi-vendor Catalog</p>
-                                </div>
+                                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full ring-2 ring-white" />
+                            </div>
+                            <div className="min-w-0">
+                                <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                                    AI Shopping Assistant
+                                    <span className="bg-gradient-to-r from-[#A163F7] to-[#6F88FC] text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+                                        Beta
+                                    </span>
+                                </h2>
+                                <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1.5 truncate">
+                                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse flex-shrink-0" /> 
+                                    Online • Roman Urdu & English
+                                </p>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <button 
-                                onClick={handleCreateNewChat}
-                                className="hidden sm:flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                            >
-                                <Plus className="w-3.5 h-3.5" /> New Chat
-                            </button>
-                        </div>
+                        <button 
+                            onClick={handleCreateNewChat}
+                            className="hidden sm:flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex-shrink-0"
+                        >
+                            <Plus className="w-3.5 h-3.5" /> New Chat
+                        </button>
                     </header>
 
                     {/* Messages Scrollable Container */}
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-                        {/* Empty State */}
+                    <div 
+                        ref={scrollContainerRef}
+                        onScroll={handleScroll}
+                        className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 chat-scroll bg-gradient-to-b from-[#FAFAFE] to-[#F6F3FD]"
+                    >
+                        {/* Empty State Hero */}
                         {messages.length === 0 && (
-                            <div className="max-w-xl mx-auto py-8 text-center space-y-6 animate-in fade-in duration-300">
-                                <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] flex items-center justify-center text-white mx-auto shadow-xl shadow-purple-500/30">
-                                    <Bot className="w-8 h-8" />
+                            <div className="max-w-2xl mx-auto py-4 sm:py-8 text-center space-y-7 anim-fade-in">
+                                <div className="relative w-20 h-20 mx-auto">
+                                    <div className="absolute inset-0 rounded-[26px] bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] opacity-30 blur-xl" />
+                                    <div className="relative w-20 h-20 rounded-[26px] bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] flex items-center justify-center text-white shadow-xl shadow-purple-500/30 anim-glow-pulse">
+                                        <Bot className="w-10 h-10" />
+                                    </div>
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-black text-slate-900 mb-1">
-                                        Assalam-o-Alaikum! How can I help you shop today?
+                                    <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-2">
+                                        Assalam-o-Alaikum! <span className="gradient-text">Kya dhoond rahe hain?</span>
                                     </h3>
-                                    <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                                        Ask me for outfit matching, budget electronics, home appliances, or upload a picture to find matching and similar marketplace products.
+                                    <p className="text-[13px] text-slate-500 max-w-md mx-auto leading-relaxed">
+                                        Main AI Plaza ka personal shopping assistant hoon. Outfit matching, budget deals ya photo search — bataiye kya chahiye.
                                     </p>
                                 </div>
 
-                                <div className="space-y-2 text-left">
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block px-1">
-                                        Try these quick shopping prompts:
+                                {/* Capability Cards */}
+                                <div className="grid grid-cols-3 gap-2.5 max-w-lg mx-auto">
+                                    {capabilities.map(cap => (
+                                        <div key={cap.label} className="bg-white border border-slate-200/80 rounded-2xl p-3 flex flex-col items-center gap-1.5 shadow-sm hover:border-[#A163F7]/40 hover:shadow-md hover:shadow-purple-500/5 transition-all">
+                                            <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#A163F7] flex items-center justify-center">
+                                                <cap.icon className="w-4.5 h-4.5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] sm:text-[11px] font-black text-slate-800 leading-tight">{cap.label}</p>
+                                                <p className="text-[9px] text-slate-400">{cap.desc}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Suggested Prompts */}
+                                <div className="space-y-2.5 text-left max-w-xl mx-auto">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5 justify-center">
+                                        <Sparkles className="w-3 h-3 text-[#A163F7]" /> Try these prompts
                                     </span>
-                                    <div className="grid grid-cols-1 gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                         {sampleSuggestions.map((prompt, idx) => (
                                             <button
                                                 key={idx}
                                                 onClick={() => handleSendMessage(prompt)}
-                                                className="w-full text-left p-3 rounded-2xl bg-white border border-slate-200/80 hover:border-[#A163F7] hover:bg-purple-50/40 text-xs font-bold text-slate-700 transition-all flex items-center justify-between group shadow-xs cursor-pointer"
+                                                className={`w-full text-left p-3.5 rounded-2xl bg-white border border-slate-200/80 hover:border-[#A163F7] hover:bg-purple-50/30 hover:shadow-md hover:shadow-purple-500/5 text-xs font-bold text-slate-700 transition-all flex items-center justify-between gap-2 group shadow-sm cursor-pointer active:scale-[0.99] ${idx === sampleSuggestions.length - 1 ? 'sm:col-span-2' : ''}`}
                                             >
-                                                <span>"{prompt}"</span>
-                                                <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#A163F7] group-hover:translate-x-0.5 transition-all" />
+                                                <span className="leading-snug">"{prompt}"</span>
+                                                <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#A163F7] group-hover:translate-x-0.5 transition-all flex-shrink-0" />
                                             </button>
                                         ))}
                                     </div>
@@ -476,16 +604,16 @@ export default function AIAssistantPage() {
                         {messages.map((msg, idx) => (
                             <div 
                                 key={msg.id || idx} 
-                                className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-in fade-in duration-200`}
+                                className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} anim-msg-in`}
                             >
-                                <div className="flex items-start gap-2.5 max-w-[90%] sm:max-w-[80%]">
+                                <div className="flex items-start gap-2.5 max-w-[92%] sm:max-w-[82%]">
                                     {msg.role === 'assistant' && (
-                                        <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-[#A163F7] to-[#45E3FF] flex items-center justify-center text-white flex-shrink-0 mt-1 shadow-xs">
+                                        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#A163F7] to-[#45E3FF] flex items-center justify-center text-white flex-shrink-0 mt-1 shadow-sm">
                                             <Bot className="w-4 h-4" />
                                         </div>
                                     )}
 
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 min-w-0">
                                         {/* User Image Attachment */}
                                         {msg.image_url && (
                                             <div className="rounded-2xl overflow-hidden border border-slate-200 max-w-xs shadow-sm bg-slate-100">
@@ -495,77 +623,96 @@ export default function AIAssistantPage() {
 
                                         {/* Message Text Bubble */}
                                         {msg.content && (
-                                            <div className={`p-4 rounded-3xl text-xs sm:text-sm leading-relaxed ${
+                                            <div className={`px-4 py-3 rounded-3xl text-[13px] sm:text-sm leading-relaxed ${
                                                 msg.role === 'user'
-                                                ? 'bg-gradient-to-r from-[#A163F7] to-[#6F88FC] text-white rounded-br-xs shadow-md shadow-purple-500/20 font-medium'
-                                                : 'bg-white border border-slate-200 text-slate-800 rounded-bl-xs shadow-sm font-medium'
+                                                ? 'bg-gradient-to-br from-[#A163F7] to-[#6F88FC] text-white rounded-br-lg shadow-md shadow-purple-500/20 font-medium'
+                                                : 'bg-white border border-slate-200/90 text-slate-800 rounded-bl-lg shadow-sm'
                                             }`}>
                                                 <p className="whitespace-pre-line">{msg.content}</p>
                                             </div>
                                         )}
 
+                                        {/* Timestamp */}
+                                        {msg.created_at && (
+                                            <p className={`text-[9px] font-semibold ${msg.role === 'user' ? 'text-slate-400 text-right' : 'text-slate-400'} px-1`}>
+                                                {formatTime(msg.created_at)}
+                                            </p>
+                                        )}
+
                                         {/* Product Recommendation Cards Grid */}
                                         {msg.products && msg.products.length > 0 && (
-                                            <div className="pt-2 space-y-2">
-                                                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[#A163F7]">
-                                                    <Sparkles className="w-3 h-3" /> Recommended Marketplace Products ({msg.products.length})
+                                            <div className="pt-1.5 space-y-2.5">
+                                                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[#A163F7] px-1">
+                                                    <Sparkles className="w-3 h-3" /> Recommended for you ({msg.products.length})
                                                 </div>
 
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                     {msg.products.map((prod: any) => (
                                                         <div 
                                                             key={prod.id} 
-                                                            className="bg-white p-3 rounded-2xl border border-slate-200/90 shadow-sm hover:border-[#A163F7] hover:shadow-md transition-all flex flex-col justify-between group"
+                                                            className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-sm hover:shadow-lg hover:shadow-purple-500/10 hover:border-[#A163F7]/40 hover:-translate-y-0.5 transition-all duration-200 flex flex-col group"
                                                         >
-                                                            <Link href={`/products/${prod.id}`} className="block">
-                                                                <div className="flex gap-3 items-center mb-2">
-                                                                    <div className="w-16 h-16 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 flex-shrink-0 flex items-center justify-center">
-                                                                        {prod.image_url ? (
-                                                                            <img src={prod.image_url} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                                                                        ) : (
-                                                                            <ShoppingBag className="w-6 h-6 text-slate-400" />
-                                                                        )}
+                                                            <Link href={`/products/${prod.id}`} className="block relative aspect-[4/3] bg-slate-100 overflow-hidden">
+                                                                {prod.image_url ? (
+                                                                    <img src={prod.image_url} alt={prod.name} className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-300" />
+                                                                ) : (
+                                                                    <div className="w-full h-full flex items-center justify-center">
+                                                                        <ShoppingBag className="w-8 h-8 text-slate-300" />
                                                                     </div>
-                                                                    <div className="min-w-0 flex-1">
-                                                                        <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1 truncate">
-                                                                            <Store className="w-2.5 h-2.5 text-[#6F88FC]" /> {prod.shop_name}
-                                                                        </span>
-                                                                        <h4 className="font-bold text-xs text-slate-900 truncate group-hover:text-[#A163F7] transition-colors mt-0.5">
-                                                                            {prod.name}
-                                                                        </h4>
-                                                                        <div className="flex items-baseline gap-1 mt-1">
-                                                                            <span className="text-[10px] font-bold text-slate-400">Rs.</span>
-                                                                            <span className="text-xs sm:text-sm font-black text-slate-950">
-                                                                                {typeof prod.price === 'number' ? prod.price.toLocaleString() : '—'}
-                                                                            </span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
+                                                                )}
+                                                                <span className="absolute top-2 left-2 bg-[#161226]/70 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-1 rounded-full flex items-center gap-1 max-w-[75%]">
+                                                                    <Store className="w-2.5 h-2.5 text-[#45E3FF] flex-shrink-0" /> 
+                                                                    <span className="truncate">{prod.shop_name}</span>
+                                                                </span>
+                                                                {typeof prod.stock_quantity === 'number' && prod.stock_quantity > 0 && (
+                                                                    <span className="absolute top-2 right-2 bg-emerald-500/90 backdrop-blur-sm text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+                                                                        In Stock
+                                                                    </span>
+                                                                )}
                                                             </Link>
 
-                                                            <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-100">
-                                                                <button 
-                                                                    onClick={() => {
-                                                                        addToCart({
-                                                                            product_id: prod.id,
-                                                                            name: prod.name,
-                                                                            price: prod.price ?? 0,
-                                                                            quantity: 1,
-                                                                            shop_id: prod.shop_id,
-                                                                            image_url: prod.image_url
-                                                                        });
-                                                                        triggerCartToast(prod.name);
-                                                                    }}
-                                                                    className="bg-slate-100 hover:bg-slate-200 text-slate-800 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
-                                                                >
-                                                                    <ShoppingBag className="w-3 h-3 text-[#A163F7]" /> Add Cart
-                                                                </button>
-                                                                <Link 
-                                                                    href={`/products/${prod.id}`}
-                                                                    className="bg-gradient-to-r from-[#A163F7] to-[#6F88FC] text-white py-1.5 rounded-xl text-[10px] font-black text-center transition-opacity hover:opacity-95 shadow-xs flex items-center justify-center gap-1"
-                                                                >
-                                                                    View Details
+                                                            <div className="p-3 flex flex-col gap-1.5 flex-1">
+                                                                <Link href={`/products/${prod.id}`}>
+                                                                    <h4 className="text-xs font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-[#A163F7] transition-colors">
+                                                                        {prod.name}
+                                                                    </h4>
                                                                 </Link>
+                                                                {prod.short_description && (
+                                                                    <p className="text-[10px] text-slate-400 line-clamp-1 leading-snug">
+                                                                        {prod.short_description}
+                                                                    </p>
+                                                                )}
+                                                                <div className="flex items-baseline gap-1 mt-auto pt-0.5">
+                                                                    <span className="text-[10px] font-bold text-slate-400">Rs.</span>
+                                                                    <span className="text-sm font-black text-slate-950">
+                                                                        {typeof prod.price === 'number' ? prod.price.toLocaleString() : '—'}
+                                                                    </span>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-2 gap-1.5 pt-1.5 mt-0.5 border-t border-slate-100">
+                                                                    <button 
+                                                                        onClick={() => {
+                                                                            addToCart({
+                                                                                product_id: prod.id,
+                                                                                name: prod.name,
+                                                                                price: prod.price ?? 0,
+                                                                                quantity: 1,
+                                                                                shop_id: prod.shop_id,
+                                                                                image_url: prod.image_url
+                                                                            });
+                                                                            triggerCartToast(prod.name);
+                                                                        }}
+                                                                        className="bg-slate-100 hover:bg-slate-200 text-slate-800 py-2 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                                                                    >
+                                                                        <ShoppingBag className="w-3 h-3 text-[#A163F7]" /> Add Cart
+                                                                    </button>
+                                                                    <Link 
+                                                                        href={`/products/${prod.id}`}
+                                                                        className="bg-gradient-to-r from-[#A163F7] to-[#6F88FC] text-white py-2 rounded-xl text-[10px] font-black text-center transition-all hover:opacity-95 shadow-sm flex items-center justify-center gap-1 active:scale-95"
+                                                                    >
+                                                                        View Details
+                                                                    </Link>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -579,16 +726,19 @@ export default function AIAssistantPage() {
 
                         {/* Thinking / Searching Indicator */}
                         {isThinking && (
-                            <div className="flex items-center gap-3 animate-in fade-in">
-                                <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-[#A163F7] to-[#45E3FF] flex items-center justify-center text-white flex-shrink-0 shadow-xs">
-                                    <Bot className="w-4 h-4 animate-spin" />
+                            <div className="flex items-start gap-2.5 anim-msg-in">
+                                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#A163F7] to-[#45E3FF] flex items-center justify-center text-white flex-shrink-0 shadow-sm">
+                                    <Bot className="w-4 h-4" />
                                 </div>
-                                <div className="bg-white border border-purple-200 px-4 py-3 rounded-3xl shadow-sm text-xs font-bold text-slate-600 flex items-center gap-2">
-                                    <span className="flex h-2 w-2 relative">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#A163F7] opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#A163F7]"></span>
+                                <div className="bg-white border border-purple-200/70 px-4 py-3.5 rounded-3xl rounded-bl-lg shadow-sm flex items-center gap-3">
+                                    <div className="flex items-center gap-1">
+                                        <span className="typing-dot w-1.5 h-1.5 rounded-full bg-[#A163F7] inline-block" />
+                                        <span className="typing-dot w-1.5 h-1.5 rounded-full bg-[#6F88FC] inline-block" />
+                                        <span className="typing-dot w-1.5 h-1.5 rounded-full bg-[#45E3FF] inline-block" />
+                                    </div>
+                                    <span className="text-xs font-semibold text-slate-600">
+                                        {thinkingStatuses[thinkingStep % thinkingStatuses.length]}
                                     </span>
-                                    <span>Searching marketplace products and analyzing matching styles...</span>
                                 </div>
                             </div>
                         )}
@@ -596,30 +746,48 @@ export default function AIAssistantPage() {
                         <div ref={messagesEndRef} />
                     </div>
 
+                    {/* Scroll to Bottom Button */}
+                    {!isNearBottom && (
+                        <button
+                            onClick={scrollToBottom}
+                            className="absolute bottom-28 right-4 md:right-6 z-10 w-9 h-9 rounded-full bg-white border border-slate-200 shadow-lg shadow-slate-900/10 flex items-center justify-center text-slate-600 hover:text-[#A163F7] hover:border-[#A163F7]/50 hover:shadow-purple-500/20 transition-all anim-fade-in cursor-pointer"
+                            title="Scroll to latest"
+                        >
+                            <ChevronDown className="w-4 h-4" />
+                        </button>
+                    )}
+
                     {/* Image Attachment Preview Bar */}
                     {imagePreviewUrl && (
-                        <div className="px-4 py-2 bg-purple-50/80 border-t border-purple-200 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-xl overflow-hidden border border-purple-300 bg-white flex-shrink-0">
+                        <div className="px-4 py-2.5 bg-purple-50/80 border-t border-purple-200/80 flex items-center justify-between anim-fade-in">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-12 h-12 rounded-xl overflow-hidden border border-purple-300 bg-white flex-shrink-0 shadow-sm">
                                     <img src={imagePreviewUrl} alt="Preview" className="w-full h-full object-cover" />
                                 </div>
-                                <div>
-                                    <span className="text-xs font-bold text-slate-800">Image Attached</span>
-                                    <p className="text-[10px] text-slate-400">Gemini Vision will analyze colors, styles & matching items</p>
+                                <div className="min-w-0">
+                                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                        Image Attached
+                                        {isUploadingImage && <Loader2 className="w-3 h-3 animate-spin text-[#A163F7]" />}
+                                    </span>
+                                    <p className="text-[10px] text-slate-400 truncate">
+                                        {isUploadingImage ? "Uploading image..." : "Vision search: colors, styles & matching items"}
+                                    </p>
                                 </div>
                             </div>
-                            <button 
-                                onClick={handleRemoveImage}
-                                className="p-1.5 rounded-full hover:bg-purple-200 text-slate-500 hover:text-slate-900 transition-colors"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
+                            {!isUploadingImage && (
+                                <button 
+                                    onClick={handleRemoveImage}
+                                    className="p-1.5 rounded-full hover:bg-purple-200 text-slate-500 hover:text-slate-900 transition-colors flex-shrink-0"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     )}
 
                     {/* Error Banner */}
                     {errorBanner && (
-                        <div className="px-4 py-2.5 bg-red-50 border-t border-red-200 flex items-center justify-between gap-2">
+                        <div className="px-4 py-2.5 bg-red-50 border-t border-red-200 flex items-center justify-between gap-2 anim-fade-in">
                             <p className="text-xs font-medium text-red-700 flex-1">{errorBanner}</p>
                             <button
                                 onClick={() => setErrorBanner(null)}
@@ -631,13 +799,13 @@ export default function AIAssistantPage() {
                     )}
 
                     {/* Chat Input Bar */}
-                    <div className="p-3 sm:p-4 bg-white border-t border-slate-200 flex-shrink-0">
+                    <div className="p-3 sm:p-4 bg-white border-t border-slate-200/80 flex-shrink-0">
                         <form 
                             onSubmit={(e) => {
                                 e.preventDefault();
                                 handleSendMessage();
                             }}
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-1.5 bg-slate-100/80 rounded-[26px] pl-1.5 pr-1.5 py-1.5 border border-transparent focus-within:bg-white focus-within:border-[#A163F7]/40 focus-within:ring-4 focus-within:ring-[#A163F7]/10 transition-all"
                         >
                             {/* Hidden File Input */}
                             <input 
@@ -652,11 +820,12 @@ export default function AIAssistantPage() {
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className={`p-2.5 rounded-2xl border transition-all cursor-pointer ${
+                                disabled={isThinking}
+                                className={`p-2.5 rounded-full transition-all cursor-pointer flex-shrink-0 ${
                                     imagePreviewUrl 
-                                    ? 'bg-purple-100 border-[#A163F7] text-[#A163F7]' 
-                                    : 'border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800'
-                                }`}
+                                    ? 'bg-[#A163F7]/15 text-[#A163F7]' 
+                                    : 'text-slate-400 hover:bg-slate-200/70 hover:text-[#A163F7]'
+                                } disabled:opacity-40 disabled:cursor-not-allowed`}
                                 title="Attach Image for Visual Search"
                             >
                                 <ImageIcon className="w-5 h-5" />
@@ -667,21 +836,30 @@ export default function AIAssistantPage() {
                                 type="text"
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
-                                placeholder="Ask for matching clothes, shoes, appliances, or budget items..."
+                                placeholder="Ask for products, styles, or budget deals..."
                                 disabled={isThinking}
-                                className="flex-1 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs sm:text-sm bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#A163F7]"
+                                className="flex-1 px-2 py-2 bg-transparent text-[13px] sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none min-w-0 disabled:opacity-60"
                             />
 
                             {/* Send Button */}
                             <button
                                 type="submit"
                                 disabled={(!inputText.trim() && !selectedImageFile) || isThinking}
-                                className="p-2.5 sm:px-5 sm:py-2.5 bg-gradient-to-r from-[#A163F7] to-[#6F88FC] hover:opacity-95 text-white rounded-2xl font-black text-xs shadow-md shadow-purple-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                className="p-2.5 sm:px-4 bg-gradient-to-r from-[#A163F7] to-[#6F88FC] hover:opacity-95 text-white rounded-full sm:rounded-2xl font-black text-xs shadow-md shadow-purple-500/25 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-1.5 cursor-pointer active:scale-95 flex-shrink-0"
                             >
-                                <Send className="w-4 h-4" />
-                                <span className="hidden sm:inline">Send</span>
+                                {isThinking ? (
+                                    <Loader2 className="w-4.5 h-4.5 animate-spin" />
+                                ) : (
+                                    <>
+                                        <Send className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Send</span>
+                                    </>
+                                )}
                             </button>
                         </form>
+                        <p className="text-center text-[10px] text-slate-400 mt-2 px-4">
+                            AI Assistant ghalat ho sakta hai — prices & availability product page par confirm karein.
+                        </p>
                     </div>
                 </section>
             </div>
