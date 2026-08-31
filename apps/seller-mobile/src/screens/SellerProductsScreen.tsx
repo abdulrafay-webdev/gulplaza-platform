@@ -23,6 +23,7 @@ export default function SellerProductsScreen({ navigation }: any) {
   const { shop } = useSellerAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -30,6 +31,15 @@ export default function SellerProductsScreen({ navigation }: any) {
       loadProducts();
     }
   }, [shop]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (shop) {
+        loadProducts();
+      }
+    });
+    return unsubscribe;
+  }, [navigation, shop]);
 
   const loadProducts = async () => {
     if (!shop) return;
@@ -41,7 +51,13 @@ export default function SellerProductsScreen({ navigation }: any) {
       console.error('Failed to load products:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadProducts();
   };
 
   const handleDelete = (productId: number) => {
@@ -99,19 +115,27 @@ export default function SellerProductsScreen({ navigation }: any) {
         />
       </View>
 
-      {loading ? (
+      {loading && !refreshing ? (
         <ActivityIndicator size="large" color={Theme.colors.primaryPurple} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
           renderItem={({ item }) => {
-            const thumb = item.image_url || (item.images && item.images[0]?.url) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80';
+            const thumb = item.image_url || (item.images && item.images[0]?.url) || null;
             const isLowStock = item.stock_quantity <= 3;
             return (
               <View style={styles.productCard}>
-                <Image source={{ uri: thumb }} style={styles.productThumb} />
+                {thumb ? (
+                  <Image source={{ uri: thumb }} style={styles.productThumb} resizeMode="cover" />
+                ) : (
+                  <View style={[styles.productThumb, styles.noThumb]}>
+                    <Package color="#94A3B8" size={24} />
+                  </View>
+                )}
                 <View style={styles.productInfo}>
                   <Text style={styles.productTitle} numberOfLines={2}>{item.name}</Text>
                   <Text style={styles.productPrice}>{formatCurrency(item.price)}</Text>
@@ -234,6 +258,10 @@ const styles = StyleSheet.create({
     height: 68,
     borderRadius: 12,
     backgroundColor: '#F1F5F9',
+  },
+  noThumb: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   productInfo: {
     flex: 1,

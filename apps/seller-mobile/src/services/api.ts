@@ -115,6 +115,12 @@ export class APIClient {
 
     delete: (id: number | string) =>
       this.instance.delete<{ message: string }>(`/products/${id}`),
+
+    uploadImage: (formData: any) =>
+      this.instance.post<{ url: string }>('/products/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 45000,
+      }),
   };
 
   shops = {

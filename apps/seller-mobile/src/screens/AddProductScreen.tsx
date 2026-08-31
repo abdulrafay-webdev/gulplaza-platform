@@ -39,6 +39,7 @@ export default function AddProductScreen({ navigation }: any) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCatId, setSelectedCatId] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedBase64, setSelectedBase64] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
@@ -65,11 +66,15 @@ export default function AddProductScreen({ navigation }: any) {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.7,
+        quality: 0.8,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
         setSelectedImage(result.assets[0].uri);
+        if (result.assets[0].base64) {
+          setSelectedBase64(`data:image/jpeg;base64,${result.assets[0].base64}`);
+        }
       }
     } catch (err) {
       console.error('Image picker error:', err);
@@ -119,11 +124,31 @@ export default function AddProductScreen({ navigation }: any) {
 
       if (selectedImage) {
         try {
-          const uploadRes = await api.ai.uploadImage(selectedImage);
-          uploadedUrl = uploadRes.data.url;
+          const formData = new FormData();
+          const filename = selectedImage.split('/').pop() || 'product_image.jpg';
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+          formData.append('file', {
+            uri: selectedImage,
+            name: filename,
+            type: type,
+          } as any);
+
+          const uploadRes = await api.products.uploadImage(formData);
+          if (uploadRes.data && uploadRes.data.url) {
+            uploadedUrl = uploadRes.data.url;
+          }
         } catch (imgErr) {
-          console.warn('Image upload failed, creating without image:', imgErr);
+          console.warn('Image upload fallback to data URI:', imgErr);
+          if (selectedBase64) {
+            uploadedUrl = selectedBase64;
+          }
         }
+      }
+
+      if (!uploadedUrl && selectedBase64) {
+        uploadedUrl = selectedBase64;
       }
 
       const targetShopId = shop?.id || 1;
