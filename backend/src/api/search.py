@@ -3,6 +3,7 @@ from sqlmodel import Session
 from typing import List, Dict, Any
 from src.db.session import get_session
 from src.services import shop_service, product_service
+from src.services.ai_shopping_service import record_customer_demand
 from src.models.shop import Shop
 from src.models.product import ProductRead
 
@@ -15,11 +16,18 @@ def unified_search(
 ):
     """
     Search for shops and products simultaneously.
-    Returns aggregated results.
+    Returns aggregated results and records customer demand.
     """
     shops = shop_service.search_shops(session, q, limit=5)
     products = product_service.search_products(session, q, limit=10)
     
+    if len(q.strip()) >= 3:
+        record_customer_demand(
+            session=session,
+            query_text=q.strip(),
+            had_direct_match=bool(products or shops)
+        )
+
     return {
         "shops": shops,
         "products": products

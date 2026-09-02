@@ -169,7 +169,7 @@ export default function SellerDashboardScreen({ navigation }: any) {
             <Text style={styles.sectionTitle}>Shopper AI Demand Insights</Text>
           </View>
           <Text style={styles.sectionSubtitle}>
-            Live high-demand product queries searched by Gul Plaza customers via the AI Assistant:
+            Live high-demand product queries searched by AI Plaza shoppers via the AI Assistant:
           </Text>
 
           <View style={styles.demandList}>
