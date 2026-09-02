@@ -108,7 +108,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 href={customer || seller ? "/ai" : "/login?redirect=/ai"}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${pathname.startsWith('/ai') ? 'bg-gradient-to-r from-[#A163F7] to-[#6F88FC] text-white shadow-md shadow-purple-500/30 font-black' : 'bg-[#A163F7]/15 hover:bg-[#A163F7]/30 text-[#45E3FF] border border-[#A163F7]/40'}`}
               >
-                <Bot className="w-4 h-4 text-[#45E3FF] animate-pulse" />
+                <img src="/images/robot.png" alt="AI Advisor" className="w-4 h-4 object-contain" />
                 <span>AI Assistant</span>
                 <span className="bg-[#45E3FF] text-[#161226] text-[8px] font-black px-1 rounded-sm">NEW</span>
               </Link>
@@ -360,8 +360,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             className="flex flex-col items-center -mt-5 group"
           >
             <div className="relative p-0.5 sm:p-1 rounded-full bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] shadow-lg shadow-purple-500/40 group-hover:scale-110 group-active:scale-95 transition-all duration-300">
-              <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center ${pathname === '/ai' ? 'bg-gradient-to-tr from-[#A163F7] to-[#6F88FC] text-white' : 'bg-[#161226] text-[#45E3FF]'}`}>
-                <Bot className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
+              <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center p-1.5 ${pathname === '/ai' ? 'bg-gradient-to-tr from-[#A163F7] to-[#6F88FC]' : 'bg-[#161226]'}`}>
+                <img src="/images/robot.png" alt="AI Chat" className="w-full h-full object-contain" />
               </div>
               <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#45E3FF] opacity-75"></span>

@@ -20,7 +20,10 @@ import {
   Layers,
   Star,
   MessageSquare,
-  Quote
+  Quote,
+  Bot,
+  Camera,
+  Zap
 } from 'lucide-react';
 
 export default function Home() {
@@ -144,58 +147,156 @@ export default function Home() {
                 </section>
             )}
 
-            {/* 2. Compact Modern Hero Banner - Smaller height on mobile */}
-            <section className="relative rounded-2xl sm:rounded-3xl overflow-hidden mb-6 sm:mb-8 shadow-xl bg-gradient-to-br from-[#161226] via-[#211A38] to-[#120F20] text-white border border-purple-900/40 w-full max-w-full">
-                <div className="absolute inset-0 bg-[radial-gradient(#A163F7_1px,transparent_1px)] [background-size:16px_16px] opacity-15"></div>
-                <div className="absolute top-0 right-0 w-80 sm:w-96 h-80 sm:h-96 bg-[#6F88FC]/15 rounded-full blur-3xl pointer-events-none"></div>
-                <div className="absolute bottom-0 left-0 w-64 sm:w-80 h-64 sm:h-80 bg-[#A163F7]/15 rounded-full blur-3xl pointer-events-none"></div>
+            {/* 2. Futuristic AI Hero Banner - Brand Story & Vision */}
+            <section className="relative rounded-3xl overflow-hidden mb-8 sm:mb-12 shadow-2xl bg-gradient-to-br from-[#120D22] via-[#1B1438] to-[#0A0714] text-white border border-purple-500/25 w-full max-w-full">
+                {/* Ambient lighting & cyber grid background */}
+                <div className="absolute inset-0 bg-[radial-gradient(#A163F7_1px,transparent_1px)] [background-size:20px_20px] opacity-15 pointer-events-none" />
+                <div className="absolute top-0 right-10 w-96 h-96 bg-[#45E3FF]/15 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-10 left-10 w-96 h-96 bg-[#A163F7]/20 rounded-full blur-3xl pointer-events-none" />
 
-                <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 md:py-14 text-center">
-                    <div className="inline-flex items-center gap-1.5 bg-[#A163F7]/15 border border-[#A163F7]/40 text-[#45E3FF] px-2.5 sm:px-3.5 py-1 rounded-full text-[10px] sm:text-xs font-black mb-2.5 sm:mb-4 shadow-sm">
-                        <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#45E3FF]" /> Smart AI-Powered Multi-Shop Marketplace
-                    </div>
+                <div className="relative max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-12 md:py-16">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                        
+                        {/* Left Column: Brand Vision & Conversational AI Entry */}
+                        <div className="lg:col-span-7 text-left space-y-5">
+                            {/* Vision Tagline */}
+                            <div className="inline-flex items-center gap-2 bg-[#A163F7]/20 border border-[#A163F7]/40 text-[#45E3FF] px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-sm">
+                                <Sparkles className="w-3.5 h-3.5 text-[#45E3FF]" />
+                                Instead of searching, simply tell AI what you need
+                            </div>
 
-                    <h1 className="text-xl sm:text-3xl md:text-5xl font-black mb-2 sm:mb-3.5 tracking-tight leading-tight">
-                        Welcome to <span className="bg-gradient-to-r from-[#A163F7] via-[#6F88FC] to-[#45E3FF] bg-clip-text text-transparent">AI Plaza</span>
-                    </h1>
+                            {/* Main Headline */}
+                            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-white">
+                                Shop Smarter with <br className="hidden sm:inline" />
+                                <span className="bg-gradient-to-r from-[#A163F7] via-[#6F88FC] to-[#45E3FF] bg-clip-text text-transparent">
+                                    Generative AI
+                                </span>
+                            </h1>
 
-                    <p className="text-[11px] sm:text-sm md:text-base text-slate-300 mb-4 sm:mb-6 max-w-2xl mx-auto font-medium leading-relaxed line-clamp-2 sm:line-clamp-none">
-                        Shop directly from verified specialty stores. Add items from multiple shops into one cart with Cash on Delivery.
-                    </p>
+                            {/* Story Subtitle */}
+                            <p className="text-xs sm:text-sm md:text-base text-slate-300 font-medium leading-relaxed max-w-xl">
+                                Welcome to Pakistan’s premier AI-powered digital commerce marketplace. Ask our conversational advisor in Roman Urdu or English, snap or upload photos for visual product matching, and enjoy verified Gul Plaza wholesale deals delivered nationwide with Cash on Delivery.
+                            </p>
 
-                    <div className="flex flex-wrap justify-center gap-2 sm:gap-3.5">
-                        <Link 
-                            href="#latest-products" 
-                            className="bg-gradient-to-r from-[#A163F7] to-[#6F88FC] hover:opacity-95 text-white px-4 sm:px-7 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-black text-[11px] sm:text-sm shadow-md shadow-purple-500/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5"
-                        >
-                            <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#45E3FF]" /> Start Shopping
-                        </Link>
-                        <Link 
-                            href="/shops" 
-                            className="bg-white/10 hover:bg-white/15 text-white border border-white/20 px-4 sm:px-7 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-bold text-[11px] sm:text-sm backdrop-blur-sm transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5"
-                        >
-                            <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#45E3FF]" /> Browse Stores
-                        </Link>
+                            {/* Action Buttons */}
+                            <div className="flex flex-wrap items-center gap-3 pt-2">
+                                <Link 
+                                    href="/ai" 
+                                    className="bg-gradient-to-r from-[#A163F7] via-[#6F88FC] to-[#45E3FF] hover:opacity-95 text-white font-black text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-xl shadow-purple-500/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                                >
+                                    <img src="/images/robot.png" alt="AI Advisor" className="w-5 h-5 object-contain" />
+                                    <span>Talk to AI Assistant</span>
+                                    <ArrowRight className="w-4 h-4 text-[#161226]" />
+                                </Link>
+
+                                <Link 
+                                    href="/shops" 
+                                    className="bg-white/10 hover:bg-white/15 text-white border border-white/20 font-bold text-xs sm:text-sm px-5 py-3.5 rounded-2xl backdrop-blur-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                                >
+                                    <Store className="w-4 h-4 text-[#45E3FF]" />
+                                    <span>Explore Gul Plaza Shops</span>
+                                </Link>
+                            </div>
+
+                            {/* Quick AI Prompts Paved Path */}
+                            <div className="pt-3">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1 mb-2">
+                                    <Sparkles className="w-3 h-3 text-[#A163F7]" />
+                                    Try asking AI right now:
+                                </span>
+                                <div className="flex flex-wrap gap-2">
+                                    {[
+                                        "5000 ke andar best gift dikhao",
+                                        "Mere paas black suit hai matching tie dikhao",
+                                        "Kitchen ke liye fast electric kettle",
+                                        "Gul Plaza wholesale perfume deals"
+                                    ].map((prompt, i) => (
+                                        <Link
+                                            key={i}
+                                            href="/ai"
+                                            className="text-[11px] bg-white/5 hover:bg-purple-500/20 hover:border-purple-400/40 text-slate-300 hover:text-white border border-white/10 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
+                                        >
+                                            <span className="text-[#45E3FF]">💬</span>
+                                            <span>"{prompt}"</span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Column: Premium AI Robot Mascot Showcase */}
+                        <div className="lg:col-span-5 flex justify-center">
+                            <div className="relative w-full max-w-sm">
+                                {/* Ambient decorative backdrop */}
+                                <div className="absolute inset-0 bg-gradient-to-tr from-[#A163F7]/30 via-[#6F88FC]/20 to-[#45E3FF]/30 rounded-3xl blur-2xl transform rotate-3" />
+
+                                {/* Mascot Card */}
+                                <div className="relative bg-gradient-to-b from-[#1C1635] to-[#120F24] border border-purple-400/30 rounded-3xl p-6 sm:p-8 text-center shadow-2xl backdrop-blur-xl">
+                                    {/* Robot Mascot Frame */}
+                                    <div className="relative w-36 h-36 sm:w-44 sm:h-44 mx-auto mb-4 flex items-center justify-center">
+                                        <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] opacity-30 blur-xl animate-pulse" />
+                                        <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-3xl bg-white/5 border border-white/15 p-3 flex items-center justify-center backdrop-blur-md shadow-2xl">
+                                            <img 
+                                                src="/images/robot.png" 
+                                                alt="AI Plaza Companion" 
+                                                className="w-full h-full object-contain hover:scale-105 transition-transform duration-300 drop-shadow-[0_10px_20px_rgba(161,99,247,0.4)]"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Dialogue Card */}
+                                    <div className="bg-[#120D22]/90 border border-purple-500/30 rounded-2xl p-3.5 mb-4 text-left shadow-inner">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">AI Assistant Ready</span>
+                                        </div>
+                                        <p className="text-xs sm:text-sm font-bold text-white leading-snug">
+                                            "Tell me what you are looking for, and I will help you find it."
+                                        </p>
+                                    </div>
+
+                                    {/* Trust highlights */}
+                                    <div className="grid grid-cols-2 gap-2 text-left">
+                                        <div className="bg-white/5 border border-white/10 rounded-xl p-2.5">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Heritage</p>
+                                            <p className="text-[11px] font-extrabold text-white mt-0.5">Karachi Gul Plaza</p>
+                                        </div>
+                                        <div className="bg-white/5 border border-white/10 rounded-xl p-2.5">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Fulfillment</p>
+                                            <p className="text-[11px] font-extrabold text-[#45E3FF] mt-0.5">Cash on Delivery</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Category Pills Ticker */}
-                <div className="bg-[#120F20]/80 border-t border-purple-900/40 px-2.5 py-2 sm:py-2.5 backdrop-blur-md overflow-x-auto no-scrollbar w-full max-w-full">
-                    <div className="flex items-center justify-center gap-1.5 sm:gap-3 min-w-max">
-                        {categoriesList.map((cat, idx) => (
-                            <button 
-                                key={idx}
-                                onClick={() => setSelectedCategory(cat.name)}
-                                className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold border transition-all ${
-                                    selectedCategory === cat.name 
-                                    ? 'bg-[#A163F7] text-white border-[#A163F7]' 
-                                    : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border-white/10'
-                                }`}
-                            >
-                                <span>{cat.icon}</span>
-                                <span>{cat.name}</span>
-                            </button>
-                        ))}
+                {/* Formula Strip & Category Pills */}
+                <div className="bg-[#0C0917]/90 border-t border-purple-900/40 px-4 py-3 backdrop-blur-md">
+                    <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-xs font-black text-purple-200">
+                            <span className="bg-[#A163F7]/30 text-[#45E3FF] px-2 py-0.5 rounded-md font-mono text-[10px]">CORE VISION</span>
+                            <span>AI + Local Commerce + Digital Opportunities = AI Plaza</span>
+                        </div>
+
+                        {/* Category Pills */}
+                        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar w-full md:w-auto">
+                            {categoriesList.map((cat, idx) => (
+                                <button 
+                                    key={idx}
+                                    onClick={() => setSelectedCategory(cat.name)}
+                                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold border transition-all flex-shrink-0 cursor-pointer ${
+                                        selectedCategory === cat.name 
+                                        ? 'bg-[#A163F7] text-white border-[#A163F7] shadow-sm' 
+                                        : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border-white/10'
+                                    }`}
+                                >
+                                    <span>{cat.icon}</span>
+                                    <span>{cat.name}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </section>

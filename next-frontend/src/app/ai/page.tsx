@@ -508,21 +508,21 @@ export default function AIAssistantPage() {
                             </button>
                             
                             <div className="relative flex-shrink-0">
-                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] flex items-center justify-center text-white shadow-md shadow-purple-500/25">
-                                    <Bot className="w-5 h-5" />
+                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] p-1 flex items-center justify-center shadow-md shadow-purple-500/25">
+                                    <img src="/images/robot.png" alt="AI Advisor" className="w-full h-full object-contain" />
                                 </div>
                                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full ring-2 ring-white" />
                             </div>
                             <div className="min-w-0">
                                 <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                                    AI Shopping Assistant
+                                    AI Shopping Companion
                                     <span className="bg-gradient-to-r from-[#A163F7] to-[#6F88FC] text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wide">
-                                        Beta
+                                        Active
                                     </span>
                                 </h2>
                                 <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1.5 truncate">
                                     <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse flex-shrink-0" /> 
-                                    Online • Roman Urdu & English
+                                    Instead of searching, simply tell AI what you need
                                 </p>
                             </div>
                         </div>
@@ -544,18 +544,22 @@ export default function AIAssistantPage() {
                         {/* Empty State Hero */}
                         {messages.length === 0 && (
                             <div className="max-w-2xl mx-auto py-4 sm:py-8 text-center space-y-7 anim-fade-in">
-                                <div className="relative w-20 h-20 mx-auto">
-                                    <div className="absolute inset-0 rounded-[26px] bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] opacity-30 blur-xl" />
-                                    <div className="relative w-20 h-20 rounded-[26px] bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] flex items-center justify-center text-white shadow-xl shadow-purple-500/30 anim-glow-pulse">
-                                        <Bot className="w-10 h-10" />
+                                <div className="relative w-24 h-24 mx-auto">
+                                    <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] opacity-35 blur-xl animate-pulse" />
+                                    <div className="relative w-24 h-24 rounded-3xl bg-white border-2 border-purple-200 p-2 flex items-center justify-center shadow-xl shadow-purple-500/20">
+                                        <img src="/images/robot.png" alt="AI Robot" className="w-full h-full object-contain" />
                                     </div>
                                 </div>
                                 <div>
+                                    <div className="inline-flex items-center gap-1.5 bg-purple-100 border border-purple-200 text-purple-700 px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-3">
+                                        <Sparkles className="w-3.5 h-3.5 text-[#A163F7]" />
+                                        Instead of searching, simply tell AI what you need
+                                    </div>
                                     <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-2">
-                                        Assalam-o-Alaikum! <span className="gradient-text">Kya dhoond rahe hain?</span>
+                                        "Tell me what you are looking for, and I will help you find it."
                                     </h3>
                                     <p className="text-[13px] text-slate-500 max-w-md mx-auto leading-relaxed">
-                                        Main AI Plaza ka personal shopping assistant hoon. Outfit matching, budget deals ya photo search — bataiye kya chahiye.
+                                        Main AI Plaza ka intelligent shopping companion hoon. Outfit matching, budget deals, wholesale inquiry ya visual photo search — Roman Urdu ya English mein bataiye.
                                     </p>
                                 </div>
 
@@ -603,8 +607,8 @@ export default function AIAssistantPage() {
                             >
                                 <div className="flex items-start gap-2.5 max-w-[92%] sm:max-w-[82%]">
                                     {msg.role === 'assistant' && (
-                                        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#A163F7] to-[#45E3FF] flex items-center justify-center text-white flex-shrink-0 mt-1 shadow-sm">
-                                            <Bot className="w-4 h-4" />
+                                        <div className="w-8 h-8 rounded-xl bg-purple-100 border border-purple-200 p-1 flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+                                            <img src="/images/robot.png" alt="AI" className="w-full h-full object-contain" />
                                         </div>
                                     )}
 
@@ -722,8 +726,8 @@ export default function AIAssistantPage() {
                         {/* Thinking / Searching Indicator */}
                         {isThinking && (
                             <div className="flex items-start gap-2.5 anim-msg-in">
-                                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#A163F7] to-[#45E3FF] flex items-center justify-center text-white flex-shrink-0 shadow-sm">
-                                    <Bot className="w-4 h-4" />
+                                <div className="w-8 h-8 rounded-xl bg-purple-100 border border-purple-200 p-1 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                    <img src="/images/robot.png" alt="AI Thinking" className="w-full h-full object-contain animate-pulse" />
                                 </div>
                                 <div className="bg-white border border-purple-200/70 px-4 py-3.5 rounded-3xl rounded-bl-lg shadow-sm flex items-center gap-3">
                                     <div className="flex items-center gap-1">

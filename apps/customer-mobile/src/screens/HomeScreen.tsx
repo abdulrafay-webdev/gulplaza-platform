@@ -141,7 +141,11 @@ export default function HomeScreen({ navigation }: any) {
             colors={Theme.gradients.aiGlow as any}
             style={styles.aiHeaderGrad}
           >
-            <Sparkles color="#FFF" size={14} />
+            <Image 
+              source={require('../../assets/robot.png')} 
+              style={{ width: 20, height: 20 }} 
+              resizeMode="contain" 
+            />
             <Text style={styles.aiHeaderBtnText}>AI Advisor</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -264,32 +268,40 @@ export default function HomeScreen({ navigation }: any) {
           <Text style={styles.searchPlaceholder}>Search clothes, gadgets, shoes, appliances...</Text>
         </TouchableOpacity>
 
-        {/* Hero AI Banner */}
+        {/* Hero AI Banner - Brand Vision */}
         <LinearGradient
-          colors={['#1E1B4B', '#0F172A']}
+          colors={['#161226', '#1E1B4B', '#0F172A']}
           style={styles.heroBanner}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
         >
           <View style={styles.heroContent}>
             <View style={styles.aiTag}>
-              <Sparkles color="#A163F7" size={12} />
-              <Text style={styles.aiTagText}>AI Shopping Assistant</Text>
+              <Sparkles color="#45E3FF" size={12} />
+              <Text style={styles.aiTagText}>Instead of searching, ask AI</Text>
             </View>
             <Text style={styles.heroTitle}>Shop Smarter with AI</Text>
-            <Text style={styles.heroDesc}>Upload photos or describe what you want in Roman Urdu!</Text>
+            <Text style={styles.heroDesc}>
+              Tell AI what you need in Roman Urdu, upload a photo for visual match, or get outfit advice.
+            </Text>
             <TouchableOpacity 
               style={styles.heroBtn}
               onPress={() => navigation.navigate('AIChat')}
+              activeOpacity={0.85}
             >
               <LinearGradient colors={Theme.gradients.primary as any} style={styles.heroBtnGrad}>
-                <Text style={styles.heroBtnText}>Start AI Chat</Text>
+                <Text style={styles.heroBtnText}>Talk to AI Assistant</Text>
                 <ArrowRight color="#FFF" size={14} />
               </LinearGradient>
             </TouchableOpacity>
           </View>
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&q=80' }} 
-            style={styles.heroImage} 
-          />
+          <View style={styles.heroImageWrapper}>
+            <Image 
+              source={require('../../assets/robot.png')} 
+              style={styles.heroImage} 
+              resizeMode="contain"
+            />
+          </View>
         </LinearGradient>
 
         {/* Quick AI Prompts */}
@@ -640,10 +652,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
+  heroImageWrapper: {
+    width: 86,
+    height: 86,
+    borderRadius: 22,
+    backgroundColor: 'rgba(161, 99, 247, 0.18)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(69, 227, 255, 0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 6,
+  },
   heroImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
+    width: '100%',
+    height: '100%',
   },
   sectionHeader: {
     flexDirection: 'row',

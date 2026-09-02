@@ -232,11 +232,15 @@ export default function AIChatScreen({ route, navigation }: any) {
 
         <View style={styles.headerTitleBox}>
           <View style={styles.aiBadge}>
-            <Bot color="#FFF" size={14} />
+            <Image
+              source={require('../../assets/robot.png')}
+              style={{ width: 24, height: 24 }}
+              resizeMode="contain"
+            />
           </View>
           <View>
-            <Text style={styles.headerTitle}>AI Personal Advisor</Text>
-            <Text style={styles.headerSubtitle}>Powered by Gemini</Text>
+            <Text style={styles.headerTitle}>AI Shopping Companion</Text>
+            <Text style={styles.headerSubtitle}>Instead of searching, ask AI</Text>
           </View>
         </View>
 
@@ -284,15 +288,22 @@ export default function AIChatScreen({ route, navigation }: any) {
         >
           {messages.length === 0 ? (
             <View style={styles.emptyState}>
-              <LinearGradient
-                colors={Theme.gradients.aiGlow as any}
-                style={styles.emptyIcon}
-              >
-                <Bot color="#FFF" size={36} />
-              </LinearGradient>
-              <Text style={styles.emptyTitle}>How can I help you shop today?</Text>
+              <View style={styles.emptyRobotGlow}>
+                <Image
+                  source={require('../../assets/robot.png')}
+                  style={styles.emptyRobotImg}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <View style={styles.visionPill}>
+                <Sparkles color="#A163F7" size={13} />
+                <Text style={styles.visionPillText}>AI + Local Commerce = AI Plaza</Text>
+              </View>
+
+              <Text style={styles.emptyTitle}>"Tell me what you are looking for, and I will help you find it."</Text>
               <Text style={styles.emptySubtitle}>
-                Ask for matching outfits, gift ideas, specific products, or upload photos in Roman Urdu!
+                Instead of searching through endless categories, simply tell me what you need in Urdu or English, or upload an image!
               </Text>
 
               <View style={styles.startersGrid}>
@@ -320,12 +331,13 @@ export default function AIChatScreen({ route, navigation }: any) {
                   ]}
                 >
                   {!isUser && (
-                    <LinearGradient
-                      colors={Theme.gradients.primary as any}
-                      style={styles.avatarMini}
-                    >
-                      <Bot color="#FFF" size={14} />
-                    </LinearGradient>
+                    <View style={styles.avatarMini}>
+                      <Image
+                        source={require('../../assets/robot.png')}
+                        style={{ width: 22, height: 22 }}
+                        resizeMode="contain"
+                      />
+                    </View>
                   )}
 
                   <View
@@ -401,12 +413,16 @@ export default function AIChatScreen({ route, navigation }: any) {
 
           {isThinking && (
             <View style={[styles.messageRow, styles.assistantRow]}>
-              <LinearGradient colors={Theme.gradients.primary as any} style={styles.avatarMini}>
-                <Bot color="#FFF" size={14} />
-              </LinearGradient>
+              <View style={styles.avatarMini}>
+                <Image
+                  source={require('../../assets/robot.png')}
+                  style={{ width: 22, height: 22 }}
+                  resizeMode="contain"
+                />
+              </View>
               <View style={[styles.messageBubble, styles.assistantBubble, styles.thinkingBubble]}>
                 <ActivityIndicator size="small" color="#A163F7" />
-                <Text style={styles.thinkingText}>AI Advisor is thinking...</Text>
+                <Text style={styles.thinkingText}>AI Advisor is searching Gul Plaza products...</Text>
               </View>
             </View>
           )}
@@ -576,14 +592,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 40,
   },
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
+  emptyRobotGlow: {
+    width: 96,
+    height: 96,
+    borderRadius: 28,
+    backgroundColor: '#F3E8FF',
+    borderWidth: 1.5,
+    borderColor: '#DDD6FE',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
     ...Theme.shadows.md,
+  },
+  emptyRobotImg: {
+    width: 76,
+    height: 76,
+  },
+  visionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 10,
+  },
+  visionPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#7C3AED',
   },
   emptyTitle: {
     fontSize: 18,

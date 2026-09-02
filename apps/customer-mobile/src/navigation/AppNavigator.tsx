@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -76,10 +76,14 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
                   colors={Theme.gradients.aiGlow as any}
                   style={styles.floatingAIBtn}
                 >
-                  <Bot color="#FFFFFF" size={28} />
+                  <Image
+                    source={require('../../assets/robot.png')}
+                    style={{ width: 32, height: 32 }}
+                    resizeMode="contain"
+                  />
                   <Sparkles
                     color="#FFD700"
-                    size={12}
+                    size={11}
                     style={styles.aiSparkleIcon}
                   />
                 </LinearGradient>
