@@ -298,17 +298,6 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                       <div className="font-black text-xs leading-tight">Seller App</div>
                     </div>
                   </a>
-                  <a
-                    href="/downloads/ai-plaza-admin.apk"
-                    download="ai-plaza-admin.apk"
-                    className="flex items-center gap-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 font-bold text-xs px-4 py-3 rounded-2xl transition-all group"
-                  >
-                    <Download className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
-                    <div className="text-left">
-                      <div className="text-[9px] text-slate-400 font-medium leading-none">Download APK</div>
-                      <div className="font-black text-xs leading-tight">Admin App</div>
-                    </div>
-                  </a>
                 </div>
               </div>
             </div>
