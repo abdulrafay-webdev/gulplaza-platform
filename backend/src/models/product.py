@@ -51,6 +51,7 @@ class ProductImageRead(SQLModel):
 class ProductRead(ProductBase):
     id: int
     shop_id: int
+    shop_name: Optional[str] = None
     images: List[ProductImageRead] = []
 
 

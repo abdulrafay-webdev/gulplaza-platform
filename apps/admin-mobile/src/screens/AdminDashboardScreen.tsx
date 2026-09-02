@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  RefreshControl
+  RefreshControl,
+  Modal,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -18,7 +20,14 @@ import {
   Sparkles,
   ChevronRight,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Menu,
+  X,
+  Star,
+  Layers,
+  ShoppingBag,
+  LogOut,
+  Award
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PlatformAnalytics } from '../shared/types';
@@ -32,6 +41,7 @@ export default function AdminDashboardScreen({ navigation }: any) {
   const [analytics, setAnalytics] = useState<PlatformAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
     loadAnalytics();
@@ -70,7 +80,8 @@ export default function AdminDashboardScreen({ navigation }: any) {
     approved_shops: 0,
     pending_shops: 0,
     total_products: 0,
-    total_customers: 0
+    total_customers: 0,
+    total_reviews: 0
   };
   const topShops = analytics?.top_shops || [];
   const trending = analytics?.trending_ai_demands || [];
@@ -78,9 +89,18 @@ export default function AdminDashboardScreen({ navigation }: any) {
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerSubtitle}>Super Admin Console</Text>
-          <Text style={styles.headerTitle}>AI Plaza Platform</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <TouchableOpacity
+            style={styles.hamburgerBtn}
+            onPress={() => setMenuVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Menu color="#0F172A" size={22} />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerSubtitle}>Super Admin Console</Text>
+            <Text style={styles.headerTitle}>AI Plaza Platform</Text>
+          </View>
         </View>
         <TouchableOpacity style={styles.logoutPill} onPress={logout}>
           <Text style={styles.logoutText}>Sign Out</Text>
@@ -141,6 +161,54 @@ export default function AdminDashboardScreen({ navigation }: any) {
           </View>
         </View>
 
+        {/* Quick Access: Reviews Moderation & Users Directory */}
+        <View style={styles.quickNavSection}>
+          <Text style={styles.quickSectionTitle}>MANAGEMENT & GOVERNANCE</Text>
+          <View style={styles.quickNavGrid}>
+            <TouchableOpacity
+              style={styles.quickNavCard}
+              onPress={() => navigation.navigate('AdminReviews')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.quickNavIconBox, { backgroundColor: '#FEF3C7' }]}>
+                <Star color="#D97706" size={20} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.quickNavTitle}>Reviews Moderation</Text>
+                  {overview.total_reviews > 0 && (
+                    <View style={styles.countPill}>
+                      <Text style={styles.countPillText}>{overview.total_reviews}</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.quickNavSub}>Approve & govern customer reviews</Text>
+              </View>
+              <ChevronRight color="#94A3B8" size={18} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickNavCard}
+              onPress={() => navigation.navigate('AdminUsers')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.quickNavIconBox, { backgroundColor: '#EDE9FE' }]}>
+                <Users color="#7C3AED" size={20} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.quickNavTitle}>Users Directory</Text>
+                  <View style={[styles.countPill, { backgroundColor: '#ECFDF5' }]}>
+                    <Text style={[styles.countPillText, { color: '#059669' }]}>Sellers & Buyers</Text>
+                  </View>
+                </View>
+                <Text style={styles.quickNavSub}>View seller and customer profiles</Text>
+              </View>
+              <ChevronRight color="#94A3B8" size={18} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Top Performing Shops */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Top Performing Vendors</Text>
@@ -187,6 +255,124 @@ export default function AdminDashboardScreen({ navigation }: any) {
 
         <View style={{ height: 60 }} />
       </ScrollView>
+
+      {/* HAMBURGER MENU DRAWER MODAL */}
+      <Modal
+        visible={menuVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <View style={styles.drawerBackdrop}>
+          <TouchableOpacity 
+            style={styles.drawerBackdropDismiss} 
+            activeOpacity={1} 
+            onPress={() => setMenuVisible(false)} 
+          />
+          <View style={styles.drawerContainer}>
+            {/* Drawer Admin Profile Header */}
+            <View style={styles.drawerHeader}>
+              <View style={styles.drawerAvatar}>
+                <Text style={styles.drawerAvatarText}>AR</Text>
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.drawerAdminName}>Abdul Rafay</Text>
+                <Text style={styles.drawerAdminRole}>Super Administrator</Text>
+                <View style={styles.drawerAdminBadge}>
+                  <ShieldCheck color="#7C3AED" size={12} />
+                  <Text style={styles.drawerAdminBadgeText}>AI Plaza Console</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.drawerCloseBtn} onPress={() => setMenuVisible(false)}>
+                <X color="#64748B" size={20} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Navigation List */}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.drawerNavList}>
+              <Text style={styles.drawerNavHeader}>MAIN NAVIGATION</Text>
+
+              <TouchableOpacity 
+                style={styles.drawerNavItem}
+                onPress={() => { setMenuVisible(false); navigation.navigate('DashboardTab'); }}
+              >
+                <ShieldCheck color="#7C3AED" size={20} />
+                <Text style={styles.drawerNavText}>Dashboard Overview</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.drawerNavItem}
+                onPress={() => { setMenuVisible(false); navigation.navigate('ShopsTab'); }}
+              >
+                <Store color="#2563EB" size={20} />
+                <Text style={styles.drawerNavText}>Verified Shops</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.drawerNavItem}
+                onPress={() => { setMenuVisible(false); navigation.navigate('ProductsTab'); }}
+              >
+                <Package color="#10B981" size={20} />
+                <Text style={styles.drawerNavText}>Marketplace Products</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.drawerNavItem}
+                onPress={() => { setMenuVisible(false); navigation.navigate('OrdersTab'); }}
+              >
+                <ShoppingBag color="#D97706" size={20} />
+                <Text style={styles.drawerNavText}>Platform Orders</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.drawerNavItem}
+                onPress={() => { setMenuVisible(false); navigation.navigate('CategoriesTab'); }}
+              >
+                <Layers color="#6366F1" size={20} />
+                <Text style={styles.drawerNavText}>Categories & Taxonomy</Text>
+              </TouchableOpacity>
+
+              <View style={styles.drawerDivider} />
+
+              <Text style={styles.drawerNavHeader}>GOVERNANCE & DIRECTORY</Text>
+
+              <TouchableOpacity 
+                style={[styles.drawerNavItem, styles.drawerNavItemHighlight]}
+                onPress={() => { setMenuVisible(false); navigation.navigate('AdminReviews'); }}
+              >
+                <Star color="#D97706" size={20} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.drawerNavTextBold}>Reviews Moderation</Text>
+                  <Text style={styles.drawerNavSubText}>Shop & product reviews</Text>
+                </View>
+                <ChevronRight color="#CBD5E1" size={16} />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.drawerNavItem, styles.drawerNavItemHighlight]}
+                onPress={() => { setMenuVisible(false); navigation.navigate('AdminUsers'); }}
+              >
+                <Users color="#7C3AED" size={20} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.drawerNavTextBold}>Users Management</Text>
+                  <Text style={styles.drawerNavSubText}>Sellers & Customers directory</Text>
+                </View>
+                <ChevronRight color="#CBD5E1" size={16} />
+              </TouchableOpacity>
+
+              <View style={styles.drawerDivider} />
+
+              <TouchableOpacity 
+                style={styles.drawerLogoutItem}
+                onPress={() => { setMenuVisible(false); logout(); }}
+              >
+                <LogOut color="#EF4444" size={18} />
+                <Text style={styles.drawerLogoutText}>Sign Out from Console</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -410,5 +596,193 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     color: '#7E22CE',
+  },
+  hamburgerBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickNavSection: {
+    marginTop: 16,
+    marginBottom: 6,
+  },
+  quickSectionTitle: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  quickNavGrid: {
+    gap: 10,
+  },
+  quickNavCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 12,
+    ...Theme.shadows.sm,
+  },
+  quickNavIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickNavTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  quickNavSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  countPill: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+  },
+  countPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#D97706',
+  },
+  // Drawer Styles
+  drawerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    flexDirection: 'row',
+  },
+  drawerBackdropDismiss: {
+    flex: 1,
+  },
+  drawerContainer: {
+    width: '82%',
+    maxWidth: 320,
+    backgroundColor: '#FFFFFF',
+    height: '100%',
+    paddingTop: 50,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    gap: 12,
+  },
+  drawerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#7C3AED',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  drawerAdminName: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  drawerAdminRole: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  drawerAdminBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 3,
+  },
+  drawerAdminBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#7C3AED',
+  },
+  drawerCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  drawerNavList: {
+    padding: 16,
+  },
+  drawerNavHeader: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+    marginTop: 6,
+    paddingHorizontal: 6,
+  },
+  drawerNavItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  drawerNavItemHighlight: {
+    backgroundColor: '#F8FAFC',
+    marginVertical: 4,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  drawerNavText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  drawerNavTextBold: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  drawerNavSubText: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  drawerDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 12,
+  },
+  drawerLogoutItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginTop: 6,
+  },
+  drawerLogoutText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#EF4444',
   },
 });

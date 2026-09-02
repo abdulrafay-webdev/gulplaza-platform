@@ -203,7 +203,7 @@ export default function HomeScreen({ navigation }: any) {
 
               <TouchableOpacity style={styles.drawerItem} onPress={() => navigateMenu('ShopsTab')}>
                 <Store color="#2563EB" size={18} />
-                <Text style={styles.drawerItemText}>Verified Gul Plaza Shops</Text>
+                <Text style={styles.drawerItemText}>AI Plaza Shops</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.drawerItem} onPress={() => navigateMenu('AIChat')}>

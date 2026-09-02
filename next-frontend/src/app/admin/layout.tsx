@@ -15,7 +15,9 @@ import {
   X,
   Sparkles,
   LogOut,
-  Lock
+  Lock,
+  Users,
+  Star
 } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -34,6 +36,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: 'Dashboard & Analytics', href: '/admin', icon: BarChart3 },
     { name: 'Store Approvals & Shops', href: '/admin/shops', icon: Store },
+    { name: 'Users Directory', href: '/admin/users', icon: Users },
+    { name: 'Reviews Moderation', href: '/admin/reviews', icon: Star },
     { name: 'Main Categories', href: '/admin/categories', icon: Layers },
   ];
 

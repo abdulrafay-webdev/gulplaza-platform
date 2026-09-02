@@ -16,6 +16,8 @@ import AdminShopsScreen from '../screens/AdminShopsScreen';
 import AdminProductsScreen from '../screens/AdminProductsScreen';
 import AdminOrdersScreen from '../screens/AdminOrdersScreen';
 import AdminCategoriesScreen from '../screens/AdminCategoriesScreen';
+import AdminReviewsScreen from '../screens/AdminReviewsScreen';
+import AdminUsersScreen from '../screens/AdminUsersScreen';
 import AdminLoginScreen from '../screens/AdminLoginScreen';
 
 import { Theme } from '../shared/theme';
@@ -100,7 +102,11 @@ export default function AdminAppNavigator() {
         {!token ? (
           <Stack.Screen name="AdminLogin" component={AdminLoginScreen} />
         ) : (
-          <Stack.Screen name="AdminTabs" component={AdminTabNavigator} />
+          <>
+            <Stack.Screen name="AdminTabs" component={AdminTabNavigator} />
+            <Stack.Screen name="AdminReviews" component={AdminReviewsScreen} />
+            <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

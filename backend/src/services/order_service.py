@@ -2,6 +2,7 @@ from sqlmodel import Session, select
 from typing import List, Optional
 from sqlalchemy.orm import selectinload
 from src.models.order import Order, OrderItem
+from src.models.shop import Shop
 
 def get_orders(session: Session, shop_id: Optional[int] = None, customer_id: Optional[str] = None) -> List[Order]:
     # Load items and their products
@@ -17,13 +18,25 @@ def get_orders(session: Session, shop_id: Optional[int] = None, customer_id: Opt
     
     # Sort by date desc
     query = query.order_by(Order.created_at.desc())
-    return session.exec(query).all()
+    orders = session.exec(query).all()
+    for o in orders:
+        if not getattr(o, "shop_name", None):
+            sh = session.get(Shop, o.shop_id)
+            if sh:
+                setattr(o, "shop_name", sh.name)
+    return orders
 
 def get_all_orders(session: Session) -> List[Order]:
     query = select(Order).options(
         selectinload(Order.items).selectinload(OrderItem.product)
     ).order_by(Order.created_at.desc())
-    return session.exec(query).all()
+    orders = session.exec(query).all()
+    for o in orders:
+        if not getattr(o, "shop_name", None):
+            sh = session.get(Shop, o.shop_id)
+            if sh:
+                setattr(o, "shop_name", sh.name)
+    return orders
 
 def get_order_by_id(session: Session, order_id: int) -> Optional[Order]:
     return session.exec(

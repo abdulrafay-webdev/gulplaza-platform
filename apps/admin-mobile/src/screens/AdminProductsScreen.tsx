@@ -19,6 +19,7 @@ import { api } from '../services/api';
 
 export default function AdminProductsScreen() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [shopsMap, setShopsMap] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
@@ -29,8 +30,16 @@ export default function AdminProductsScreen() {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const res = await api.products.listAll({ limit: 100 });
-      setProducts(res.data || []);
+      const [prodRes, shopRes] = await Promise.all([
+        api.products.listAll({ limit: 150 }),
+        api.admin.listShops().catch(() => ({ data: [] }))
+      ]);
+      const sMap: Record<number, string> = {};
+      (shopRes.data || []).forEach((s: any) => {
+        sMap[s.id] = s.name;
+      });
+      setShopsMap(sMap);
+      setProducts(prodRes.data || []);
     } catch (err) {
       console.error('Failed to load products:', err);
     } finally {
@@ -60,10 +69,11 @@ export default function AdminProductsScreen() {
     );
   };
 
-  const filtered = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.shop?.name && p.shop.name.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filtered = products.filter(p => {
+    const sName = p.shop?.name || p.shop_name || shopsMap[p.shop_id] || '';
+    return p.name.toLowerCase().includes(search.toLowerCase()) ||
+           sName.toLowerCase().includes(search.toLowerCase());
+  });
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
@@ -92,11 +102,15 @@ export default function AdminProductsScreen() {
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => {
             const thumb = item.image_url || (item.images && item.images[0]?.url) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80';
+            const shopDisplayName = item.shop?.name || item.shop_name || shopsMap[item.shop_id] || (item.shop_id ? `Shop #${item.shop_id}` : 'Store');
             return (
               <View style={styles.productCard}>
                 <Image source={{ uri: thumb }} style={styles.productThumb} />
                 <View style={styles.productInfo}>
-                  <Text style={styles.shopName} numberOfLines={1}>{item.shop?.name || item.shop_name || 'Gul Plaza Store'}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+                    <Store color="#7C3AED" size={12} />
+                    <Text style={styles.shopName} numberOfLines={1}>{shopDisplayName}</Text>
+                  </View>
                   <Text style={styles.productTitle} numberOfLines={2}>{item.name}</Text>
                   <Text style={styles.productPrice}>{formatCurrency(item.price)}</Text>
                   <Text style={styles.stockText}>{item.stock_quantity} units remaining</Text>

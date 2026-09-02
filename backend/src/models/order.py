@@ -60,6 +60,7 @@ class OrderItemRead(SQLModel):
 class OrderRead(SQLModel):
     id: int
     shop_id: int
+    shop_name: Optional[str] = None
     customer_clerk_id: Optional[str]
     guest_name: Optional[str]
     guest_email: Optional[str]

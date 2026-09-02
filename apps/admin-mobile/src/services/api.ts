@@ -236,6 +236,18 @@ export class APIClient {
 
     deleteShop: (shopId: number | string) =>
       this.instance.delete<{ message: string }>(`/admin/shops/${shopId}`),
+
+    listReviews: () =>
+      this.instance.get<any[]>('/admin/reviews'),
+
+    approveReview: (reviewId: number | string) =>
+      this.instance.patch<{ message: string }>(`/admin/reviews/${reviewId}/approve`),
+
+    deleteReview: (reviewId: number | string) =>
+      this.instance.delete<{ message: string }>(`/admin/reviews/${reviewId}`),
+
+    listUsers: () =>
+      this.instance.get<{ sellers: any[]; customers: any[]; total_sellers: number; total_customers: number }>('/admin/users'),
   };
 }
 

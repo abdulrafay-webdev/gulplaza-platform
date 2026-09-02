@@ -63,6 +63,10 @@ export const admin = {
     approveShop: (shopId: string | number) => api.post(`/admin/shops/${shopId}/approve`),
     toggleActive: (shopId: string | number) => api.patch(`/admin/shops/${shopId}/toggle-active`),
     deleteShop: (shopId: string | number) => api.delete(`/admin/shops/${shopId}`),
+    listReviews: () => api.get('/admin/reviews'),
+    approveReview: (reviewId: string | number) => api.patch(`/admin/reviews/${reviewId}/approve`),
+    deleteReview: (reviewId: string | number) => api.delete(`/admin/reviews/${reviewId}`),
+    listUsers: () => api.get('/admin/users'),
 };
 
 export const categories = {

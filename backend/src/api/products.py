@@ -26,23 +26,29 @@ def list_all_products(
     session: Session = Depends(get_session)
 ):
     """List all products across all shops (Public)."""
-    query = select(Product).where(Product.is_deleted == False).options(selectinload(Product.images))
+    query = select(Product).where(Product.is_deleted == False).options(selectinload(Product.images), selectinload(Product.shop))
     if search:
         query = query.where(Product.name.ilike(f"%{search}%"))
     
     query = query.offset(offset).limit(limit).order_by(Product.id.desc())
-    return session.exec(query).all()
+    prods = session.exec(query).all()
+    for p in prods:
+        if p.shop:
+            setattr(p, "shop_name", p.shop.name)
+    return prods
 
 @router.get("/products/{product_id}", response_model=ProductRead)
 def get_product(product_id: int, session: Session = Depends(get_session)):
     """Get a single product details (Public)."""
     # Use eager load via service or selectinload
     product = session.exec(
-        select(Product).where(Product.id == product_id, Product.is_deleted == False).options(selectinload(Product.images))
+        select(Product).where(Product.id == product_id, Product.is_deleted == False).options(selectinload(Product.images), selectinload(Product.shop))
     ).first()
     
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+    if product.shop:
+        setattr(product, "shop_name", product.shop.name)
     return product
 
 import base64

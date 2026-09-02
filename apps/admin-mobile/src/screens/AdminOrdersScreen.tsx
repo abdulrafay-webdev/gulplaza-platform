@@ -16,6 +16,7 @@ import { api } from '../services/api';
 
 export default function AdminOrdersScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [shopsMap, setShopsMap] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -26,8 +27,16 @@ export default function AdminOrdersScreen() {
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const res = await api.orders.list();
-      setOrders(res.data || []);
+      const [orderRes, shopRes] = await Promise.all([
+        api.orders.list(),
+        api.admin.listShops().catch(() => ({ data: [] }))
+      ]);
+      const sMap: Record<number, string> = {};
+      (shopRes.data || []).forEach((s: any) => {
+        sMap[s.id] = s.name;
+      });
+      setShopsMap(sMap);
+      setOrders(orderRes.data || []);
     } catch (err) {
       console.error('Failed to load platform orders:', err);
     } finally {
@@ -103,8 +112,8 @@ export default function AdminOrdersScreen() {
 
                 <View style={styles.cardBody}>
                   <View style={styles.infoRow}>
-                    <Store color="#64748B" size={14} />
-                    <Text style={styles.infoText}>Shop: {item.shop_name || `Shop #${item.shop_id}`}</Text>
+                    <Store color="#7C3AED" size={14} />
+                    <Text style={styles.infoText}>Shop: <Text style={{ fontWeight: '800', color: '#6D28D9' }}>{item.shop_name || shopsMap[item.shop_id] || (item.shop_id ? `Shop #${item.shop_id}` : 'Store')}</Text></Text>
                   </View>
                   <View style={styles.infoRow}>
                     <User color="#64748B" size={14} />
