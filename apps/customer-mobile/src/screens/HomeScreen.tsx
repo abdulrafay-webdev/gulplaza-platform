@@ -171,7 +171,7 @@ export default function HomeScreen({ navigation }: any) {
                 <Image source={require('../../assets/logo.png')} style={styles.drawerLogoImg} resizeMode="contain" />
                 <View>
                   <Text style={styles.drawerLogoTitle}>AI PLAZA</Text>
-                  <Text style={styles.drawerLogoSub}>Gul Plaza Digital Hub</Text>
+                  <Text style={styles.drawerLogoSub}>Smart AI Marketplace</Text>
                 </View>
               </View>
               <TouchableOpacity style={styles.drawerCloseBtn} onPress={() => setMenuVisible(false)}>
@@ -190,7 +190,7 @@ export default function HomeScreen({ navigation }: any) {
                   <Text style={styles.founderTagText}>Conceived by Abdul Rafay</Text>
                 </View>
                 <Text style={styles.founderBannerTitle}>The Story of a 20yo Visionary</Text>
-                <Text style={styles.founderBannerSub}>Read how this entire platform was built alone →</Text>
+                <Text style={styles.founderBannerSub}>How AI Plaza is empowering local commerce →</Text>
               </LinearGradient>
             </TouchableOpacity>
 
