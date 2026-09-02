@@ -181,6 +181,17 @@ export class APIClient {
       this.instance.get<{ products: Product[]; shops: Shop[]; categories: Category[] }>('/search/', { params: { q: query } }),
   };
 
+  reviews = {
+    getMyReviews: () =>
+      this.instance.get<any[]>('/reviews/shop/me'),
+
+    approveReview: (reviewId: number | string) =>
+      this.instance.patch<{ message: string; id: number; is_approved: boolean }>(`/reviews/${reviewId}/approve`),
+
+    deleteReview: (reviewId: number | string) =>
+      this.instance.delete<{ message: string; id: number }>(`/reviews/${reviewId}`),
+  };
+
   ai = {
     listChats: () =>
       this.instance.get<AIChat[]>('/ai/chats', { timeout: 35000 }),

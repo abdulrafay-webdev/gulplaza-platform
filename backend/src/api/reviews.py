@@ -102,6 +102,7 @@ def submit_product_review(
 
 # --- SELLER REVIEW GOVERNANCE ENDPOINTS ---
 
+@router.get("/reviews/shop/me", response_model=List[Dict[str, Any]])
 @router.get("/shop/me", response_model=List[Dict[str, Any]])
 def get_my_shop_reviews(
     user = Depends(get_shop_owner),
@@ -109,6 +110,8 @@ def get_my_shop_reviews(
 ):
     """Get all reviews submitted for the current shop's products (Approved & Pending)."""
     shop = shop_service.get_shop_by_owner(session, user["id"])
+    if not shop and user.get("shop_id"):
+        shop = session.get(Shop, user["shop_id"])
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
 
@@ -134,6 +137,7 @@ def get_my_shop_reviews(
         })
     return result
 
+@router.patch("/reviews/{review_id}/approve", response_model=Dict[str, Any])
 @router.patch("/{review_id}/approve", response_model=Dict[str, Any])
 def approve_shop_review(
     review_id: int,
@@ -142,11 +146,13 @@ def approve_shop_review(
 ):
     """Shop owner approves a review to make it live on the product page."""
     shop = shop_service.get_shop_by_owner(session, user["id"])
+    if not shop and user.get("shop_id"):
+        shop = session.get(Shop, user["shop_id"])
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
 
     review = session.get(Review, review_id)
-    if not review or review.shop_id != shop.id:
+    if not review or (user.get("role") != "SUPER_ADMIN" and review.shop_id != shop.id):
         raise HTTPException(status_code=404, detail="Review not found for your store.")
 
     review.is_approved = True
@@ -155,6 +161,7 @@ def approve_shop_review(
     session.refresh(review)
     return {"message": "Review approved successfully and is now visible on product page.", "id": review.id, "is_approved": True}
 
+@router.delete("/reviews/{review_id}", response_model=Dict[str, Any])
 @router.delete("/{review_id}", response_model=Dict[str, Any])
 def delete_shop_review(
     review_id: int,
@@ -163,11 +170,13 @@ def delete_shop_review(
 ):
     """Shop owner rejects or deletes a review from their store."""
     shop = shop_service.get_shop_by_owner(session, user["id"])
+    if not shop and user.get("shop_id"):
+        shop = session.get(Shop, user["shop_id"])
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
 
     review = session.get(Review, review_id)
-    if not review or review.shop_id != shop.id:
+    if not review or (user.get("role") != "SUPER_ADMIN" and review.shop_id != shop.id):
         raise HTTPException(status_code=404, detail="Review not found for your store.")
 
     session.delete(review)

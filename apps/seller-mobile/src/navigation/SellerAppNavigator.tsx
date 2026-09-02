@@ -17,6 +17,7 @@ import AddProductScreen from '../screens/AddProductScreen';
 import EditProductScreen from '../screens/EditProductScreen';
 import SellerOrdersScreen from '../screens/SellerOrdersScreen';
 import ShopSettingsScreen from '../screens/ShopSettingsScreen';
+import SellerReviewsScreen from '../screens/SellerReviewsScreen';
 import PendingApprovalScreen from '../screens/PendingApprovalScreen';
 import SellerLoginScreen from '../screens/SellerLoginScreen';
 import SellerRegisterScreen from '../screens/SellerRegisterScreen';
@@ -116,6 +117,7 @@ export default function SellerAppNavigator() {
             <Stack.Screen name="SellerTabs" component={SellerTabNavigator} />
             <Stack.Screen name="AddProduct" component={AddProductScreen} />
             <Stack.Screen name="EditProduct" component={EditProductScreen} />
+            <Stack.Screen name="SellerReviews" component={SellerReviewsScreen} />
           </>
         )}
       </Stack.Navigator>

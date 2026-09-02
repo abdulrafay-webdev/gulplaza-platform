@@ -49,6 +49,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     });
     const [submittingReview, setSubmittingReview] = useState(false);
     const [reviewSuccessMessage, setReviewSuccessMessage] = useState<string | null>(null);
+    const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
 
     // Pre-fill customer name if logged in
     useEffect(() => {
@@ -82,6 +83,20 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 setProduct(res.data);
                 setActiveImage(res.data.image_url || (res.data.images?.[0]?.url) || '');
                 await loadReviews();
+
+                // Load Related Products
+                try {
+                    const allRes = await products.listAll({ limit: 12 });
+                    const related = (allRes.data || []).filter(
+                        (p: any) => p.id !== Number(id) && (
+                            (res.data.main_category_id && p.main_category_id === res.data.main_category_id) ||
+                            p.shop_id === res.data.shop_id
+                        )
+                    );
+                    setRelatedProducts(related.length > 0 ? related.slice(0, 8) : (allRes.data || []).filter((p: any) => p.id !== Number(id)).slice(0, 6));
+                } catch (relErr) {
+                    console.warn("Failed to load related products", relErr);
+                }
             } catch (err) {
                 console.error("Failed to load product", err);
             } finally {
@@ -557,6 +572,62 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         </div>
                     </div>
                 </section>
+
+                {/* Related Products Section */}
+                {relatedProducts.length > 0 && (
+                    <section className="mt-14 pt-8 border-t border-slate-200">
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-2">
+                            <div>
+                                <span className="text-[11px] font-black uppercase tracking-wider text-[#A163F7]">
+                                    Discover More
+                                </span>
+                                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                                    Related Products
+                                </h2>
+                            </div>
+                            <p className="text-xs text-slate-500">Other shoppers frequently view these matching items</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+                            {relatedProducts.map((rel: any) => {
+                                const thumb = rel.image_url || (rel.images?.[0]?.url) || '/images/placeholder.png';
+                                return (
+                                    <Link
+                                        key={rel.id}
+                                        href={`/products/${rel.id}`}
+                                        className="group bg-white rounded-2xl border border-slate-200/80 p-3 hover:shadow-xl hover:border-purple-300 transition-all flex flex-col"
+                                    >
+                                        <div className="aspect-square rounded-xl overflow-hidden bg-slate-100 mb-3 relative">
+                                            <img
+                                                src={thumb}
+                                                alt={rel.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                            />
+                                        </div>
+                                        <div className="flex-1 flex flex-col justify-between">
+                                            <div>
+                                                <div className="text-[10px] font-bold text-[#A163F7] uppercase tracking-wider line-clamp-1">
+                                                    {rel.shop?.name || rel.shop_name || 'Gul Plaza Store'}
+                                                </div>
+                                                <h3 className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-[#A163F7] transition-colors line-clamp-2 mt-0.5">
+                                                    {rel.name}
+                                                </h3>
+                                            </div>
+                                            <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                                                <span className="font-black text-sm text-slate-900">
+                                                    Rs. {Number(rel.price).toLocaleString()}
+                                                </span>
+                                                <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
+                                                    View →
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </section>
+                )}
             </div>
         </PublicLayout>
     );

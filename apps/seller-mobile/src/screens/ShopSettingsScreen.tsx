@@ -20,7 +20,10 @@ import {
   LogOut,
   MapPin,
   Save,
-  CheckCircle2
+  CheckCircle2,
+  Star,
+  MessageSquare,
+  ChevronRight
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,7 +31,7 @@ import { Theme } from '../shared/theme';
 import { api } from '../services/api';
 import { useSellerAuth } from '../context/SellerAuthContext';
 
-export default function ShopSettingsScreen() {
+export default function ShopSettingsScreen({ navigation }: any) {
   const { shop, refreshShop, logout } = useSellerAuth();
 
   const [name, setName] = useState(shop?.name || '');
@@ -173,6 +176,21 @@ export default function ShopSettingsScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </View>
+
+        {/* Customer Reviews Governance Card */}
+        <TouchableOpacity
+          style={styles.reviewsNavCard}
+          onPress={() => navigation.navigate('SellerReviews')}
+        >
+          <View style={styles.reviewsNavIconBox}>
+            <Star color="#F59E0B" size={20} fill="#F59E0B" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.reviewsNavTitle}>Customer Reviews & Approvals</Text>
+            <Text style={styles.reviewsNavSub}>View feedback, approve ratings, or remove spam</Text>
+          </View>
+          <ChevronRight color="#CBD5E1" size={20} />
+        </TouchableOpacity>
 
         {/* Sign Out */}
         <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
@@ -338,5 +356,35 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 13,
     fontWeight: '800',
+  },
+  reviewsNavCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 12,
+    marginBottom: 16,
+    ...Theme.shadows.sm,
+  },
+  reviewsNavIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewsNavTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  reviewsNavSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
   },
 });

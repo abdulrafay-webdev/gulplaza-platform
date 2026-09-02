@@ -139,6 +139,29 @@ export class APIClient {
       this.instance.get<{ products: Product[]; shops: Shop[]; categories: Category[] }>('/search/', { params: { q: query } }),
   };
 
+  reviews = {
+    getProductReviews: (productId: number | string) =>
+      this.instance.get<{
+        reviews: any[];
+        summary: {
+          average_rating: number;
+          total_reviews: number;
+          rating_distribution: Record<number, number>;
+        };
+      }>(`/products/${productId}/reviews`),
+
+    submitProductReview: (productId: number | string, data: {
+      reviewer_name: string;
+      reviewer_email?: string;
+      rating: number;
+      comment: string;
+    }) =>
+      this.instance.post<{ message: string; review: any }>(`/products/${productId}/reviews`, data),
+
+    getRecentReviews: (limit: number = 6) =>
+      this.instance.get<any[]>('/recent', { params: { limit } }),
+  };
+
   ai = {
     listChats: () =>
       this.instance.get<AIChat[]>('/ai/chats', { timeout: 35000 }),

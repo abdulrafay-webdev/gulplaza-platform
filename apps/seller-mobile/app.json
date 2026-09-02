@@ -26,7 +26,8 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -36,6 +37,11 @@
           "photosPermission": "The app accesses your photos to upload product images."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c97b2b4f-1948-43f8-9a70-94c92fd09b7f"
+      }
+    }
   }
 }

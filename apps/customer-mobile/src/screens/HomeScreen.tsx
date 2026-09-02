@@ -9,7 +9,8 @@ import {
   ActivityIndicator,
   StyleSheet,
   Dimensions,
-  RefreshControl
+  RefreshControl,
+  Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -24,7 +25,14 @@ import {
   Flame,
   Grid,
   Tag,
-  CheckCircle2
+  CheckCircle2,
+  Menu,
+  X,
+  Award,
+  HelpCircle,
+  Lock,
+  Package,
+  User
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Product, Shop, Category } from '../shared/types';
@@ -44,6 +52,7 @@ export default function HomeScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cartSuccessId, setCartSuccessId] = useState<number | null>(null);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
     loadHomeData();
@@ -91,21 +100,36 @@ export default function HomeScreen({ navigation }: any) {
     ? products.filter(p => p.main_category_id === selectedCategory) 
     : products;
 
+  const navigateMenu = (screenName: string, params?: any) => {
+    setMenuVisible(false);
+    navigation.navigate(screenName, params);
+  };
+
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
-      {/* Top Header */}
+      {/* Top Header with Hamburger Icon */}
       <View style={styles.header}>
-        <View style={styles.logoRow}>
-          <View style={styles.logoBadge}>
-            <Image 
-              source={require('../../assets/logo.png')} 
-              style={styles.logoImg} 
-              resizeMode="contain" 
-            />
-          </View>
-          <View>
-            <Text style={styles.logoTitle}>AI PLAZA</Text>
-            <Text style={styles.logoSubtitle}>Smart Marketplace</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <TouchableOpacity
+            style={styles.hamburgerBtn}
+            onPress={() => setMenuVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Menu color="#0F172A" size={22} />
+          </TouchableOpacity>
+
+          <View style={styles.logoRow}>
+            <View style={styles.logoBadge}>
+              <Image 
+                source={require('../../assets/logo.png')} 
+                style={styles.logoImg} 
+                resizeMode="contain" 
+              />
+            </View>
+            <View>
+              <Text style={styles.logoTitle}>AI PLAZA</Text>
+              <Text style={styles.logoSubtitle}>Smart Marketplace</Text>
+            </View>
           </View>
         </View>
 
@@ -122,6 +146,106 @@ export default function HomeScreen({ navigation }: any) {
           </LinearGradient>
         </TouchableOpacity>
       </View>
+
+      {/* Hamburger Drawer Modal */}
+      <Modal
+        visible={menuVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalBackdrop} 
+            activeOpacity={1} 
+            onPress={() => setMenuVisible(false)} 
+          />
+          <View style={styles.drawerContainer}>
+            {/* Drawer Header */}
+            <View style={styles.drawerHeader}>
+              <View style={styles.drawerLogoRow}>
+                <Image source={require('../../assets/logo.png')} style={styles.drawerLogoImg} resizeMode="contain" />
+                <View>
+                  <Text style={styles.drawerLogoTitle}>AI PLAZA</Text>
+                  <Text style={styles.drawerLogoSub}>Gul Plaza Digital Hub</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.drawerCloseBtn} onPress={() => setMenuVisible(false)}>
+                <X color="#64748B" size={20} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Founder Honor Badge */}
+            <TouchableOpacity 
+              style={styles.founderBanner}
+              onPress={() => navigateMenu('OurStory')}
+            >
+              <LinearGradient colors={['#7C3AED', '#4F46E5']} style={styles.founderBannerGrad}>
+                <View style={styles.founderTag}>
+                  <Award color="#FDE047" size={12} />
+                  <Text style={styles.founderTagText}>Conceived by Abdul Rafay</Text>
+                </View>
+                <Text style={styles.founderBannerTitle}>The Story of a 20yo Visionary</Text>
+                <Text style={styles.founderBannerSub}>Read how this entire platform was built alone →</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Menu List */}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.drawerMenuContent}>
+              <TouchableOpacity style={styles.drawerItem} onPress={() => navigateMenu('HomeTab')}>
+                <Store color="#7C3AED" size={18} />
+                <Text style={styles.drawerItemText}>Home Marketplace</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.drawerItem} onPress={() => navigateMenu('ShopsTab')}>
+                <Store color="#2563EB" size={18} />
+                <Text style={styles.drawerItemText}>Verified Gul Plaza Shops</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.drawerItem} onPress={() => navigateMenu('AIChat')}>
+                <Bot color="#A163F7" size={18} />
+                <Text style={styles.drawerItemText}>AI Shopping Advisor</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.drawerItem} onPress={() => navigateMenu('CartTab')}>
+                <ShoppingBag color="#059669" size={18} />
+                <Text style={styles.drawerItemText}>Shopping Cart</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.drawerItem} onPress={() => navigateMenu('Orders')}>
+                <Package color="#D97706" size={18} />
+                <Text style={styles.drawerItemText}>Track Orders</Text>
+              </TouchableOpacity>
+
+              <View style={styles.drawerDivider} />
+
+              <Text style={styles.drawerSectionLabel}>ABOUT & GUIDANCE</Text>
+
+              <TouchableOpacity style={styles.drawerItem} onPress={() => navigateMenu('OurStory')}>
+                <Award color="#EC4899" size={18} />
+                <Text style={styles.drawerItemText}>Our Story (Abdul Rafay)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.drawerItem} onPress={() => navigateMenu('HowToUse')}>
+                <HelpCircle color="#0284C7" size={18} />
+                <Text style={styles.drawerItemText}>How to Use AI Plaza</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.drawerItem} onPress={() => navigateMenu('PrivacyPolicy')}>
+                <Lock color="#64748B" size={18} />
+                <Text style={styles.drawerItemText}>Privacy Policy</Text>
+              </TouchableOpacity>
+
+              <View style={styles.drawerDivider} />
+
+              <TouchableOpacity style={styles.drawerItem} onPress={() => navigateMenu('AccountTab')}>
+                <User color="#475569" size={18} />
+                <Text style={styles.drawerItemText}>Account & Settings</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       <ScrollView 
         showsVerticalScrollIndicator={false} 
@@ -781,5 +905,139 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#94A3B8',
     marginTop: 8,
+  },
+  hamburgerBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+  },
+  drawerContainer: {
+    width: '82%',
+    maxWidth: 320,
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    paddingTop: 50,
+    paddingBottom: 24,
+    ...Theme.shadows.md,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  drawerLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  drawerLogoImg: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+  },
+  drawerLogoTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  drawerLogoSub: {
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  drawerCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  founderBanner: {
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  founderBannerGrad: {
+    padding: 14,
+  },
+  founderTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
+  },
+  founderTagText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  founderBannerTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  founderBannerSub: {
+    fontSize: 10,
+    color: '#DDD6FE',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  drawerMenuContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  drawerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  drawerItemText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  drawerDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 10,
+  },
+  drawerSectionLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+    paddingHorizontal: 12,
+    marginBottom: 4,
+    marginTop: 2,
   },
 });

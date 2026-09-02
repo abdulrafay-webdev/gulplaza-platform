@@ -321,7 +321,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               <span className="font-black text-white">AI PLAZA</span>
               <span>© {new Date().getFullYear()} AI Plaza Marketplace. All rights reserved.</span>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-5 gap-y-2">
+              <Link href="/story" className="text-purple-300 font-bold hover:text-white transition-colors">Our Story (Founder Abdul Rafay)</Link>
+              <Link href="/how-to-use" className="hover:text-white transition-colors">How to Use</Link>
+              <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
               <Link href="/seller/login" className="hover:text-white transition-colors">Seller Portal</Link>
               <Link href="/admin/login" className="hover:text-white transition-colors">Super Admin</Link>
               <Link href="/shops" className="hover:text-white transition-colors">Vendor Directory</Link>

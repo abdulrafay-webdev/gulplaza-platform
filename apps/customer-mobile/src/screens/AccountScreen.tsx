@@ -16,7 +16,11 @@ import {
   ShieldCheck,
   Phone,
   Mail,
-  LogIn
+  LogIn,
+  BookOpen,
+  HelpCircle,
+  Lock,
+  Award
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Theme } from '../shared/theme';
@@ -97,6 +101,39 @@ export default function AccountScreen({ navigation }: any) {
               <Bot color="#A163F7" size={18} />
             </View>
             <Text style={styles.menuText}>AI Shopping Assistant</Text>
+            <ChevronRight color="#CBD5E1" size={18} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('OurStory')}
+          >
+            <View style={[styles.menuIconBox, { backgroundColor: '#FDF2F8' }]}>
+              <Award color="#EC4899" size={18} />
+            </View>
+            <Text style={styles.menuText}>Our Story (Founder Abdul Rafay)</Text>
+            <ChevronRight color="#CBD5E1" size={18} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('HowToUse')}
+          >
+            <View style={[styles.menuIconBox, { backgroundColor: '#EFF6FF' }]}>
+              <HelpCircle color="#2563EB" size={18} />
+            </View>
+            <Text style={styles.menuText}>How to Use AI Plaza</Text>
+            <ChevronRight color="#CBD5E1" size={18} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('PrivacyPolicy')}
+          >
+            <View style={[styles.menuIconBox, { backgroundColor: '#F1F5F9' }]}>
+              <Lock color="#64748B" size={18} />
+            </View>
+            <Text style={styles.menuText}>Privacy Policy & Security</Text>
             <ChevronRight color="#CBD5E1" size={18} />
           </TouchableOpacity>
         </View>

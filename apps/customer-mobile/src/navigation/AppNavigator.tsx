@@ -25,6 +25,9 @@ import CheckoutScreen from '../screens/CheckoutScreen';
 import OrdersScreen from '../screens/OrdersScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
+import OurStoryScreen from '../screens/OurStoryScreen';
+import HowToUseScreen from '../screens/HowToUseScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 
 import { Theme } from '../shared/theme';
 import { useCart } from '../context/CartContext';
@@ -165,6 +168,9 @@ export default function AppNavigator() {
         <Stack.Screen name="Orders" component={OrdersScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Signup" component={SignupScreen} />
+        <Stack.Screen name="OurStory" component={OurStoryScreen} />
+        <Stack.Screen name="HowToUse" component={HowToUseScreen} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
