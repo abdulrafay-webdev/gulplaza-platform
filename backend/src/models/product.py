@@ -1,9 +1,8 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from .shop import Shop
-    from .category import Category, SubCategory
+from .shop import Shop
+from .category import Category, SubCategory
 
 class ProductImage(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

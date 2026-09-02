@@ -8,6 +8,7 @@ import uuid
 import os
 from src.db.session import get_session
 from src.models.product import Product, ProductImage, ProductCreate, ProductRead
+from src.models.shop import Shop
 from src.services import product_service, shop_service, image_service
 from src.auth.deps import get_shop_owner
 
@@ -26,30 +27,42 @@ def list_all_products(
     session: Session = Depends(get_session)
 ):
     """List all products across all shops (Public)."""
-    query = select(Product).where(Product.is_deleted == False).options(selectinload(Product.images), selectinload(Product.shop))
+    query = select(Product).where(Product.is_deleted == False).options(selectinload(Product.images))
     if search:
         query = query.where(Product.name.ilike(f"%{search}%"))
     
     query = query.offset(offset).limit(limit).order_by(Product.id.desc())
     prods = session.exec(query).all()
-    for p in prods:
-        if p.shop:
-            setattr(p, "shop_name", p.shop.name)
-    return prods
+    if not prods:
+        return []
+    
+    shop_ids = list({p.shop_id for p in prods if p.shop_id})
+    shop_map = {}
+    if shop_ids:
+        shops = session.exec(select(Shop).where(Shop.id.in_(shop_ids))).all()
+        shop_map = {s.id: s.name for s in shops}
+
+    return [
+        ProductRead.model_validate(p, update={"shop_name": shop_map.get(p.shop_id, f"Shop #{p.shop_id}")})
+        for p in prods
+    ]
 
 @router.get("/products/{product_id}", response_model=ProductRead)
 def get_product(product_id: int, session: Session = Depends(get_session)):
     """Get a single product details (Public)."""
-    # Use eager load via service or selectinload
     product = session.exec(
-        select(Product).where(Product.id == product_id, Product.is_deleted == False).options(selectinload(Product.images), selectinload(Product.shop))
+        select(Product).where(Product.id == product_id, Product.is_deleted == False).options(selectinload(Product.images))
     ).first()
     
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    if product.shop:
-        setattr(product, "shop_name", product.shop.name)
-    return product
+    
+    shop_name = None
+    if product.shop_id:
+        shop = session.get(Shop, product.shop_id)
+        if shop:
+            shop_name = shop.name
+    return ProductRead.model_validate(product, update={"shop_name": shop_name})
 
 import base64
 

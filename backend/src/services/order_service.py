@@ -18,25 +18,13 @@ def get_orders(session: Session, shop_id: Optional[int] = None, customer_id: Opt
     
     # Sort by date desc
     query = query.order_by(Order.created_at.desc())
-    orders = session.exec(query).all()
-    for o in orders:
-        if not getattr(o, "shop_name", None):
-            sh = session.get(Shop, o.shop_id)
-            if sh:
-                setattr(o, "shop_name", sh.name)
-    return orders
+    return session.exec(query).all()
 
 def get_all_orders(session: Session) -> List[Order]:
     query = select(Order).options(
         selectinload(Order.items).selectinload(OrderItem.product)
     ).order_by(Order.created_at.desc())
-    orders = session.exec(query).all()
-    for o in orders:
-        if not getattr(o, "shop_name", None):
-            sh = session.get(Shop, o.shop_id)
-            if sh:
-                setattr(o, "shop_name", sh.name)
-    return orders
+    return session.exec(query).all()
 
 def get_order_by_id(session: Session, order_id: int) -> Optional[Order]:
     return session.exec(

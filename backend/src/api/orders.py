@@ -28,12 +28,13 @@ def list_orders(user = Depends(get_current_user), session: Session = Depends(get
     user_id = str(user.get("id"))
     shop_id = user.get("shop_id")
 
+    orders_list = []
     # 1. Super Admin sees all platform orders
     if role == "SUPER_ADMIN" or user.get("email") == "abdullrrafay@gmail.com":
-        return order_service.get_all_orders(session)
+        orders_list = order_service.get_all_orders(session)
 
     # 2. Seller / Shop Owner sees their store orders
-    if role in ["SELLER", "SHOP_OWNER"] or shop_id:
+    elif role in ["SELLER", "SHOP_OWNER"] or shop_id:
         shop = None
         if shop_id:
             shop = session.get(Shop, shop_id)
@@ -41,10 +42,25 @@ def list_orders(user = Depends(get_current_user), session: Session = Depends(get
             shop = shop_service.get_shop_by_owner(session, user_id)
         if not shop:
             return []
-        return order_service.get_orders(session, shop_id=shop.id)
+        orders_list = order_service.get_orders(session, shop_id=shop.id)
 
     # 3. Customer sees their placed orders
-    return order_service.get_orders(session, customer_id=user_id)
+    else:
+        orders_list = order_service.get_orders(session, customer_id=user_id)
+
+    if not orders_list:
+        return []
+
+    shop_ids = list({o.shop_id for o in orders_list if o.shop_id})
+    shop_map = {}
+    if shop_ids:
+        shops = session.exec(select(Shop).where(Shop.id.in_(shop_ids))).all()
+        shop_map = {s.id: s.name for s in shops}
+
+    return [
+        OrderRead.model_validate(o, update={"shop_name": shop_map.get(o.shop_id, f"Shop #{o.shop_id}")})
+        for o in orders_list
+    ]
 
 @router.get("/orders/{order_id}", response_model=OrderRead)
 def get_order(
