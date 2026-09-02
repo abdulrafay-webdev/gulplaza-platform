@@ -26,12 +26,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { seller, token, isLoaded, isAdmin, logout } = useSeller();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const isLoginPage = pathname === "/admin/login";
+
   useEffect(() => {
     if (!isLoaded) return;
+    if (isLoginPage) return;
     if (!token || !isAdmin) {
       router.push("/admin/login");
     }
-  }, [isLoaded, token, isAdmin, router]);
+  }, [isLoaded, token, isAdmin, router, isLoginPage]);
 
   const navItems = [
     { name: 'Dashboard & Analytics', href: '/admin', icon: BarChart3 },
@@ -40,6 +43,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Reviews Moderation', href: '/admin/reviews', icon: Star },
     { name: 'Main Categories', href: '/admin/categories', icon: Layers },
   ];
+
+  // Directly render login page children so email and password fields are shown
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   if (!isLoaded || !token || !isAdmin) {
     return (
