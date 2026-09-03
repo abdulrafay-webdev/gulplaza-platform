@@ -1,4 +1,4 @@
-# Gul Plaza Marketplace (MVP)
+# AI Plaza Quick Marketplace (MVP)
 
 Multi-shop ordering platform built with FastAPI, React, and Neon.
 
