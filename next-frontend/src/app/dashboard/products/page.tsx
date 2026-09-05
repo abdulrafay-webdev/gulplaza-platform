@@ -45,9 +45,9 @@ export default function ProductList() {
                 <h1 className="text-xl md:text-2xl font-bold text-primary tracking-tight">Product Inventory</h1>
                 <Link 
                     href="/dashboard/products/new"
-                    className="bg-accent text-white px-4 py-2 rounded-md font-bold text-sm hover:bg-amber-600 transition-all shadow-sm"
+                    className="bg-[#A163F7] hover:bg-[#8738F6] text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-1.5"
                 >
-                    + Add <span className="hidden sm:inline">New</span>
+                    + Add <span className="hidden sm:inline">New Product</span>
                 </Link>
             </div>
 

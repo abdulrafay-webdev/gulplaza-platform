@@ -171,7 +171,7 @@ export default function SearchPage({ searchParams }: { searchParams: Promise<{ q
                                                         });
                                                         window.location.href = '/checkout';
                                                     }}
-                                                    className="flex-1 bg-accent text-white py-2.5 text-[9px] md:text-xs font-bold hover:bg-amber-600 transition-colors border-l border-white/10 uppercase tracking-tighter"
+                                                    className="flex-1 bg-[#A163F7] hover:bg-[#8738F6] text-white py-2.5 text-[9px] md:text-xs font-bold transition-colors border-l border-white/10 uppercase tracking-tighter"
                                                 >
                                                     Buy Now
                                                 </button>

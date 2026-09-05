@@ -75,12 +75,12 @@ def process_checkout(session: Session, customer_identity: Optional[str], items: 
                 shop_id=shop_id,
                 customer_clerk_id=c_clerk_id,
                 customer_id=c_neon_id,
-                guest_name=g_name,
-                guest_email=g_email,
-                guest_phone=g_phone,
-                guest_address=g_address,
-                total_amount=data["total"],
-                status=OrderStatus.PENDING
+                guest_name=g_name.strip() if g_name else None,
+                guest_email=g_email.strip() if g_email else None,
+                guest_phone=g_phone.strip() if g_phone else None,
+                guest_address=g_address.strip() if g_address else None,
+                total_amount=float(data["total"]),
+                status=OrderStatus.PENDING.value if hasattr(OrderStatus.PENDING, "value") else "pending"
             )
             session.add(order)
             session.flush() # Get ID for order items
@@ -89,8 +89,8 @@ def process_checkout(session: Session, customer_identity: Optional[str], items: 
                 order_item = OrderItem(
                     order_id=order.id,
                     product_id=i["product_id"],
-                    quantity=i["quantity"],
-                    price_at_purchase=i["price"]
+                    quantity=int(i["quantity"]),
+                    price_at_purchase=float(i["price"])
                 )
                 session.add(order_item)
                 
@@ -102,5 +102,5 @@ def process_checkout(session: Session, customer_identity: Optional[str], items: 
         
     except Exception as e:
         session.rollback()
-        logger.error(f"Checkout service failed: {str(e)}")
+        logger.error(f"Checkout service failed: {str(e)}", exc_info=True)
         raise e

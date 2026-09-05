@@ -170,13 +170,16 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         const cleanSubCat = formData.sub_category_id && !isNaN(parseInt(formData.sub_category_id, 10)) ? parseInt(formData.sub_category_id, 10) : null;
 
         let cleanVariants: { id?: number; name: string; price: number; stock_quantity: number }[] = [];
+        let finalPrice = cleanPrice;
+        let finalStock = cleanStock;
+
         if (hasVariants) {
             const validVariants = variantsList
                 .filter(v => (v.name || '').trim().length > 0)
                 .map(v => ({
                     ...(v.id ? { id: v.id } : {}),
                     name: v.name.trim(),
-                    price: isNaN(Number(v.price)) || Number(v.price) < 0 ? cleanPrice : Number(v.price),
+                    price: isNaN(Number(v.price)) || Number(v.price) < 0 ? 0 : Number(v.price),
                     stock_quantity: isNaN(Number(v.stock_quantity)) || Number(v.stock_quantity) < 0 ? 0 : Math.floor(Number(v.stock_quantity))
                 }));
 
@@ -185,18 +188,21 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 return;
             }
             cleanVariants = validVariants;
+            finalPrice = Math.min(...validVariants.map(v => v.price));
+            finalStock = validVariants.reduce((sum, v) => sum + v.stock_quantity, 0);
+        } else {
+            if (cleanPrice <= 0) {
+                alert("Please enter a valid price for the product.");
+                return;
+            }
         }
-
-        const finalPrice = hasVariants && cleanVariants.length > 0 && cleanPrice === 0
-            ? Math.min(...cleanVariants.map(v => v.price))
-            : cleanPrice;
 
         const payload: any = {
             name: trimmedName,
             short_description: (formData.short_description || '').trim() || "No short description",
             long_description: (formData.long_description || '').trim() || "No long description",
             price: finalPrice,
-            stock_quantity: cleanStock,
+            stock_quantity: finalStock,
             image_url: formData.image_url || (formData.image_urls.length > 0 ? formData.image_urls[0] : null),
             image_urls: formData.image_urls || [],
             main_category_id: cleanMainCat,
@@ -427,37 +433,39 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     )}
                 </div>
 
-                {/* Price & Stock */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium">{hasVariants ? "Base / Starting Price" : "Price"}</label>
-                        <input 
-                            type="number" step="0.01"
-                            className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white"
-                            placeholder="0.00"
-                            value={formData.price === 0 && !hasVariants ? '' : (isNaN(formData.price) ? '' : formData.price)}
-                            onChange={e => {
-                                const val = e.target.value;
-                                setFormData({...formData, price: val === '' ? 0 : (parseFloat(val) || 0)});
-                            }}
-                            required
-                        />
+                {/* Price & Stock - Only required and shown when product has NO variants */}
+                {!hasVariants && (
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium">Price (PKR) *</label>
+                            <input 
+                                type="number" step="0.01"
+                                className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white"
+                                placeholder="0.00"
+                                value={formData.price === 0 ? '' : (isNaN(formData.price) ? '' : formData.price)}
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    setFormData({...formData, price: val === '' ? 0 : (parseFloat(val) || 0)});
+                                }}
+                                required={!hasVariants}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium">Stock Quantity *</label>
+                            <input 
+                                type="number" 
+                                className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white"
+                                placeholder="0"
+                                value={formData.stock_quantity === 0 ? '' : (isNaN(formData.stock_quantity) ? '' : formData.stock_quantity)}
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    setFormData({...formData, stock_quantity: val === '' ? 0 : (parseInt(val, 10) || 0)});
+                                }}
+                                required={!hasVariants}
+                            />
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium">Stock</label>
-                        <input 
-                            type="number" 
-                            className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white"
-                            placeholder="0"
-                            value={formData.stock_quantity === 0 ? '' : (isNaN(formData.stock_quantity) ? '' : formData.stock_quantity)}
-                            onChange={e => {
-                                const val = e.target.value;
-                                setFormData({...formData, stock_quantity: val === '' ? 0 : (parseInt(val, 10) || 0)});
-                            }}
-                            required
-                        />
-                    </div>
-                </div>
+                )}
 
                 {/* Image Upload */}
                 <div>
@@ -477,11 +485,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                                 <button 
                                     type="button"
                                     onClick={() => handleRemoveImage(url)}
-                                    className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
                                 >
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                 </button>
-                                {formData.image_url === url && <span className="absolute bottom-0 inset-x-0 bg-primary/80 text-[10px] text-white text-center rounded-b py-0.5">Main</span>}
+                                {formData.image_url === url && <span className="absolute bottom-0 inset-x-0 bg-[#A163F7] text-[10px] text-white text-center rounded-b py-0.5 font-bold">Main</span>}
                             </div>
                         ))}
                     </div>
@@ -490,9 +498,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 <button 
                     type="submit"
                     disabled={saving}
-                    className="w-full bg-accent text-white py-4 rounded-md font-bold hover:bg-amber-600 disabled:bg-gray-300 transition-all shadow-md"
+                    className="w-full bg-[#A163F7] hover:bg-[#8738F6] active:scale-[0.99] text-white py-4 rounded-xl font-black text-base disabled:bg-slate-300 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl cursor-pointer"
                 >
-                    {saving ? "Updating Product..." : "Update Product"}
+                    {saving ? "Updating Product..." : "Save Product"}
                 </button>
             </form>
         </div>

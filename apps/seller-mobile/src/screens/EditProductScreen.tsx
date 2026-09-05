@@ -116,9 +116,9 @@ export default function EditProductScreen({ route, navigation }: any) {
       }
 
       const minVarPrice = Math.min(...validVariants.map(v => v.price));
-      if (isNaN(priceNum) || priceNum <= 0) {
-        priceNum = minVarPrice;
-      }
+      priceNum = minVarPrice;
+      const totalVarStock = validVariants.reduce((sum, v) => sum + v.stock_quantity, 0);
+      stockNum = totalVarStock;
     } else {
       if (isNaN(priceNum) || priceNum <= 0) {
         Alert.alert('Invalid Price', 'Please enter a valid price in PKR.');
@@ -187,9 +187,9 @@ export default function EditProductScreen({ route, navigation }: any) {
           <ChevronLeft color="#0F172A" size={24} />
         </TouchableOpacity>
         <Text style={styles.navTitle}>Edit Product</Text>
-        <TouchableOpacity onPress={handleUpdate} disabled={loading}>
+        <TouchableOpacity onPress={handleUpdate} disabled={loading} style={styles.saveHeaderBtn}>
           {loading ? (
-            <ActivityIndicator size="small" color="#A163F7" />
+            <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text style={styles.saveNavText}>Save</Text>
           )}
@@ -318,27 +318,29 @@ export default function EditProductScreen({ route, navigation }: any) {
             )}
           </View>
 
-          <View style={styles.rowTwo}>
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.label}>{hasVariants ? "Base / Min Price *" : "Price (PKR) *"}</Text>
-              <TextInput
-                style={styles.textInput}
-                keyboardType="numeric"
-                value={price}
-                onChangeText={setPrice}
-              />
-            </View>
+          {!hasVariants && (
+            <View style={styles.rowTwo}>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Price (PKR) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  keyboardType="numeric"
+                  value={price}
+                  onChangeText={setPrice}
+                />
+              </View>
 
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Stock Quantity</Text>
-              <TextInput
-                style={styles.textInput}
-                keyboardType="numeric"
-                value={stock}
-                onChangeText={setStock}
-              />
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Stock Quantity</Text>
+                <TextInput
+                  style={styles.textInput}
+                  keyboardType="numeric"
+                  value={stock}
+                  onChangeText={setStock}
+                />
+              </View>
             </View>
-          </View>
+          )}
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Short Summary</Text>
@@ -390,10 +392,22 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0F172A',
   },
+  saveHeaderBtn: {
+    backgroundColor: '#A163F7',
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 12,
+    shadowColor: '#A163F7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   saveNavText: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#A163F7',
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   scrollContent: {
     padding: 16,

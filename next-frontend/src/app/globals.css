@@ -36,14 +36,17 @@
 }
 
 @theme inline {
+  --color-primary: var(--primary-purple);
   --color-primary-purple: var(--primary-purple);
   --color-primary-purple-dark: var(--primary-purple-dark);
   --color-primary-purple-light: var(--primary-purple-light);
   
+  --color-secondary: var(--secondary-blue);
   --color-secondary-blue: var(--secondary-blue);
   --color-secondary-blue-dark: var(--secondary-blue-dark);
   --color-secondary-blue-light: var(--secondary-blue-light);
   
+  --color-accent: var(--primary-purple);
   --color-accent-cyan: var(--accent-cyan);
   --color-accent-cyan-dark: var(--accent-cyan-dark);
   

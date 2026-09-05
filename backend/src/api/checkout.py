@@ -6,7 +6,9 @@ from pydantic import BaseModel
 from typing import List, Optional
 import logging
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from src.api.customers import get_current_customer
+from jose import jwt
+from src.services import customer_service
+from src.models.customer import Customer
 
 router = APIRouter()
 security = HTTPBearer(auto_error=False)
@@ -36,14 +38,18 @@ def checkout(
     try:
         # Try to get customer from token if it exists
         customer_id = None
-        if credentials:
+        if credentials and credentials.credentials:
             try:
-                # We need to manually handle the case where get_current_customer might raise 401
-                # because we want to fallback to guest instead of crashing.
-                customer = get_current_customer(credentials, session)
-                customer_id = customer.id
-            except Exception:
-                pass # Invalid token, process as guest
+                token = credentials.credentials
+                payload = jwt.decode(token, customer_service.SECRET_KEY, algorithms=[customer_service.ALGORITHM])
+                sub = payload.get("sub")
+                if sub is not None and str(sub).isdigit():
+                    customer = session.get(Customer, int(sub))
+                    if customer:
+                        customer_id = customer.id
+            except Exception as auth_err:
+                logger.warning(f"Could not extract customer from credentials: {auth_err}")
+                session.rollback()
         
         # Convert Pydantic models to dicts
         items_dict = [i.dict() for i in req.items]
@@ -64,5 +70,5 @@ def checkout(
         logger.error(f"Checkout Validation Error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Checkout Internal Error: {e}")
+        logger.error(f"Checkout Internal Error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")

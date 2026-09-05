@@ -32,9 +32,12 @@ def get_current_customer(credentials: HTTPAuthorizationCredentials = Depends(sec
     token = credentials.credentials
     try:
         payload = jwt.decode(token, customer_service.SECRET_KEY, algorithms=[customer_service.ALGORITHM])
-        customer_id: int = payload.get("sub")
-        if customer_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
+        sub = payload.get("sub")
+        if not sub or not str(sub).isdigit():
+            raise HTTPException(status_code=401, detail="Invalid token for customer")
+        customer_id = int(sub)
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=401, detail="Could not validate credentials")
     

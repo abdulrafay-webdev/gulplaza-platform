@@ -53,7 +53,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
                         </div>
                         <div className="md:text-right">
                             <span className="text-[10px] uppercase font-bold text-text-secondary block mb-1">Status</span>
-                            <span className="bg-accent text-white px-4 py-1.5 rounded-full text-xs md:text-sm font-extrabold uppercase tracking-wide shadow-sm inline-block">
+                            <span className="bg-[#A163F7] text-white px-4 py-1.5 rounded-full text-xs md:text-sm font-extrabold uppercase tracking-wide shadow-sm inline-block">
                                 {order.status}
                             </span>
                         </div>
