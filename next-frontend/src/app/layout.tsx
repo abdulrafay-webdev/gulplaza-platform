@@ -16,6 +16,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "AI Plaza - Smart Multi-Vendor Marketplace",
   description: "Next-generation multi-shop shopping platform with unified cart & direct store fulfillment.",
+  icons: {
+    icon: [
+      { url: "/images/logo.png", href: "/images/logo.png" },
+    ],
+    shortcut: "/images/logo.png",
+    apple: "/images/logo.png",
+  },
 };
 
 export default function RootLayout({

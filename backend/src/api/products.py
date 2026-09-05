@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Response
 from sqlmodel import Session, select
 from typing import List, Optional
 from pydantic import BaseModel
@@ -21,12 +21,16 @@ def get_imagekit_auth():
 
 @router.get("/products", response_model=List[ProductRead])
 def list_all_products(
+    response: Response,
     limit: int = 50, 
     offset: int = 0, 
     search: Optional[str] = None, 
     session: Session = Depends(get_session)
 ):
     """List all products across all shops (Public)."""
+    if not search:
+        response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=120"
+
     query = select(Product).where(Product.is_deleted == False).options(selectinload(Product.images))
     if search:
         query = query.where(Product.name.ilike(f"%{search}%"))
@@ -48,8 +52,9 @@ def list_all_products(
     ]
 
 @router.get("/products/{product_id}", response_model=ProductRead)
-def get_product(product_id: int, session: Session = Depends(get_session)):
+def get_product(product_id: int, response: Response, session: Session = Depends(get_session)):
     """Get a single product details (Public)."""
+    response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
     product = session.exec(
         select(Product).where(Product.id == product_id, Product.is_deleted == False).options(selectinload(Product.images))
     ).first()

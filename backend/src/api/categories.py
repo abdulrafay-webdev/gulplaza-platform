@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlmodel import Session, select
 from typing import List, Optional
 from src.db.session import get_session
@@ -11,8 +11,9 @@ router = APIRouter()
 
 # --- PUBLIC ---
 @router.get("/", response_model=List[Category])
-def list_categories(session: Session = Depends(get_session)):
+def list_categories(response: Response, session: Session = Depends(get_session)):
     """List all main categories (Public) with product counts."""
+    response.headers["Cache-Control"] = "public, max-age=120, stale-while-revalidate=600"
     return category_service.get_all_categories(session)
 
 # --- ADMIN ONLY ---

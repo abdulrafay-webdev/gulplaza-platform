@@ -329,7 +329,14 @@ export default function HomeScreen({ navigation }: any) {
           <Text style={styles.sectionTitle}>Shop by Category</Text>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catRow}>
-          {categories.map((c) => (
+          {loading && !refreshing ? (
+            [1, 2, 3, 4].map((k) => (
+              <View key={k} style={[styles.catCard, { backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="small" color="#A163F7" />
+              </View>
+            ))
+          ) : (
+            categories.map((c) => (
             <TouchableOpacity 
               key={c.id} 
               style={styles.catCard}
@@ -340,7 +347,7 @@ export default function HomeScreen({ navigation }: any) {
               </View>
               <Text style={styles.catName} numberOfLines={1}>{c.name}</Text>
             </TouchableOpacity>
-          ))}
+          )))}
         </ScrollView>
 
         {/* Verified Shops Carousel */}
@@ -351,7 +358,14 @@ export default function HomeScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.shopsRow}>
-          {shops.map((s) => (
+          {loading && !refreshing ? (
+            [1, 2, 3].map((k) => (
+              <View key={k} style={[styles.shopCard, { backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center', height: 110 }]}>
+                <ActivityIndicator size="small" color="#6F88FC" />
+              </View>
+            ))
+          ) : (
+            shops.map((s) => (
             <TouchableOpacity 
               key={s.id} 
               style={styles.shopCard}
@@ -369,7 +383,7 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
               </View>
             </TouchableOpacity>
-          ))}
+          )))}
         </ScrollView>
 
         {/* 1. Trending Marketplace Products */}
@@ -385,7 +399,14 @@ export default function HomeScreen({ navigation }: any) {
 
         {/* Horizontal Trending Cards Carousel */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.trendingRow}>
-          {trendingProducts.map((p) => {
+          {loading && !refreshing ? (
+            [1, 2, 3].map((k) => (
+              <View key={k} style={[styles.trendingCard, { backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center', height: 230 }]}>
+                <ActivityIndicator size="small" color="#FF7582" />
+              </View>
+            ))
+          ) : (
+            trendingProducts.map((p) => {
             const thumb = p.image_url || (p.images && p.images[0]?.url) || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80';
             const isAdded = cartSuccessId === p.id;
             return (
@@ -423,7 +444,7 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
               </TouchableOpacity>
             );
-          })}
+          }))}
         </ScrollView>
 
         {/* 2. All Products / Full Marketplace Catalog Section */}

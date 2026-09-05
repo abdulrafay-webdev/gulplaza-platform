@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlmodel import Session, select
 from typing import List, Optional
 from src.db.session import get_session
@@ -166,12 +166,14 @@ def get_my_shop(user = Depends(get_current_user), session: Session = Depends(get
     return shop
 
 @router.get("/", response_model=List[Shop])
-def list_shops(session: Session = Depends(get_session)):
+def list_shops(response: Response, session: Session = Depends(get_session)):
     """Public list of shops."""
+    response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
     return shop_service.get_all_shops(session)
 
 @router.get("/{shop_id}", response_model=Shop)
-def get_shop(shop_id: int, session: Session = Depends(get_session)):
+def get_shop(shop_id: int, response: Response, session: Session = Depends(get_session)):
+    response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
     shop = shop_service.get_shop_by_id(session, shop_id)
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")

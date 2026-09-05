@@ -54,6 +54,7 @@ export default function AIAssistantPage() {
     const [isUploadingImage, setIsUploadingImage] = useState(false);
     const [isThinking, setIsThinking] = useState(false);
     const [loadingChats, setLoadingChats] = useState(true);
+    const [loadingChatDetail, setLoadingChatDetail] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [cartToast, setCartToast] = useState<string | null>(null);
     const [errorBanner, setErrorBanner] = useState<string | null>(null);
@@ -64,8 +65,13 @@ export default function AIAssistantPage() {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({
+                top: scrollContainerRef.current.scrollHeight,
+                behavior
+            });
+        }
     };
 
     const handleScroll = () => {
@@ -77,17 +83,20 @@ export default function AIAssistantPage() {
     // Auto-scroll when new messages arrive, but never yank the user away
     // while they are reading older history (unless they just sent a message).
     useEffect(() => {
+        if (loadingChatDetail) return;
         const lastMsg = messages[messages.length - 1];
         if (isNearBottom || lastMsg?.role === 'user' || isThinking) {
-            scrollToBottom();
+            scrollToBottom(lastMsg?.role === 'user' ? 'smooth' : 'auto');
         }
-    }, [messages, isThinking]);
+    }, [messages, isThinking, loadingChatDetail]);
 
     // Reset scroll state when switching chats
     useEffect(() => {
-        setIsNearBottom(true);
-        scrollToBottom();
-    }, [currentChatId]);
+        if (!loadingChatDetail && messages.length > 0) {
+            setIsNearBottom(true);
+            scrollToBottom('auto');
+        }
+    }, [currentChatId, loadingChatDetail]);
 
     // Rotate the thinking status line while the AI is working
     useEffect(() => {
@@ -174,6 +183,7 @@ export default function AIAssistantPage() {
 
     const loadChatDetail = async (chatId: number) => {
         try {
+            setLoadingChatDetail(true);
             setCurrentChatId(chatId);
             setHistoryOpen(false);
             setErrorBanner(null);
@@ -183,6 +193,8 @@ export default function AIAssistantPage() {
         } catch (err) {
             console.error("Failed to load chat details:", err);
             setErrorBanner(describeAxiosError(err));
+        } finally {
+            setLoadingChatDetail(false);
         }
     };
 
@@ -541,8 +553,30 @@ export default function AIAssistantPage() {
                         onScroll={handleScroll}
                         className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 chat-scroll bg-gradient-to-b from-[#FAFAFE] to-[#F6F3FD]"
                     >
-                        {/* Empty State Hero */}
-                        {messages.length === 0 && (
+                        {/* Loading Previous Chat Indicator */}
+                        {loadingChatDetail ? (
+                            <div className="flex flex-col items-center justify-center py-20 sm:py-28 space-y-4 anim-fade-in">
+                                <div className="relative">
+                                    <div className="w-14 h-14 rounded-2xl bg-purple-50 border border-purple-200/80 flex items-center justify-center shadow-md shadow-purple-500/10">
+                                        <Loader2 className="w-7 h-7 text-[#A163F7] animate-spin" />
+                                    </div>
+                                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gradient-to-tr from-[#A163F7] to-[#45E3FF] flex items-center justify-center text-white shadow-sm">
+                                        <Sparkles className="w-3 h-3" />
+                                    </div>
+                                </div>
+                                <div className="text-center space-y-1">
+                                    <p className="text-sm font-black text-slate-800 tracking-tight">
+                                        Loading previous conversation...
+                                    </p>
+                                    <p className="text-xs text-slate-500 font-medium">
+                                        Purani conversation aur product recommendations load ho rahi hain...
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Empty State Hero */}
+                                {messages.length === 0 && (
                             <div className="max-w-2xl mx-auto py-4 sm:py-8 text-center space-y-7 anim-fade-in">
                                 <div className="relative w-24 h-24 mx-auto">
                                     <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-[#A163F7] via-[#6F88FC] to-[#45E3FF] opacity-35 blur-xl animate-pulse" />
@@ -722,6 +756,8 @@ export default function AIAssistantPage() {
                                 </div>
                             </div>
                         ))}
+                        </>
+                        )}
 
                         {/* Thinking / Searching Indicator */}
                         {isThinking && (
@@ -748,7 +784,7 @@ export default function AIAssistantPage() {
                     {/* Scroll to Bottom Button */}
                     {!isNearBottom && (
                         <button
-                            onClick={scrollToBottom}
+                            onClick={() => scrollToBottom('smooth')}
                             className="absolute bottom-28 right-4 md:right-6 z-10 w-9 h-9 rounded-full bg-white border border-slate-200 shadow-lg shadow-slate-900/10 flex items-center justify-center text-slate-600 hover:text-[#A163F7] hover:border-[#A163F7]/50 hover:shadow-purple-500/20 transition-all anim-fade-in cursor-pointer"
                             title="Scroll to latest"
                         >

@@ -26,6 +26,30 @@ import {
   Zap
 } from 'lucide-react';
 
+const ProductSkeleton = ({ count = 6 }: { count?: number }) => (
+    <>
+        {Array.from({ length: count }).map((_, idx) => (
+            <div 
+                key={`skel-${idx}`} 
+                className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col justify-between animate-pulse"
+            >
+                <div className="relative aspect-square bg-slate-100 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-slate-200/70" />
+                </div>
+                <div className="p-2.5 sm:p-3 space-y-2">
+                    <div className="h-3.5 bg-slate-200 rounded-md w-4/5" />
+                    <div className="h-2.5 bg-slate-100 rounded-md w-3/5" />
+                    <div className="h-4 bg-slate-200/80 rounded-md w-2/5 pt-1" />
+                </div>
+                <div className="p-2 pt-0 grid grid-cols-2 gap-1 sm:gap-1.5">
+                    <div className="h-7 sm:h-8 bg-slate-100 rounded-xl" />
+                    <div className="h-7 sm:h-8 bg-purple-100/60 rounded-xl" />
+                </div>
+            </div>
+        ))}
+    </>
+);
+
 export default function Home() {
     const { addToCart } = useCart();
     const [shopList, setShopList] = useState<any[]>([]);
@@ -341,7 +365,10 @@ export default function Home() {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
-                    {latestProducts.map(product => (
+                    {loading ? (
+                        <ProductSkeleton count={6} />
+                    ) : (
+                        latestProducts.map(product => (
                         <div 
                             key={product.id} 
                             className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:border-[#A163F7] hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden flex flex-col justify-between group"
@@ -431,7 +458,7 @@ export default function Home() {
                                 </button>
                             </div>
                         </div>
-                    ))}
+                    )))}
                 </div>
             </section>
 
@@ -476,7 +503,10 @@ export default function Home() {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
-                    {filteredAllProducts.map(product => (
+                    {loading ? (
+                        <ProductSkeleton count={12} />
+                    ) : (
+                        filteredAllProducts.map(product => (
                         <div 
                             key={product.id} 
                             className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:border-[#A163F7] hover:shadow-xl hover:-translate-y-1 transition-all overflow-hidden flex flex-col justify-between group"
@@ -562,7 +592,7 @@ export default function Home() {
                                 </button>
                             </div>
                         </div>
-                    ))}
+                    )))}
                 </div>
 
                 {filteredAllProducts.length === 0 && !loading && (
