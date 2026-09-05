@@ -49,6 +49,21 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         setVariantsList(prev => prev.filter((_, i) => i !== index));
     };
 
+    const toSafeString = (v: any): string => {
+        if (v === null || v === undefined) return '';
+        if (typeof v === 'string') return v;
+        if (Array.isArray(v)) {
+            return v.map(item => {
+                if (typeof item === 'string') return item;
+                try { return JSON.stringify(item); } catch { return String(item); }
+            }).join('\n');
+        }
+        if (typeof v === 'object') {
+            return Object.entries(v).map(([k, val]) => `${k}: ${val}`).join('\n');
+        }
+        return String(v);
+    };
+
     const handleVariantChange = (index: number, field: string, value: any) => {
         setVariantsList(prev => {
             const next = [...prev];
@@ -199,8 +214,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
         const payload: any = {
             name: trimmedName,
-            short_description: (formData.short_description || '').trim() || "No short description",
-            long_description: (formData.long_description || '').trim() || "No long description",
+            short_description: toSafeString(formData.short_description).trim() || "No short description",
+            long_description: toSafeString(formData.long_description).trim() || "No long description",
             price: finalPrice,
             stock_quantity: finalStock,
             image_url: formData.image_url || (formData.image_urls.length > 0 ? formData.image_urls[0] : null),

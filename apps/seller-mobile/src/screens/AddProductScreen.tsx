@@ -107,6 +107,21 @@ export default function AddProductScreen({ navigation }: any) {
     }
   };
 
+  const toSafeString = (v: any): string => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'string') return v;
+    if (Array.isArray(v)) {
+      return v.map(item => {
+        if (typeof item === 'string') return item;
+        try { return JSON.stringify(item); } catch { return String(item); }
+      }).join('\n');
+    }
+    if (typeof v === 'object') {
+      return Object.entries(v).map(([k, val]) => `${k}: ${val}`).join('\n');
+    }
+    return String(v);
+  };
+
   const handleGenerateAI = async () => {
     if (!name.trim()) {
       Alert.alert('Product Title Needed', 'Please enter a product title first so AI can generate descriptions.');
@@ -117,8 +132,8 @@ export default function AddProductScreen({ navigation }: any) {
       setIsAiGenerating(true);
       const res = await api.ai.generateDescription(name.trim(), selectedCatId || undefined);
       if (res.data) {
-        setShortDesc(res.data.short_description || '');
-        setLongDesc(res.data.long_description || '');
+        setShortDesc(toSafeString(res.data.short_description));
+        setLongDesc(toSafeString(res.data.long_description));
         Alert.alert('AI Generated! ✨', 'High-converting descriptions have been auto-generated for your product.');
       }
     } catch (err) {
@@ -212,8 +227,8 @@ export default function AddProductScreen({ navigation }: any) {
         name: name.trim(),
         price: priceNum,
         stock_quantity: stockNum,
-        short_description: shortDesc.trim() || "No short description",
-        long_description: longDesc.trim() || "No long description",
+        short_description: toSafeString(shortDesc).trim() || "No short description",
+        long_description: toSafeString(longDesc).trim() || "No long description",
         main_category_id: selectedCatId,
         image_url: uploadedUrl || null,
         variants: hasVariants ? validVariants : [],

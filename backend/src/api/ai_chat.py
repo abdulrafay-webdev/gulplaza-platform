@@ -222,6 +222,19 @@ class GenerateDescriptionRequest(BaseModel):
     title: str
     category_id: Optional[int] = None
 
+def _clean_str(val, default_text=""):
+    if val is None:
+        return default_text
+    if isinstance(val, str):
+        return val.strip() or default_text
+    if isinstance(val, (list, tuple)):
+        bullets = [f"• {str(item).lstrip('•- *').strip()}" for item in val if str(item).strip()]
+        return "\n".join(bullets) if bullets else default_text
+    if isinstance(val, dict):
+        lines = [f"• {k}: {v}" for k, v in val.items() if str(v).strip()]
+        return "\n".join(lines) if lines else default_text
+    return str(val).strip() or default_text
+
 @router.post("/generate-description")
 def generate_product_description(
     data: GenerateDescriptionRequest,
@@ -244,7 +257,9 @@ def generate_product_description(
         f"Generate a short summary (1-2 punchy sentences) and a detailed bulleted product description for:\n"
         f"Product Title: {title}\n"
         f"Category: {cat_name}\n\n"
-        f"Return ONLY a valid JSON object with keys 'short_description' and 'long_description'. No markdown fences."
+        f"Return ONLY a valid JSON object with keys 'short_description' and 'long_description'. "
+        f"Both 'short_description' and 'long_description' MUST be single string values, NOT arrays or lists. "
+        f"No markdown fences."
     )
     
     try:
@@ -252,8 +267,8 @@ def generate_product_description(
         clean_json = raw_text.replace("```json", "").replace("```", "").strip()
         parsed = json.loads(clean_json)
         return {
-            "short_description": parsed.get("short_description", f"Premium quality {title} with long-lasting performance."),
-            "long_description": parsed.get("long_description", f"• High quality {title}\n• Ideal for daily use\n• 100% genuine guaranteed")
+            "short_description": _clean_str(parsed.get("short_description"), f"Premium quality {title} with long-lasting performance."),
+            "long_description": _clean_str(parsed.get("long_description"), f"• High quality {title}\n• Ideal for daily use\n• 100% genuine guaranteed")
         }
     except Exception as e:
         logger.error(f"Description generation fallback: {e}")

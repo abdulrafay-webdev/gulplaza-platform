@@ -42,6 +42,21 @@ export default function EditProductScreen({ route, navigation }: any) {
       : [{ name: '', price: product.price.toString(), stock: product.stock_quantity.toString() }]
   );
 
+  const toSafeString = (v: any): string => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'string') return v;
+    if (Array.isArray(v)) {
+      return v.map(item => {
+        if (typeof item === 'string') return item;
+        try { return JSON.stringify(item); } catch { return String(item); }
+      }).join('\n');
+    }
+    if (typeof v === 'object') {
+      return Object.entries(v).map(([k, val]) => `${k}: ${val}`).join('\n');
+    }
+    return String(v);
+  };
+
   const handleAddVariant = () => {
     setVariantsList(prev => [...prev, { name: '', price: price || '', stock: '10' }]);
   };
@@ -163,8 +178,8 @@ export default function EditProductScreen({ route, navigation }: any) {
         name: name.trim(),
         price: priceNum,
         stock_quantity: stockNum,
-        short_description: shortDesc.trim() || undefined,
-        long_description: longDesc.trim() || undefined,
+        short_description: toSafeString(shortDesc).trim() || undefined,
+        long_description: toSafeString(longDesc).trim() || undefined,
         image_url: uploadedUrl || undefined,
         variants: hasVariants ? validVariants : [],
       };

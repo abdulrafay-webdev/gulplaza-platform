@@ -55,6 +55,21 @@ export default function ProductForm() {
         });
     };
 
+    const toSafeString = (v: any): string => {
+        if (v === null || v === undefined) return '';
+        if (typeof v === 'string') return v;
+        if (Array.isArray(v)) {
+            return v.map(item => {
+                if (typeof item === 'string') return item;
+                try { return JSON.stringify(item); } catch { return String(item); }
+            }).join('\n');
+        }
+        if (typeof v === 'object') {
+            return Object.entries(v).map(([k, val]) => `${k}: ${val}`).join('\n');
+        }
+        return String(v);
+    };
+
     const handleGenerateAI = async () => {
         if (!formData.name.trim()) {
             alert("Please enter a Product Name first so AI can generate descriptions!");
@@ -67,10 +82,12 @@ export default function ProductForm() {
                 formData.main_category_id ? parseInt(formData.main_category_id) : undefined
             );
             if (res.data) {
+                const cleanShort = toSafeString(res.data.short_description);
+                const cleanLong = toSafeString(res.data.long_description);
                 setFormData(prev => ({
                     ...prev,
-                    short_description: res.data.short_description || prev.short_description,
-                    long_description: res.data.long_description || prev.long_description
+                    short_description: cleanShort || prev.short_description,
+                    long_description: cleanLong || prev.long_description
                     // Notice: image_url & image_urls are left 100% untouched!
                 }));
             }
@@ -196,8 +213,8 @@ export default function ProductForm() {
 
         const payload: any = {
             name: trimmedName,
-            short_description: (formData.short_description || '').trim() || "No short description",
-            long_description: (formData.long_description || '').trim() || "No long description",
+            short_description: toSafeString(formData.short_description).trim() || "No short description",
+            long_description: toSafeString(formData.long_description).trim() || "No long description",
             price: finalPrice,
             stock_quantity: finalStock,
             image_url: formData.image_url || (formData.image_urls.length > 0 ? formData.image_urls[0] : null),
