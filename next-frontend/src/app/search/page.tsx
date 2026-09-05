@@ -139,7 +139,9 @@ export default function SearchPage({ searchParams }: { searchParams: Promise<{ q
                                                         {product.short_description}
                                                     </p>
                                                     <p className="text-primary font-bold text-sm md:text-lg">
-                                                        ${product.price.toFixed(2)}
+                                                        Rs. {product.has_variants && product.min_price != null && product.max_price != null && product.min_price !== product.max_price
+                                                            ? `${product.min_price.toLocaleString()} - ${product.max_price.toLocaleString()}`
+                                                            : (product.min_price ?? product.price).toLocaleString()}
                                                     </p>
                                                 </div>
                                             </Link>

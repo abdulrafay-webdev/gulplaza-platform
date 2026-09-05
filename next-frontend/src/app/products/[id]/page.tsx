@@ -47,6 +47,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         rating: 5,
         comment: ''
     });
+    const [selectedVariant, setSelectedVariant] = useState<any>(null);
     const [submittingReview, setSubmittingReview] = useState(false);
     const [reviewSuccessMessage, setReviewSuccessMessage] = useState<string | null>(null);
     const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
@@ -81,6 +82,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             try {
                 const res = await products.get(id);
                 setProduct(res.data);
+                if (res.data.variants && res.data.variants.length > 0) {
+                    setSelectedVariant(res.data.variants[0]);
+                } else {
+                    setSelectedVariant(null);
+                }
                 setActiveImage(res.data.image_url || (res.data.images?.[0]?.url) || '');
                 await loadReviews();
 
@@ -106,12 +112,16 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         load();
     }, [id]);
 
+    const currentPrice = selectedVariant ? selectedVariant.price : (product?.price || 0);
+    const currentName = selectedVariant ? `${product?.name} (${selectedVariant.name})` : product?.name;
+    const currentStock = selectedVariant ? (selectedVariant.stock_quantity ?? product?.stock_quantity ?? 0) : (product?.stock_quantity ?? 0);
+
     const handleAddToCart = () => {
         if (!product) return;
         addToCart({
             product_id: product.id,
-            name: product.name,
-            price: product.price,
+            name: currentName,
+            price: currentPrice,
             quantity: quantity,
             shop_id: product.shop_id,
             image_url: activeImage || product.image_url
@@ -124,8 +134,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         if (!product) return;
         addToCart({
             product_id: product.id,
-            name: product.name,
-            price: product.price,
+            name: currentName,
+            price: currentPrice,
             quantity: quantity,
             shop_id: product.shop_id,
             image_url: activeImage || product.image_url
@@ -274,9 +284,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         {/* Header Details */}
                         <div>
                             <div className="flex flex-wrap items-center gap-2 mb-3">
-                                {product.stock_quantity > 0 ? (
+                                {currentStock > 0 ? (
                                     <span className="bg-emerald-50 text-emerald-700 text-[11px] font-black px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
-                                        <CheckCircle className="w-3 h-3" /> In Stock ({product.stock_quantity} available)
+                                        <CheckCircle className="w-3 h-3" /> In Stock ({currentStock} available)
                                     </span>
                                 ) : (
                                     <span className="bg-rose-50 text-[#FF7582] text-[11px] font-black px-3 py-1 rounded-full border border-rose-200">
@@ -302,12 +312,55 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                             <div className="flex items-baseline gap-2 mb-4 bg-purple-50/50 p-4 rounded-2xl border border-purple-100 w-fit">
                                 <span className="text-sm font-bold text-slate-500">Price:</span>
                                 <span className="text-2xl sm:text-3xl font-black text-[#161226] tracking-tight">
-                                    Rs. {product.price.toLocaleString()}
+                                    Rs. {currentPrice.toLocaleString()}
                                 </span>
+                                {selectedVariant && (
+                                    <span className="text-xs font-bold text-[#A163F7] ml-1 bg-purple-100/70 px-2.5 py-0.5 rounded-md">
+                                        Option: {selectedVariant.name}
+                                    </span>
+                                )}
                                 <span className="text-[11px] font-semibold text-[#6F88FC] ml-2 bg-blue-100/60 px-2 py-0.5 rounded">
                                     COD Supported
                                 </span>
                             </div>
+
+                            {/* Variant Selector */}
+                            {product.variants && product.variants.length > 0 && (
+                                <div className="mb-5 bg-slate-50/80 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-black uppercase tracking-wider text-slate-700">
+                                            Choose Option / Variant:
+                                        </span>
+                                        {selectedVariant && (
+                                            <span className="text-xs font-bold text-[#A163F7]">
+                                                Selected: {selectedVariant.name} (Rs. {selectedVariant.price.toLocaleString()})
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-wrap gap-2.5">
+                                        {product.variants.map((v: any) => {
+                                            const isSelected = selectedVariant?.id === v.id;
+                                            return (
+                                                <button
+                                                    key={v.id}
+                                                    type="button"
+                                                    onClick={() => setSelectedVariant(v)}
+                                                    className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 cursor-pointer ${
+                                                        isSelected
+                                                            ? 'bg-gradient-to-r from-[#A163F7] to-[#6F88FC] text-white border-transparent shadow-md shadow-purple-500/20 scale-[1.02]'
+                                                            : 'bg-white border-slate-200 text-slate-700 hover:border-purple-300 hover:bg-purple-50/40'
+                                                    }`}
+                                                >
+                                                    <span>{v.name}</span>
+                                                    <span className={isSelected ? 'text-white/90 font-black' : 'text-slate-500 font-semibold'}>
+                                                        Rs. {v.price.toLocaleString()}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
 
                             {product.short_description && (
                                 <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
@@ -332,22 +385,22 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                         {quantity}
                                     </span>
                                     <button 
-                                        onClick={() => setQuantity(Math.min(product.stock_quantity || 99, quantity + 1))}
+                                        onClick={() => setQuantity(Math.min(currentStock || 99, quantity + 1))}
                                         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-700 disabled:opacity-30 transition-all"
-                                        disabled={product.stock_quantity > 0 && quantity >= product.stock_quantity}
+                                        disabled={currentStock > 0 && quantity >= currentStock}
                                     >
                                         <Plus className="w-4 h-4" />
                                     </button>
                                 </div>
                                 <span className="text-xs text-slate-500 font-semibold">
-                                    Subtotal: <strong className="text-slate-900">Rs. {(product.price * quantity).toLocaleString()}</strong>
+                                    Subtotal: <strong className="text-slate-900">Rs. {(currentPrice * quantity).toLocaleString()}</strong>
                                 </span>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                                 <button 
                                     onClick={handleAddToCart}
-                                    disabled={product.stock_quantity <= 0}
+                                    disabled={currentStock <= 0}
                                     className="w-full bg-slate-100 hover:bg-slate-200 text-slate-900 py-3.5 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-40"
                                 >
                                     <ShoppingCart className="w-4 h-4 text-[#A163F7]" />
@@ -355,7 +408,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                 </button>
                                 <button 
                                     onClick={handleBuyNow}
-                                    disabled={product.stock_quantity <= 0}
+                                    disabled={currentStock <= 0}
                                     className="w-full bg-gradient-to-r from-[#A163F7] via-[#6F88FC] to-[#45E3FF] text-white py-3.5 rounded-2xl font-black text-sm shadow-lg shadow-purple-500/25 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-40"
                                 >
                                     <Zap className="w-4 h-4 fill-current" />

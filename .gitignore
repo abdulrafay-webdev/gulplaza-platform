@@ -22,3 +22,5 @@ apps/*/.expo/
 .DS_Store
 *.log
 .gemini/tmp/
+apps/*/dist/
+dist/

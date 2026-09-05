@@ -143,7 +143,11 @@ export default function SearchScreen({ route, navigation }: any) {
                 <View style={styles.productBody}>
                   <Text style={styles.productShop} numberOfLines={1}>{item.shop?.name || item.shop_name || 'AI Plaza'}</Text>
                   <Text style={styles.productTitle} numberOfLines={2}>{item.name}</Text>
-                  <Text style={styles.productPrice}>{formatCurrency(item.price)}</Text>
+                  <Text style={styles.productPrice}>
+                    {item.has_variants && item.min_price != null && item.max_price != null && item.min_price !== item.max_price
+                      ? `Rs. ${item.min_price.toLocaleString()} - ${item.max_price.toLocaleString()}`
+                      : formatCurrency(item.min_price ?? item.price)}
+                  </Text>
                   <TouchableOpacity
                     style={styles.addCartBtn}
                     onPress={() => addToCart(item, 1)}

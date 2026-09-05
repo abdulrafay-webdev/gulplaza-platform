@@ -424,7 +424,11 @@ export default function HomeScreen({ navigation }: any) {
                 <View style={styles.trendingBody}>
                   <Text style={styles.productShop} numberOfLines={1}>{p.shop?.name || p.shop_name || 'AI Plaza'}</Text>
                   <Text style={styles.productTitle} numberOfLines={1}>{p.name}</Text>
-                  <Text style={styles.productPrice}>{formatCurrency(p.price)}</Text>
+                  <Text style={styles.productPrice}>
+                    {p.has_variants && p.min_price != null && p.max_price != null && p.min_price !== p.max_price
+                      ? `Rs. ${p.min_price.toLocaleString()} - ${p.max_price.toLocaleString()}`
+                      : formatCurrency(p.min_price ?? p.price)}
+                  </Text>
                   <TouchableOpacity 
                     style={[styles.addCartBtn, isAdded && { backgroundColor: '#10B981' }]}
                     onPress={() => handleAddToCart(p)}
@@ -506,7 +510,11 @@ export default function HomeScreen({ navigation }: any) {
                   <View style={styles.productBody}>
                     <Text style={styles.productShop} numberOfLines={1}>{p.shop?.name || p.shop_name || 'AI Plaza'}</Text>
                     <Text style={styles.productTitle} numberOfLines={2}>{p.name}</Text>
-                    <Text style={styles.productPrice}>{formatCurrency(p.price)}</Text>
+                    <Text style={styles.productPrice}>
+                      {p.has_variants && p.min_price != null && p.max_price != null && p.min_price !== p.max_price
+                        ? `Rs. ${p.min_price.toLocaleString()} - ${p.max_price.toLocaleString()}`
+                        : formatCurrency(p.min_price ?? p.price)}
+                    </Text>
                     <TouchableOpacity 
                       style={[styles.addCartBtn, isAdded && { backgroundColor: '#10B981' }]}
                       onPress={() => handleAddToCart(p)}

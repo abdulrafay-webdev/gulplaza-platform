@@ -192,7 +192,9 @@ export default function ShopDetail({ params }: { params: Promise<{ id: string }>
                                         <div className="flex items-baseline gap-1">
                                             <span className="text-xs font-bold text-slate-500">Rs.</span>
                                             <span className="text-sm sm:text-base font-black text-slate-950 tracking-tight">
-                                                {product.price.toLocaleString()}
+                                                {product.has_variants && product.min_price != null && product.max_price != null && product.min_price !== product.max_price
+                                                    ? `${product.min_price.toLocaleString()} - ${product.max_price.toLocaleString()}`
+                                                    : (product.min_price ?? product.price).toLocaleString()}
                                             </span>
                                         </div>
                                     </div>

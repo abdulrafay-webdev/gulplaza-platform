@@ -10,7 +10,8 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert
+  Alert,
+  Switch
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -19,7 +20,8 @@ import {
   Sparkles,
   Check,
   Camera,
-  Plus
+  Plus,
+  Trash2
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -43,6 +45,29 @@ export default function AddProductScreen({ navigation }: any) {
 
   const [loading, setLoading] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
+
+  // Variants State
+  const [hasVariants, setHasVariants] = useState(false);
+  const [variantsList, setVariantsList] = useState<{ name: string; price: string; stock: string }[]>([
+    { name: '', price: '', stock: '10' }
+  ]);
+
+  const handleAddVariant = () => {
+    setVariantsList(prev => [...prev, { name: '', price: price || '', stock: '10' }]);
+  };
+
+  const handleRemoveVariant = (index: number) => {
+    if (variantsList.length <= 1) return;
+    setVariantsList(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleVariantChange = (index: number, field: 'name' | 'price' | 'stock', val: string) => {
+    setVariantsList(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: val };
+      return next;
+    });
+  };
 
   useEffect(() => {
     loadCategories();
@@ -105,17 +130,48 @@ export default function AddProductScreen({ navigation }: any) {
   };
 
   const handleSave = async () => {
-    if (!name.trim() || !price || !selectedCatId) {
-      Alert.alert('Missing Required Fields', 'Please provide Product Name, Price, and select a Main Category.');
+    if (!name.trim() || !selectedCatId) {
+      Alert.alert('Missing Required Fields', 'Please provide Product Name and select a Main Category.');
       return;
     }
 
-    const priceNum = parseFloat(price);
+    let priceNum = parseFloat(price);
     const stockNum = parseInt(stock, 10) || 0;
 
-    if (isNaN(priceNum) || priceNum <= 0) {
-      Alert.alert('Invalid Price', 'Please enter a valid price in PKR.');
-      return;
+    let validVariants: { name: string; price: number; stock_quantity: number }[] = [];
+    if (hasVariants) {
+      for (let i = 0; i < variantsList.length; i++) {
+        const v = variantsList[i];
+        if (!v.name.trim()) {
+          Alert.alert('Variant Name Required', `Please enter a name for Variant #${i + 1}.`);
+          return;
+        }
+        const vPrice = parseFloat(v.price);
+        if (isNaN(vPrice) || vPrice < 0) {
+          Alert.alert('Invalid Variant Price', `Please enter a valid price for variant "${v.name}".`);
+          return;
+        }
+        validVariants.push({
+          name: v.name.trim(),
+          price: vPrice,
+          stock_quantity: parseInt(v.stock, 10) || 0,
+        });
+      }
+
+      if (validVariants.length === 0) {
+        Alert.alert('Variants Error', 'Please add at least one valid variant or turn off the variants switch.');
+        return;
+      }
+
+      const minVarPrice = Math.min(...validVariants.map(v => v.price));
+      if (isNaN(priceNum) || priceNum <= 0) {
+        priceNum = minVarPrice;
+      }
+    } else {
+      if (isNaN(priceNum) || priceNum <= 0) {
+        Alert.alert('Invalid Price', 'Please enter a valid price in PKR.');
+        return;
+      }
     }
 
     try {
@@ -160,6 +216,7 @@ export default function AddProductScreen({ navigation }: any) {
         long_description: longDesc.trim() || undefined,
         main_category_id: selectedCatId,
         image_url: uploadedUrl,
+        variants: hasVariants ? validVariants : undefined,
       });
 
       Alert.alert('Product Published! 🎉', 'Your product is now live on AI Plaza marketplace.', [
@@ -233,9 +290,93 @@ export default function AddProductScreen({ navigation }: any) {
             />
           </View>
 
+          {/* Variants Toggle Card */}
+          <View style={styles.variantToggleCard}>
+            <View style={styles.variantToggleRow}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={styles.variantToggleTitle}>Product has Variants</Text>
+                <Text style={styles.variantToggleDesc}>
+                  Enable if this product has multiple sizes, colors, weights, or options with different prices.
+                </Text>
+              </View>
+              <Switch
+                value={hasVariants}
+                onValueChange={(val) => {
+                  setHasVariants(val);
+                  if (val && variantsList.length === 0) {
+                    setVariantsList([{ name: '', price: price || '', stock: stock || '10' }]);
+                  }
+                }}
+                trackColor={{ false: '#E2E8F0', true: '#C084FC' }}
+                thumbColor={hasVariants ? '#A163F7' : '#FFFFFF'}
+              />
+            </View>
+
+            {hasVariants && (
+              <View style={styles.variantsContainer}>
+                <View style={styles.variantsHeader}>
+                  <Text style={styles.variantsHeaderTitle}>Variants ({variantsList.length})</Text>
+                  <TouchableOpacity style={styles.addVariantBtn} onPress={handleAddVariant}>
+                    <Plus color="#FFFFFF" size={14} />
+                    <Text style={styles.addVariantBtnText}>Add Variant</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {variantsList.map((variant, index) => (
+                  <View key={index} style={styles.variantItemCard}>
+                    <View style={styles.variantTopRow}>
+                      <Text style={styles.variantBadge}>Option #{index + 1}</Text>
+                      {variantsList.length > 1 && (
+                        <TouchableOpacity onPress={() => handleRemoveVariant(index)} style={styles.removeVariantBtn}>
+                          <Trash2 color="#EF4444" size={16} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Option Name *</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="e.g. Small, 500g, Red, XL"
+                        placeholderTextColor="#94A3B8"
+                        value={variant.name}
+                        onChangeText={(val) => handleVariantChange(index, 'name', val)}
+                      />
+                    </View>
+
+                    <View style={styles.rowTwo}>
+                      <View style={[styles.inputGroup, { flex: 1 }]}>
+                        <Text style={styles.label}>Price (PKR) *</Text>
+                        <TextInput
+                          style={styles.textInput}
+                          placeholder="Rs. 150"
+                          placeholderTextColor="#94A3B8"
+                          keyboardType="numeric"
+                          value={variant.price}
+                          onChangeText={(val) => handleVariantChange(index, 'price', val)}
+                        />
+                      </View>
+                      <View style={[styles.inputGroup, { flex: 1 }]}>
+                        <Text style={styles.label}>Stock</Text>
+                        <TextInput
+                          style={styles.textInput}
+                          placeholder="10"
+                          placeholderTextColor="#94A3B8"
+                          keyboardType="numeric"
+                          value={variant.stock}
+                          onChangeText={(val) => handleVariantChange(index, 'stock', val)}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
           <View style={styles.rowTwo}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.label}>Price (PKR) *</Text>
+              <Text style={styles.label}>{hasVariants ? "Base / Min Price *" : "Price (PKR) *"}</Text>
               <TextInput
                 style={styles.textInput}
                 placeholder="Rs. 3499"
@@ -521,5 +662,87 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '800',
+  },
+  variantToggleCard: {
+    backgroundColor: '#FAF5FF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+    marginBottom: 14,
+  },
+  variantToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  variantToggleTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#581C87',
+  },
+  variantToggleDesc: {
+    fontSize: 11,
+    color: '#7E22CE',
+    lineHeight: 15,
+    marginTop: 2,
+  },
+  variantsContainer: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E9D5FF',
+  },
+  variantsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  variantsHeaderTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#4C1D95',
+    textTransform: 'uppercase',
+  },
+  addVariantBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#A163F7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  addVariantBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  variantItemCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 10,
+  },
+  variantTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  variantBadge: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#A163F7',
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  removeVariantBtn: {
+    padding: 4,
   },
 });

@@ -11,6 +11,16 @@ class ProductImage(SQLModel, table=True):
     
     product: "Product" = Relationship(back_populates="images")
 
+class ProductVariant(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    product_id: int = Field(foreign_key="product.id")
+    name: str
+    price: float = Field(ge=0)
+    stock_quantity: int = Field(default=0, ge=0)
+    is_active: bool = True
+    
+    product: Optional["Product"] = Relationship(back_populates="variants")
+
 class ProductBase(SQLModel):
     name: str
     price: float = Field(ge=0)
@@ -38,10 +48,29 @@ class Product(ProductBase, table=True):
         back_populates="product", 
         sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
+    variants: List[ProductVariant] = Relationship(
+        back_populates="product", 
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
 
 # API Schemas
+class ProductVariantCreate(SQLModel):
+    id: Optional[int] = None
+    name: str
+    price: float
+    stock_quantity: Optional[int] = 0
+
+class ProductVariantRead(SQLModel):
+    id: int
+    product_id: int
+    name: str
+    price: float
+    stock_quantity: int
+    is_active: bool
+
 class ProductCreate(ProductBase):
     image_urls: List[str] = [] # List of ImageKit URLs
+    variants: Optional[List[ProductVariantCreate]] = []
 
 class ProductImageRead(SQLModel):
     id: int
@@ -52,5 +81,9 @@ class ProductRead(ProductBase):
     shop_id: int
     shop_name: Optional[str] = None
     images: List[ProductImageRead] = []
+    variants: List[ProductVariantRead] = []
+    has_variants: bool = False
+    min_price: Optional[float] = None
+    max_price: Optional[float] = None
 
 

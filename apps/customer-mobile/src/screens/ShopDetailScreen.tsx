@@ -129,7 +129,11 @@ export default function ShopDetailScreen({ route, navigation }: any) {
                 <Image source={{ uri: thumb }} style={styles.productThumb} />
                 <View style={styles.productBody}>
                   <Text style={styles.productTitle} numberOfLines={2}>{p.name}</Text>
-                  <Text style={styles.productPrice}>{formatCurrency(p.price)}</Text>
+                  <Text style={styles.productPrice}>
+                    {p.has_variants && p.min_price != null && p.max_price != null && p.min_price !== p.max_price
+                      ? `Rs. ${p.min_price.toLocaleString()} - ${p.max_price.toLocaleString()}`
+                      : formatCurrency(p.min_price ?? p.price)}
+                  </Text>
                   <TouchableOpacity
                     style={styles.addCartBtn}
                     onPress={() => addToCart(p, 1)}

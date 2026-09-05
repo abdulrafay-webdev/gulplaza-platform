@@ -35,6 +35,28 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     const [isCreatingSub, setIsCreatingSub] = useState(false);
     const [newSubName, setNewSubName] = useState('');
 
+    // Product Variants State
+    const [hasVariants, setHasVariants] = useState(false);
+    const [variantsList, setVariantsList] = useState<{ id?: number; name: string; price: number; stock_quantity: number }[]>([
+        { name: '', price: 0, stock_quantity: 10 }
+    ]);
+
+    const handleAddVariant = () => {
+        setVariantsList(prev => [...prev, { name: '', price: formData.price || 0, stock_quantity: 10 }]);
+    };
+
+    const handleRemoveVariant = (index: number) => {
+        setVariantsList(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleVariantChange = (index: number, field: string, value: any) => {
+        setVariantsList(prev => {
+            const next = [...prev];
+            next[index] = { ...next[index], [field]: value };
+            return next;
+        });
+    };
+
     useEffect(() => {
         if (!isLoaded) return;
 
@@ -62,6 +84,16 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     main_category_id: p.main_category_id ? p.main_category_id.toString() : '',
                     sub_category_id: p.sub_category_id ? p.sub_category_id.toString() : ''
                 });
+
+                if (p.variants && p.variants.length > 0) {
+                    setHasVariants(true);
+                    setVariantsList(p.variants.map((v: any) => ({
+                        id: v.id,
+                        name: v.name,
+                        price: v.price,
+                        stock_quantity: v.stock_quantity ?? 0
+                    })));
+                }
             } catch (err) {
                 console.error("Error loading product", err);
                 alert("Failed to load product data");
@@ -127,14 +159,31 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             return;
         }
         
+        const payload: any = {
+            ...formData,
+            main_category_id: parseInt(formData.main_category_id),
+            sub_category_id: formData.sub_category_id ? parseInt(formData.sub_category_id) : null
+        };
+
+        if (hasVariants) {
+            const validVariants = variantsList.filter(v => v.name.trim().length > 0 && v.price >= 0);
+            if (validVariants.length === 0) {
+                alert("Please add at least one valid variant with a name and price, or turn off the variants checkbox.");
+                return;
+            }
+            payload.variants = validVariants;
+            const minPrice = Math.min(...validVariants.map(v => v.price));
+            if (!payload.price || payload.price === 0) {
+                payload.price = minPrice;
+            }
+        } else {
+            payload.variants = [];
+        }
+
         setSaving(true);
         if (token) setAuthToken(token);
         try {
-            await products.update(id, {
-                ...formData,
-                main_category_id: parseInt(formData.main_category_id),
-                sub_category_id: formData.sub_category_id ? parseInt(formData.sub_category_id) : null
-            });
+            await products.update(id, payload);
             alert("Product updated successfully!");
             router.push('/dashboard/products');
         } catch (err) {
@@ -241,10 +290,107 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     />
                 </div>
 
+                {/* Variants Support */}
+                <div className="bg-gradient-to-r from-purple-50 to-indigo-50/40 p-4 sm:p-5 rounded-2xl border border-purple-100">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <input 
+                                type="checkbox"
+                                id="hasVariantsCheckbox"
+                                checked={hasVariants}
+                                onChange={(e) => {
+                                    setHasVariants(e.target.checked);
+                                    if (e.target.checked && variantsList.length === 0) {
+                                        setVariantsList([{ name: '', price: formData.price || 0, stock_quantity: formData.stock_quantity || 10 }]);
+                                    }
+                                }}
+                                className="w-4 h-4 text-[#A163F7] rounded focus:ring-purple-500 cursor-pointer"
+                            />
+                            <label htmlFor="hasVariantsCheckbox" className="text-sm font-bold text-slate-800 cursor-pointer select-none">
+                                This product has different variants (Sizes, Colors, Weights, Packs)
+                            </label>
+                        </div>
+                        <span className="text-[11px] text-slate-500 bg-white border border-slate-200 px-2.5 py-0.5 rounded-full font-semibold">
+                            Optional
+                        </span>
+                    </div>
+                    <p className="text-xs text-slate-500 pl-7">
+                        Turn this on if you sell this product in different options (e.g. Small / Large, 500g / 1kg) with different prices.
+                    </p>
+
+                    {/* Dynamic Variants List */}
+                    {hasVariants && (
+                        <div className="mt-4 pt-4 border-t border-slate-200 space-y-3">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-black uppercase tracking-wider text-slate-700">
+                                    Product Variants ({variantsList.length})
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={handleAddVariant}
+                                    className="bg-gradient-to-r from-[#A163F7] to-[#6F88FC] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90 transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+                                >
+                                    + Add Another Variant
+                                </button>
+                            </div>
+
+                            <div className="space-y-2.5">
+                                {variantsList.map((variant, vIdx) => (
+                                    <div key={vIdx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 bg-white border border-slate-200 rounded-xl shadow-2xs">
+                                        <div className="flex-1">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase block">Variant Name</label>
+                                            <input 
+                                                type="text"
+                                                placeholder="e.g. Small, 500g, Red, XL"
+                                                value={variant.name}
+                                                onChange={(e) => handleVariantChange(vIdx, 'name', e.target.value)}
+                                                className="w-full text-xs font-medium border border-slate-200 rounded-lg p-2 bg-slate-50 focus:bg-white focus:outline-none focus:border-purple-400"
+                                                required={hasVariants}
+                                            />
+                                        </div>
+                                        <div className="w-full sm:w-36">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase block">Price (PKR)</label>
+                                            <input 
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="Rs."
+                                                value={variant.price || ''}
+                                                onChange={(e) => handleVariantChange(vIdx, 'price', parseFloat(e.target.value) || 0)}
+                                                className="w-full text-xs font-black text-slate-800 border border-slate-200 rounded-lg p-2 bg-slate-50 focus:bg-white focus:outline-none focus:border-purple-400"
+                                                required={hasVariants}
+                                            />
+                                        </div>
+                                        <div className="w-full sm:w-28">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase block">Stock</label>
+                                            <input 
+                                                type="number"
+                                                placeholder="Qty"
+                                                value={variant.stock_quantity || ''}
+                                                onChange={(e) => handleVariantChange(vIdx, 'stock_quantity', parseInt(e.target.value) || 0)}
+                                                className="w-full text-xs font-medium border border-slate-200 rounded-lg p-2 bg-slate-50 focus:bg-white focus:outline-none focus:border-purple-400"
+                                            />
+                                        </div>
+                                        {variantsList.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveVariant(vIdx)}
+                                                className="self-end sm:self-center p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors mt-1 sm:mt-4 text-xs font-bold"
+                                                title="Remove Variant"
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 {/* Price & Stock */}
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium">Price</label>
+                        <label className="block text-sm font-medium">{hasVariants ? "Base / Starting Price" : "Price"}</label>
                         <input 
                             type="number" step="0.01"
                             className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white"

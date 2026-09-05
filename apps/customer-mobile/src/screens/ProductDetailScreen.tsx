@@ -46,6 +46,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
   const { user } = useAuth();
 
   const [product, setProduct] = useState<Product | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -80,6 +81,11 @@ export default function ProductDetailScreen({ route, navigation }: any) {
       setLoading(true);
       const res = await api.products.get(productId);
       setProduct(res.data);
+      if (res.data.variants && res.data.variants.length > 0) {
+        setSelectedVariant(res.data.variants[0]);
+      } else {
+        setSelectedVariant(null);
+      }
 
       // Load Reviews
       try {
@@ -114,6 +120,18 @@ export default function ProductDetailScreen({ route, navigation }: any) {
     }
   };
 
+  const currentPrice = selectedVariant ? selectedVariant.price : (product?.price || 0);
+  const currentStock = selectedVariant ? (selectedVariant.stock_quantity ?? product?.stock_quantity ?? 0) : (product?.stock_quantity ?? 0);
+  const currentName = selectedVariant ? `${product?.name} (${selectedVariant.name})` : product?.name;
+
+  const itemToAdd: Product | null = product ? {
+    ...product,
+    id: selectedVariant ? Number(`${product.id}${selectedVariant.id}`) : product.id,
+    name: currentName || product.name,
+    price: currentPrice,
+    stock_quantity: currentStock,
+  } : null;
+
   const handleSubmitReview = async () => {
     if (!reviewerName.trim() || !reviewComment.trim()) {
       Alert.alert('Missing Details', 'Please enter your name and comments.');
@@ -147,16 +165,16 @@ export default function ProductDetailScreen({ route, navigation }: any) {
   };
 
   const handleAdd = () => {
-    if (product) {
-      addToCart(product, quantity);
+    if (itemToAdd && currentStock > 0) {
+      addToCart(itemToAdd, quantity);
       setAddedToast(true);
       setTimeout(() => setAddedToast(false), 2000);
     }
   };
 
   const handleBuyNow = () => {
-    if (!product || product.stock_quantity <= 0) return;
-    addToCart(product, quantity);
+    if (!itemToAdd || currentStock <= 0) return;
+    addToCart(itemToAdd, quantity);
     navigation.navigate('Checkout');
   };
 
@@ -227,7 +245,45 @@ export default function ProductDetailScreen({ route, navigation }: any) {
           </TouchableOpacity>
 
           <Text style={styles.title}>{product.name}</Text>
-          <Text style={styles.price}>{formatCurrency(product.price)}</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>{formatCurrency(currentPrice)}</Text>
+            {selectedVariant && (
+              <View style={styles.activeVariantBadge}>
+                <Text style={styles.activeVariantBadgeText}>Option: {selectedVariant.name}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Variant Selector */}
+          {product.variants && product.variants.length > 0 && (
+            <View style={styles.variantContainer}>
+              <View style={styles.variantHeaderRow}>
+                <Text style={styles.variantHeaderTitle}>Choose Option / Variant:</Text>
+                {selectedVariant && (
+                  <Text style={styles.variantPriceLabel}>Rs. {selectedVariant.price.toLocaleString()}</Text>
+                )}
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.variantPillsRow}>
+                {product.variants.map((v) => {
+                  const isSelected = selectedVariant?.id === v.id;
+                  return (
+                    <TouchableOpacity
+                      key={v.id}
+                      style={[styles.variantPill, isSelected && styles.variantPillActive]}
+                      onPress={() => setSelectedVariant(v)}
+                    >
+                      <Text style={[styles.variantPillName, isSelected && styles.variantPillTextActive]}>
+                        {v.name}
+                      </Text>
+                      <Text style={[styles.variantPillPrice, isSelected && styles.variantPillPriceActive]}>
+                        Rs. {v.price.toLocaleString()}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Delivery & Stock Info */}
           <View style={styles.infoBox}>
@@ -236,9 +292,9 @@ export default function ProductDetailScreen({ route, navigation }: any) {
               <Text style={styles.infoText}>Standard Delivery: 3 to 5 Days (All Pakistan)</Text>
             </View>
             <View style={styles.infoRow}>
-              <CheckCircle color={product.stock_quantity > 0 ? '#10B981' : '#EF4444'} size={16} />
+              <CheckCircle color={currentStock > 0 ? '#10B981' : '#EF4444'} size={16} />
               <Text style={styles.infoText}>
-                {product.stock_quantity > 0 ? `In Stock (${product.stock_quantity} units available)` : 'Out of Stock'}
+                {currentStock > 0 ? `In Stock (${currentStock} units available)` : 'Out of Stock'}
               </Text>
             </View>
           </View>
@@ -526,7 +582,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
         <TouchableOpacity 
           style={styles.addToCartBtn} 
           onPress={handleAdd}
-          disabled={product.stock_quantity <= 0}
+          disabled={currentStock <= 0}
           activeOpacity={0.85}
         >
           <View style={[styles.addToCartInner, addedToast && styles.addToCartAdded]}>
@@ -541,7 +597,7 @@ export default function ProductDetailScreen({ route, navigation }: any) {
         <TouchableOpacity 
           style={styles.buyNowBtn} 
           onPress={handleBuyNow}
-          disabled={product.stock_quantity <= 0}
+          disabled={currentStock <= 0}
           activeOpacity={0.85}
         >
           <LinearGradient colors={['#7C3AED', '#4F46E5']} style={styles.buyNowGrad}>
@@ -665,7 +721,84 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
     color: '#A163F7',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     marginBottom: 16,
+  },
+  activeVariantBadge: {
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+  },
+  activeVariantBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#7E22CE',
+  },
+  variantContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
+  },
+  variantHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  variantHeaderTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E293B',
+    textTransform: 'uppercase',
+  },
+  variantPriceLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#7C3AED',
+  },
+  variantPillsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  variantPill: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  variantPillActive: {
+    borderColor: '#A163F7',
+    backgroundColor: '#FAF5FF',
+  },
+  variantPillName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  variantPillTextActive: {
+    color: '#7C3AED',
+  },
+  variantPillPrice: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  variantPillPriceActive: {
+    color: '#A163F7',
   },
   infoBox: {
     backgroundColor: '#F8FAFC',

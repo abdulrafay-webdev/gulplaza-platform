@@ -17,6 +17,15 @@ export interface Shop {
   products_count?: number;
 }
 
+export interface ProductVariant {
+  id?: number;
+  product_id?: number;
+  name: string;
+  price: number;
+  stock_quantity: number;
+  is_active?: boolean;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -33,6 +42,10 @@ export interface Product {
   sub_category_id?: number;
   is_active: boolean;
   is_deleted?: boolean;
+  has_variants?: boolean;
+  min_price?: number;
+  max_price?: number;
+  variants?: ProductVariant[];
 }
 
 export interface Category {

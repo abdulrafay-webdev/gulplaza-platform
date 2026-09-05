@@ -31,7 +31,10 @@ def list_all_products(
     if not search:
         response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=120"
 
-    query = select(Product).where(Product.is_deleted == False).options(selectinload(Product.images))
+    query = select(Product).where(Product.is_deleted == False).options(
+        selectinload(Product.images),
+        selectinload(Product.variants)
+    )
     if search:
         query = query.where(Product.name.ilike(f"%{search}%"))
     
@@ -47,7 +50,7 @@ def list_all_products(
         shop_map = {s.id: s.name for s in shops}
 
     return [
-        ProductRead.model_validate(p, update={"shop_name": shop_map.get(p.shop_id, f"Shop #{p.shop_id}")})
+        product_service.format_product_read(p, shop_map.get(p.shop_id, f"Shop #{p.shop_id}"))
         for p in prods
     ]
 
@@ -56,7 +59,10 @@ def get_product(product_id: int, response: Response, session: Session = Depends(
     """Get a single product details (Public)."""
     response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
     product = session.exec(
-        select(Product).where(Product.id == product_id, Product.is_deleted == False).options(selectinload(Product.images))
+        select(Product).where(Product.id == product_id, Product.is_deleted == False).options(
+            selectinload(Product.images),
+            selectinload(Product.variants)
+        )
     ).first()
     
     if not product:
@@ -67,7 +73,7 @@ def get_product(product_id: int, response: Response, session: Session = Depends(
         shop = session.get(Shop, product.shop_id)
         if shop:
             shop_name = shop.name
-    return ProductRead.model_validate(product, update={"shop_name": shop_name})
+    return product_service.format_product_read(product, shop_name)
 
 import base64
 
@@ -114,21 +120,36 @@ def create_product(
         if shop.owner_clerk_id != user["id"] and user.get("shop_id") != shop.id:
             raise HTTPException(status_code=403, detail="You do not own this shop")
         
-    product_data = product_in.dict(exclude={"image_urls"})
+    product_data = product_in.dict(exclude={"image_urls", "variants"})
     product_data["shop_id"] = shop_id
     
     gallery = product_in.image_urls or []
     if product_in.image_url and product_in.image_url not in gallery:
         gallery.insert(0, product_in.image_url)
     
-    return product_service.create_product(session, product_data, gallery)
+    variants = [v.dict() if hasattr(v, "dict") else v for v in (product_in.variants or [])]
+    new_prod = product_service.create_product(session, product_data, gallery, variants)
+    
+    # Reload product with variants & images
+    prod_loaded = session.exec(
+        select(Product).where(Product.id == new_prod.id).options(
+            selectinload(Product.images),
+            selectinload(Product.variants)
+        )
+    ).first()
+    return product_service.format_product_read(prod_loaded or new_prod, shop.name)
 
 @router.get("/shops/{shop_id}/products", response_model=List[ProductRead])
 def list_products(shop_id: int, session: Session = Depends(get_session)):
     """List products for a shop (Public)."""
-    # Use selectinload for images
-    statement = select(Product).where(Product.shop_id == shop_id, Product.is_deleted == False).options(selectinload(Product.images))
-    return session.exec(statement).all()
+    shop = session.get(Shop, shop_id)
+    shop_name = shop.name if shop else f"Shop #{shop_id}"
+    statement = select(Product).where(Product.shop_id == shop_id, Product.is_deleted == False).options(
+        selectinload(Product.images),
+        selectinload(Product.variants)
+    )
+    prods = session.exec(statement).all()
+    return [product_service.format_product_read(p, shop_name) for p in prods]
 
 @router.delete("/products/{product_id}")
 def delete_product(product_id: int, user = Depends(get_shop_owner), session: Session = Depends(get_session)):
@@ -151,9 +172,10 @@ class ProductUpdate(BaseModel):
     short_description: Optional[str] = None
     long_description: Optional[str] = None
     image_url: Optional[str] = None
-    image_urls: Optional[List[str]] = None # New
+    image_urls: Optional[List[str]] = None
     main_category_id: Optional[int] = None
     sub_category_id: Optional[int] = None
+    variants: Optional[List[dict]] = None
 
 @router.put("/products/{product_id}", response_model=ProductRead)
 def update_product(
@@ -171,7 +193,17 @@ def update_product(
     if shop.owner_clerk_id != user["id"]:
         raise HTTPException(status_code=403, detail="Not your product")
         
-    data = update_data.dict(exclude_unset=True, exclude={"image_urls"})
+    data = update_data.dict(exclude_unset=True, exclude={"image_urls", "variants"})
     image_urls = update_data.image_urls
+    variants = update_data.variants
     
-    return product_service.update_product(session, product, data, image_urls)
+    updated_prod = product_service.update_product(session, product, data, image_urls, variants)
+    
+    # Reload with relationships
+    prod_loaded = session.exec(
+        select(Product).where(Product.id == updated_prod.id).options(
+            selectinload(Product.images),
+            selectinload(Product.variants)
+        )
+    ).first()
+    return product_service.format_product_read(prod_loaded or updated_prod, shop.name)
