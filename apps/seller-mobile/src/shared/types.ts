@@ -72,10 +72,17 @@ export interface CartItem {
 export interface OrderItem {
   id: number;
   product_id: number;
-  product_name: string;
+  product_name?: string;
   quantity: number;
-  price: number;
-  total_price: number;
+  price?: number;
+  price_at_purchase?: number;
+  total_price?: number;
+  variant_name?: string;
+  variant_id?: number;
+  product?: {
+    name?: string;
+    image_url?: string;
+  };
 }
 
 export interface Order {

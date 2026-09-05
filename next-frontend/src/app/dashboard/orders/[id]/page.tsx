@@ -155,8 +155,13 @@ export default function OrderDetail({ params }: { params: Promise<{ id: string }
                                         )}
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-xs sm:text-sm text-slate-900">
-                                            {item.product?.name || `Product #${item.product_id}`}
+                                        <h4 className="font-bold text-xs sm:text-sm text-slate-900 flex flex-wrap items-center gap-1.5">
+                                            <span>{item.product?.name || `Product #${item.product_id}`}</span>
+                                            {item.variant_name && (
+                                                <span className="inline-flex items-center text-[10px] sm:text-[11px] font-black text-[#A163F7] bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                                                    Option: {item.variant_name}
+                                                </span>
+                                            )}
                                         </h4>
                                         <div className="text-[11px] text-slate-400">
                                             Rs. {Number(item.price_at_purchase || 0).toLocaleString()} × {item.quantity} unit{item.quantity > 1 ? 's' : ''}

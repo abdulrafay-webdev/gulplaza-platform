@@ -18,6 +18,8 @@ class OrderItem(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     order_id: int = Field(foreign_key="order.id")
     product_id: int = Field(foreign_key="product.id")
+    variant_name: Optional[str] = Field(default=None)
+    variant_id: Optional[int] = Field(default=None)
     quantity: int
     price_at_purchase: float
     
@@ -53,6 +55,8 @@ class ProductRead(SQLModel):
 class OrderItemRead(SQLModel):
     id: int
     product_id: int
+    variant_name: Optional[str] = None
+    variant_id: Optional[int] = None
     quantity: int
     price_at_purchase: float
     product: Optional[ProductRead] = None

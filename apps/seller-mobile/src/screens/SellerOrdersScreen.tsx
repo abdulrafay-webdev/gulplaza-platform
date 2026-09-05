@@ -152,7 +152,7 @@ export default function SellerOrdersScreen() {
                     {item.items.map((it: any, idx: number) => (
                       <View key={idx} style={styles.itemSummaryRow}>
                         <Text style={styles.itemSummaryName} numberOfLines={1}>
-                          • {it.product?.name || `Product #${it.product_id}`}
+                          • {it.product?.name || `Product #${it.product_id}`}{it.variant_name ? ` (${it.variant_name})` : ''}
                         </Text>
                         <Text style={styles.itemSummaryQty}>x{it.quantity}</Text>
                         <Text style={styles.itemSummaryPrice}>{formatCurrency(it.price_at_purchase * it.quantity)}</Text>

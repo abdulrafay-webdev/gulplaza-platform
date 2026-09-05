@@ -39,12 +39,18 @@ def process_checkout(session: Session, customer_identity: Optional[str], items: 
             if shop_id not in shop_orders:
                 shop_orders[shop_id] = {"total": 0.0, "items": []}
                 
-            price = product.price
-            shop_orders[shop_id]["total"] += price * qty
+            # If variant price is provided, use that; otherwise fallback to product.price
+            v_price = float(item.get("price")) if item.get("price") is not None and float(item.get("price")) > 0 else float(product.price)
+            v_name = item.get("variant_name")
+            v_id = item.get("variant_id")
+
+            shop_orders[shop_id]["total"] += v_price * qty
             shop_orders[shop_id]["items"].append({
                 "product_id": pid,
                 "quantity": qty,
-                "price": price
+                "price": v_price,
+                "variant_name": v_name,
+                "variant_id": v_id
             })
             
             # Deduct stock
@@ -89,6 +95,8 @@ def process_checkout(session: Session, customer_identity: Optional[str], items: 
                 order_item = OrderItem(
                     order_id=order.id,
                     product_id=i["product_id"],
+                    variant_name=i.get("variant_name"),
+                    variant_id=i.get("variant_id"),
                     quantity=int(i["quantity"]),
                     price_at_purchase=float(i["price"])
                 )

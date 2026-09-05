@@ -93,18 +93,25 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ id: st
                                             {item.product?.image_url && <img src={item.product.image_url} alt="" className="h-full w-full object-cover" />}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <span className="font-bold text-text-primary text-sm md:text-base block truncate">{item.product?.name || 'Product'}</span>
+                                            <span className="font-bold text-text-primary text-sm md:text-base flex flex-wrap items-center gap-1.5">
+                                                <span>{item.product?.name || 'Product'}</span>
+                                                {item.variant_name && (
+                                                    <span className="inline-flex items-center text-[10px] sm:text-[11px] font-black text-[#A163F7] bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                                                        Option: {item.variant_name}
+                                                    </span>
+                                                )}
+                                            </span>
                                             <span className="text-text-secondary text-xs">Quantity: {item.quantity}</span>
                                         </div>
                                         <div className="text-right">
-                                            <span className="font-bold text-text-primary text-sm md:text-base">${(item.price_at_purchase * item.quantity).toFixed(2)}</span>
+                                            <span className="font-bold text-text-primary text-sm md:text-base">Rs. {(item.price_at_purchase * item.quantity).toLocaleString()}</span>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                             <div className="mt-6 pt-5 border-t border-gray-100 flex justify-between items-center px-1">
-                                <span className="font-bold text-text-secondary text-sm">Total Paid</span>
-                                <span className="text-xl md:text-2xl font-extrabold text-primary">${order.total_amount.toFixed(2)}</span>
+                                <span className="font-bold text-text-secondary text-sm">Total Payable (COD)</span>
+                                <span className="text-xl md:text-2xl font-extrabold text-primary">Rs. {order.total_amount.toLocaleString()}</span>
                             </div>
                         </div>
 

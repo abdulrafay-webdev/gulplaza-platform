@@ -6,9 +6,9 @@ interface CartContextType {
   cart: CartItem[];
   cartCount: number;
   cartTotal: number;
-  addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (productId: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
+  addToCart: (product: Product, quantity?: number, selectedVariant?: ProductVariant) => void;
+  removeFromCart: (productId: number, variantId?: number) => void;
+  updateQuantity: (productId: number, quantity: number, variantId?: number) => void;
   clearCart: () => void;
   itemsByShop: Record<number, { shopName: string; items: CartItem[]; shopTotal: number }>;
 }
@@ -52,31 +52,40 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const addToCart = (product: Product, quantity: number = 1) => {
-    const existingIndex = cart.findIndex((item) => item.product.id === product.id);
+  const addToCart = (product: Product, quantity: number = 1, selectedVariant?: ProductVariant) => {
+    const isMatch = (item: CartItem) =>
+      item.product.id === product.id &&
+      (item.selected_variant?.id || null) === (selectedVariant?.id || null);
+
+    const existingIndex = cart.findIndex(isMatch);
     let updated: CartItem[];
     if (existingIndex > -1) {
       updated = [...cart];
       updated[existingIndex].quantity += quantity;
     } else {
-      updated = [...cart, { product, quantity }];
+      updated = [...cart, { product, quantity, selected_variant: selectedVariant }];
     }
     saveCart(updated);
   };
 
-  const removeFromCart = (productId: number) => {
-    const updated = cart.filter((item) => item.product.id !== productId);
+  const removeFromCart = (productId: number, variantId?: number) => {
+    const updated = cart.filter((item) => {
+      if (item.product.id !== productId) return true;
+      if (variantId !== undefined) return item.selected_variant?.id !== variantId;
+      return false;
+    });
     saveCart(updated);
   };
 
-  const updateQuantity = (productId: number, quantity: number) => {
+  const updateQuantity = (productId: number, quantity: number, variantId?: number) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(productId, variantId);
       return;
     }
-    const updated = cart.map((item) =>
-      item.product.id === productId ? { ...item, quantity } : item
-    );
+    const updated = cart.map((item) => {
+      const match = item.product.id === productId && (variantId === undefined || item.selected_variant?.id === variantId);
+      return match ? { ...item, quantity } : item;
+    });
     saveCart(updated);
   };
 
@@ -85,7 +94,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const cartTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const cartTotal = cart.reduce((sum, item) => {
+    const price = item.selected_variant ? item.selected_variant.price : item.product.price;
+    return sum + price * item.quantity;
+  }, 0);
 
   const itemsByShop: Record<number, { shopName: string; items: CartItem[]; shopTotal: number }> = {};
   cart.forEach((item) => {
@@ -94,8 +106,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!itemsByShop[shopId]) {
       itemsByShop[shopId] = { shopName, items: [], shopTotal: 0 };
     }
+    const price = item.selected_variant ? item.selected_variant.price : item.product.price;
     itemsByShop[shopId].items.push(item);
-    itemsByShop[shopId].shopTotal += item.product.price * item.quantity;
+    itemsByShop[shopId].shopTotal += price * item.quantity;
   });
 
   return (

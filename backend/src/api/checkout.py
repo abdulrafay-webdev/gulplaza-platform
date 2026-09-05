@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 class CartItem(BaseModel):
     product_id: int
     quantity: int
+    variant_name: Optional[str] = None
+    variant_id: Optional[int] = None
+    price: Optional[float] = None
 
 class CheckoutRequest(BaseModel):
     items: List[CartItem]

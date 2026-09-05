@@ -124,7 +124,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             price: currentPrice,
             quantity: quantity,
             shop_id: product.shop_id,
-            image_url: activeImage || product.image_url
+            image_url: activeImage || product.image_url,
+            variant_id: selectedVariant?.id,
+            variant_name: selectedVariant?.name
         });
         setToastMessage(true);
         setTimeout(() => setToastMessage(false), 2500);
@@ -138,7 +140,9 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             price: currentPrice,
             quantity: quantity,
             shop_id: product.shop_id,
-            image_url: activeImage || product.image_url
+            image_url: activeImage || product.image_url,
+            variant_id: selectedVariant?.id,
+            variant_name: selectedVariant?.name
         });
         window.location.href = '/checkout';
     };

@@ -85,6 +85,20 @@ export default function OrdersScreen({ navigation }: any) {
                   <Text style={styles.shopName}>{item.shop_name || `Shop #${item.shop_id}`}</Text>
                   <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
 
+                  {item.items && item.items.length > 0 && (
+                    <View style={styles.itemsBox}>
+                      {item.items.map((it: any, idx: number) => (
+                        <View key={idx} style={styles.itemRow}>
+                          <Text style={styles.itemName} numberOfLines={1}>
+                            • {it.product?.name || it.product_name || `Product #${it.product_id}`}{it.variant_name ? ` (${it.variant_name})` : ''}
+                          </Text>
+                          <Text style={styles.itemQty}>x{it.quantity}</Text>
+                          <Text style={styles.itemPrice}>{formatCurrency((it.price_at_purchase || it.price || 0) * it.quantity)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
                   <View style={styles.totalRow}>
                     <Text style={styles.totalLabel}>Total Payable (COD):</Text>
                     <Text style={styles.totalVal}>{formatCurrency(item.total_amount)}</Text>
@@ -180,6 +194,36 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 11,
     color: '#94A3B8',
+  },
+  itemsBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    padding: 8,
+    marginVertical: 4,
+    gap: 4,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  itemName: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#334155',
+    marginRight: 6,
+  },
+  itemQty: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    marginRight: 8,
+  },
+  itemPrice: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   totalRow: {
     flexDirection: 'row',

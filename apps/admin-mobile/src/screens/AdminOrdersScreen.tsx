@@ -101,7 +101,7 @@ export default function AdminOrdersScreen() {
                     {item.items.map((it: any, idx: number) => (
                       <View key={idx} style={styles.itemRow}>
                         <Text style={styles.itemName} numberOfLines={1}>
-                          • {it.product?.name || `Product #${it.product_id}`}
+                          • {it.product?.name || `Product #${it.product_id}`}{it.variant_name ? ` (${it.variant_name})` : ''}
                         </Text>
                         <Text style={styles.itemQty}>x{it.quantity}</Text>
                         <Text style={styles.itemPrice}>{formatCurrency(it.price_at_purchase * it.quantity)}</Text>

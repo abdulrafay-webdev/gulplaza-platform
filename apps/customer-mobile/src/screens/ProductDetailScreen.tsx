@@ -124,13 +124,19 @@ export default function ProductDetailScreen({ route, navigation }: any) {
   const currentStock = selectedVariant ? (selectedVariant.stock_quantity ?? product?.stock_quantity ?? 0) : (product?.stock_quantity ?? 0);
   const currentName = selectedVariant ? `${product?.name} (${selectedVariant.name})` : product?.name;
 
-  const itemToAdd: Product | null = product ? {
-    ...product,
-    id: selectedVariant ? Number(`${product.id}${selectedVariant.id}`) : product.id,
-    name: currentName || product.name,
-    price: currentPrice,
-    stock_quantity: currentStock,
-  } : null;
+  const handleAdd = () => {
+    if (product && currentStock > 0) {
+      addToCart(product, quantity, selectedVariant || undefined);
+      setAddedToast(true);
+      setTimeout(() => setAddedToast(false), 2000);
+    }
+  };
+
+  const handleBuyNow = () => {
+    if (!product || currentStock <= 0) return;
+    addToCart(product, quantity, selectedVariant || undefined);
+    navigation.navigate('Checkout');
+  };
 
   const handleSubmitReview = async () => {
     if (!reviewerName.trim() || !reviewComment.trim()) {
@@ -162,20 +168,6 @@ export default function ProductDetailScreen({ route, navigation }: any) {
     } finally {
       setSubmittingReview(false);
     }
-  };
-
-  const handleAdd = () => {
-    if (itemToAdd && currentStock > 0) {
-      addToCart(itemToAdd, quantity);
-      setAddedToast(true);
-      setTimeout(() => setAddedToast(false), 2000);
-    }
-  };
-
-  const handleBuyNow = () => {
-    if (!itemToAdd || currentStock <= 0) return;
-    addToCart(itemToAdd, quantity);
-    navigation.navigate('Checkout');
   };
 
   if (loading || !product) {

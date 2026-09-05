@@ -54,7 +54,10 @@ export default function CheckoutScreen({ navigation }: any) {
       setIsSubmitting(true);
       const itemsPayload = cart.map(i => ({
         product_id: i.product.id,
-        quantity: i.quantity
+        quantity: i.quantity,
+        variant_name: i.selected_variant?.name,
+        variant_id: i.selected_variant?.id,
+        price: i.selected_variant ? i.selected_variant.price : i.product.price
       }));
 
       const fullDeliveryAddress = `${address.trim()}, ${city.trim()}`;

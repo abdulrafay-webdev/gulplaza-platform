@@ -77,7 +77,10 @@ export default function Checkout() {
             await cart.checkout({
                 items: items.map(i => ({
                     product_id: i.product_id,
-                    quantity: i.quantity
+                    quantity: i.quantity,
+                    variant_name: i.variant_name,
+                    variant_id: i.variant_id,
+                    price: i.price
                 })),
                 ...formData
             });

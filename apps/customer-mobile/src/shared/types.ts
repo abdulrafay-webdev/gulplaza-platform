@@ -67,15 +67,20 @@ export interface CartItem {
   product: Product;
   quantity: number;
   selected_image?: string;
+  selected_variant?: ProductVariant;
 }
 
 export interface OrderItem {
   id: number;
   product_id: number;
-  product_name: string;
+  product_name?: string;
+  variant_name?: string;
+  variant_id?: number;
   quantity: number;
-  price: number;
-  total_price: number;
+  price?: number;
+  price_at_purchase?: number;
+  total_price?: number;
+  product?: Product;
 }
 
 export interface Order {
