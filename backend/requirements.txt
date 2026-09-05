@@ -5,7 +5,6 @@ psycopg2-binary
 python-jose[cryptography]
 python-multipart
 requests
-clerk-sdk-python
 python-dotenv
 alembic
 pytest

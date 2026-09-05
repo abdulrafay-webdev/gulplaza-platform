@@ -22,7 +22,15 @@ class ProductVariant(SQLModel, table=True):
     product: Optional["Product"] = Relationship(back_populates="variants")
 
 import math
-from pydantic import field_validator
+
+try:
+    from pydantic import field_validator
+    def validator_before(*fields):
+        return field_validator(*fields, mode="before")
+except ImportError:
+    from pydantic import validator
+    def validator_before(*fields):
+        return validator(*fields, pre=True, always=True)
 
 class ProductBase(SQLModel):
     name: str
@@ -40,7 +48,7 @@ class ProductBase(SQLModel):
     main_category_id: Optional[int] = Field(default=None, foreign_key="category.id")
     sub_category_id: Optional[int] = Field(default=None, foreign_key="subcategory.id")
 
-    @field_validator("main_category_id", "sub_category_id", mode="before")
+    @validator_before("main_category_id", "sub_category_id")
     @classmethod
     def sanitize_category_id(cls, v):
         if v == "" or v is None:
@@ -50,7 +58,7 @@ class ProductBase(SQLModel):
         except (ValueError, TypeError):
             return None
 
-    @field_validator("price", mode="before")
+    @validator_before("price")
     @classmethod
     def sanitize_price(cls, v):
         if v is None or v == "":
@@ -63,7 +71,7 @@ class ProductBase(SQLModel):
         except (ValueError, TypeError):
             return 0.0
 
-    @field_validator("stock_quantity", mode="before")
+    @validator_before("stock_quantity")
     @classmethod
     def sanitize_stock(cls, v):
         if v is None or v == "":
@@ -76,7 +84,7 @@ class ProductBase(SQLModel):
         except (ValueError, TypeError):
             return 0
 
-    @field_validator("short_description", "long_description", mode="before")
+    @validator_before("short_description", "long_description")
     @classmethod
     def sanitize_description(cls, v):
         if v is None or not str(v).strip():
@@ -106,14 +114,14 @@ class ProductVariantCreate(SQLModel):
     price: Optional[float] = Field(default=0.0, ge=0)
     stock_quantity: Optional[int] = Field(default=0, ge=0)
 
-    @field_validator("name", mode="before")
+    @validator_before("name")
     @classmethod
     def sanitize_v_name(cls, v):
         if not v or not str(v).strip():
             return "Standard"
         return str(v).strip()
 
-    @field_validator("price", mode="before")
+    @validator_before("price")
     @classmethod
     def sanitize_v_price(cls, v):
         if v is None or v == "":
@@ -126,7 +134,7 @@ class ProductVariantCreate(SQLModel):
         except (ValueError, TypeError):
             return 0.0
 
-    @field_validator("stock_quantity", mode="before")
+    @validator_before("stock_quantity")
     @classmethod
     def sanitize_v_stock(cls, v):
         if v is None or v == "":

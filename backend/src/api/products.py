@@ -1,7 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Response
 from sqlmodel import Session, select
 from typing import List, Optional
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
+try:
+    from pydantic import field_validator
+    def validator_before(*fields):
+        return field_validator(*fields, mode="before")
+except ImportError:
+    from pydantic import validator
+    def validator_before(*fields):
+        return validator(*fields, pre=True, always=True)
 import math
 from sqlalchemy.orm import selectinload
 import shutil
@@ -178,7 +186,7 @@ class ProductUpdate(BaseModel):
     sub_category_id: Optional[int] = None
     variants: Optional[List[dict]] = None
 
-    @field_validator("main_category_id", "sub_category_id", mode="before")
+    @validator_before("main_category_id", "sub_category_id")
     @classmethod
     def sanitize_cat_id(cls, v):
         if v == "" or v is None:
@@ -188,7 +196,7 @@ class ProductUpdate(BaseModel):
         except (ValueError, TypeError):
             return None
 
-    @field_validator("price", mode="before")
+    @validator_before("price")
     @classmethod
     def sanitize_price(cls, v):
         if v is None or v == "":
@@ -201,7 +209,7 @@ class ProductUpdate(BaseModel):
         except (ValueError, TypeError):
             return 0.0
 
-    @field_validator("stock_quantity", mode="before")
+    @validator_before("stock_quantity")
     @classmethod
     def sanitize_stock(cls, v):
         if v is None or v == "":

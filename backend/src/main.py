@@ -7,11 +7,13 @@ import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Try to initialize DB but don't crash the whole app if connection is slow
-    try:
-        init_db()
-    except Exception as e:
-        print(f"DB Init Error: {e}")
+    # In serverless environments, DB tables are already migrated.
+    # Running SQLModel create_all on every serverless cold start causes 10-15s latency and timeouts.
+    if os.getenv("RUN_DB_INIT", "false").lower() == "true":
+        try:
+            init_db()
+        except Exception as e:
+            print(f"DB Init Error: {e}")
     yield
 
 app = FastAPI(title="AI Plaza API", version="1.0.0", lifespan=lifespan)
@@ -23,6 +25,8 @@ origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://gulplaza-frontend.vercel.app",
+    "https://gulplaza-platform-frontend.vercel.app",
+    "https://gulplaza-platform.vercel.app",
 ]
 
 extra = os.getenv("CORS_ALLOW_ORIGINS", "")
@@ -31,7 +35,7 @@ origins += [o.strip() for o in extra.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -58,3 +62,12 @@ def health_check():
     return {"status": "ok"}
 
 app.include_router(api_router, prefix="/api/v1")
+
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "AI Plaza API"}
+
+@app.get("/health")
+def root_health():
+    return {"status": "ok"}
+
