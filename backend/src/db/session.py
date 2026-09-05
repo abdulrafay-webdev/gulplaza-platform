@@ -7,17 +7,24 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL is not set")
-
-# Neon requires sslmode=require usually, which is in the URL.
-# If using async engine, might need modifications, but plan implies standard sync/FastAPI for simplicity unless specified.
-# Plan said "FastAPI + SQLModel". Sync is simpler for baseline.
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 SQL_ECHO = os.getenv("SQL_ECHO", "false").lower() == "true"
-engine = create_engine(DATABASE_URL, echo=SQL_ECHO, pool_pre_ping=True)
+
+if DATABASE_URL:
+    engine = create_engine(DATABASE_URL, echo=SQL_ECHO, pool_pre_ping=True)
+else:
+    # Fallback to in-memory SQLite so app starts up cleanly without crashing on import
+    engine = create_engine("sqlite:///:memory:", echo=False)
 
 def get_session():
+    if not os.getenv("DATABASE_URL"):
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=503, 
+            detail="Database not configured: please set DATABASE_URL in Vercel environment variables"
+        )
     with Session(engine) as session:
         yield session
 
