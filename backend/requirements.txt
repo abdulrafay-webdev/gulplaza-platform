@@ -13,3 +13,4 @@ httpx
 imagekitio==3.0.0
 urllib3<2.0.0
 passlib[bcrypt]
+openai>=1.50.0

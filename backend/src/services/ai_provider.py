@@ -1,20 +1,16 @@
 import os
 import json
 import time
-import base64
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any
 import httpx
 
 logger = logging.getLogger(__name__)
 
-# Fallback models in priority order
-SUPPORTED_MODELS = [
-    "gemini-3.6-flash",
-    "gemini-3.7-flash",
-    "gemini-flash-latest",
-    "gemini-2.5-flash"
+SUPPORTED_OPENAI_MODELS = [
+    "gpt-4o-mini",
+    "gpt-4o"
 ]
 
 class AIProvider(ABC):
@@ -29,74 +25,57 @@ class AIProvider(ABC):
         """Unified single-pass conversational AI reasoning, recommendation, and intent processing."""
         pass
 
-class GeminiProvider(AIProvider):
-    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-3.6-flash"):
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+    @abstractmethod
+    def generate_text(self, prompt: str) -> str:
+        """Generate copy/text from prompt for product descriptions or marketplace utilities."""
+        pass
+
+
+class OpenAIProvider(AIProvider):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini"):
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         self.model = model
+        self._client = None
 
-    def _fetch_image_base64(self, image_url: str) -> Optional[Tuple[str, str]]:
-        """Extract image base64 data and mime type from Data URI or HTTP URL."""
-        if not image_url:
-            return None
-
-        # 1. Direct Base64 Data URI
-        if image_url.startswith("data:"):
-            try:
-                header, b64_data = image_url.split(",", 1)
-                mime = header.split(";")[0].replace("data:", "")
-                return b64_data, mime
-            except Exception as e:
-                logger.warning(f"Failed to parse base64 data URI: {e}")
-                return None
-
-        # 2. Remote HTTP/HTTPS Image URL
-        try:
-            with httpx.Client(timeout=10.0) as client:
-                res = client.get(image_url)
-                if res.status_code == 200:
-                    mime = res.headers.get("content-type", "image/jpeg").split(";")[0]
-                    b64 = base64.b64encode(res.content).decode("utf-8")
-                    return b64, mime
-        except Exception as e:
-            logger.warning(f"Failed to fetch image for Gemini vision ({image_url}): {e}")
-        return None
-
-    def _post_with_retry(self, payload: Dict[str, Any], max_retries: int = 3) -> Optional[Dict[str, Any]]:
-        """Execute Gemini API request with automatic model fallback and fast retry."""
+    def _get_client(self):
+        """Lazy load OpenAI client to avoid unnecessary overhead."""
         if not self.api_key:
             return None
+        if self._client is None:
+            try:
+                from openai import OpenAI
+                self._client = OpenAI(api_key=self.api_key, timeout=30.0)
+            except Exception as e:
+                logger.error(f"Failed to initialize OpenAI client: {e}")
+                return None
+        return self._client
 
-        models_to_try = [self.model] + [m for m in SUPPORTED_MODELS if m != self.model]
+    def generate_text(self, prompt: str) -> str:
+        """Generate high-converting marketing or product text using OpenAI."""
+        client = self._get_client()
+        if not client:
+            logger.warning("OpenAI API key not configured for generate_text.")
+            return ""
+
+        models_to_try = [self.model] + [m for m in SUPPORTED_OPENAI_MODELS if m != self.model]
 
         for model_name in models_to_try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
-            for attempt in range(1, max_retries + 1):
-                try:
-                    with httpx.Client(timeout=25.0) as client:
-                        res = client.post(
-                            url,
-                            json=payload,
-                            headers={"Content-Type": "application/json"}
-                        )
-                        if res.status_code == 200:
-                            return res.json()
-                        elif res.status_code == 404:
-                            logger.warning(f"Model {model_name} returned 404 (deprecated/unavailable). Switching to next model...")
-                            break  # Break inner loop to try next model in models_to_try
-                        elif res.status_code in [429, 500, 502, 503, 504]:
-                            sleep_time = 2.0 * attempt if res.status_code == 429 else 1.0 * attempt
-                            logger.warning(f"Gemini API status {res.status_code} on {model_name} (attempt {attempt}/{max_retries}). Retrying in {sleep_time}s...")
-                            time.sleep(sleep_time)
-                        else:
-                            logger.error(f"Gemini API error {res.status_code} on {model_name}: {res.text}")
-                            break
-                except (httpx.TimeoutException, httpx.NetworkError) as e:
-                    logger.warning(f"Gemini connection timeout on {model_name}: {e} (attempt {attempt}/{max_retries}).")
-                    time.sleep(1.0 * attempt)
-                except Exception as e:
-                    logger.error(f"Unexpected error calling {model_name}: {e}")
-                    break
-        return None
+            try:
+                response = client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": "You are an expert ecommerce product catalog copywriter for AI Plaza, Pakistan."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3
+                )
+                if response.choices and response.choices[0].message.content:
+                    return response.choices[0].message.content.strip()
+            except Exception as e:
+                logger.warning(f"OpenAI text generation attempt on {model_name} failed: {e}")
+                continue
+
+        return ""
 
     def process_conversational_turn(
         self,
@@ -106,11 +85,13 @@ class GeminiProvider(AIProvider):
         history: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """
-        Unified single-pass high-speed shopping intelligence engine:
+        Unified single-pass high-speed shopping intelligence engine powered by OpenAI:
         Handles intent detection, multi-turn memory, image understanding, order requests,
-        clarification, styling advice, and product card ranking in ONE blazing-fast roundtrip.
+        clarification, styling advice, and product card ranking in ONE roundtrip.
         """
-        if not self.api_key:
+        client = self._get_client()
+        if not client:
+            logger.warning("OPENAI_API_KEY not configured. Using rule-based catalog matching fallback.")
             return self._fallback_conversational_turn(user_message, catalog_products, history=history)
 
         system_instruction = (
@@ -143,21 +124,26 @@ class GeminiProvider(AIProvider):
             "}"
         )
 
-        parts: List[Dict[str, Any]] = []
+        messages: List[Dict[str, Any]] = [
+            {"role": "system", "content": system_instruction}
+        ]
 
-        # Formatted Conversation History
+        # Formatted Conversation History (up to 8 past turns)
         if history:
-            formatted_history = []
             for h in history[-8:]:
-                role_label = h.get("role", "user").upper()
+                role = "user" if h.get("role") == "user" else "assistant"
                 content_text = h.get("content", "")
                 prods_context = h.get("products_context", "")
-                img_ctx = f" [Image attached]" if h.get("image_url") else ""
-                entry = f"{role_label}: {content_text}{img_ctx}"
-                if prods_context:
-                    entry += f"\n  -> {prods_context}"
-                formatted_history.append(entry)
-            parts.append({"text": "Recent Chat History:\n" + "\n".join(formatted_history)})
+                img_ctx = " [Image attached]" if h.get("image_url") else ""
+                
+                full_msg = f"{content_text}{img_ctx}"
+                if prods_context and role == "assistant":
+                    full_msg += f"\n[Previously Recommended Products: {prods_context}]"
+
+                messages.append({
+                    "role": role,
+                    "content": full_msg
+                })
 
         # Latest Image Part or Reference Image from History
         active_img_url = image_url
@@ -166,18 +152,6 @@ class GeminiProvider(AIProvider):
                 if h.get("image_url"):
                     active_img_url = h.get("image_url")
                     break
-
-        if active_img_url:
-            img_data = self._fetch_image_base64(active_img_url)
-            if img_data:
-                b64, mime = img_data
-                parts.append({
-                    "inline_data": {
-                        "mime_type": mime,
-                        "data": b64
-                    }
-                })
-                parts.append({"text": f"Attached/Reference Image uploaded in this chat."})
 
         # Compact Product Catalog Representation
         catalog_summary = []
@@ -196,36 +170,63 @@ class GeminiProvider(AIProvider):
             "available_marketplace_products": catalog_summary
         }
 
-        parts.append({
-            "text": f"Context & Available Marketplace Products:\n{json.dumps(prompt_context, indent=2)}\n\nGenerate your response and select matching product IDs strictly from the available marketplace products."
-        })
+        context_prompt = (
+            f"Context & Available Marketplace Products:\n"
+            f"{json.dumps(prompt_context, indent=2)}\n\n"
+            f"Generate your response and select matching product IDs strictly from the available marketplace products."
+        )
 
-        payload = {
-            "contents": [{"parts": parts}],
-            "system_instruction": {"parts": [{"text": system_instruction}]},
-            "generation_config": {
-                "response_mime_type": "application/json",
-                "temperature": 0.2
-            }
-        }
-
-        data = self._post_with_retry(payload)
-        if data:
-            try:
-                raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-                parsed = json.loads(raw_text)
-                ids = parsed.get("recommended_product_ids", [])
-                valid_ids = [p["id"] for p in catalog_products]
-                final_ids = [int(i) for i in ids if int(i) in valid_ids]
-                return {
-                    "message": parsed.get("message", "Aapke liye ye behtareen options hain:"),
-                    "recommended_product_ids": final_ids,
-                    "demand_keyword": parsed.get("demand_keyword"),
-                    "category_hint": parsed.get("category_hint")
+        # Build user turn payload (with optional vision block)
+        if active_img_url:
+            user_content: List[Dict[str, Any]] = [
+                {"type": "text", "text": context_prompt},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": active_img_url,
+                        "detail": "low"
+                    }
                 }
-            except Exception as e:
-                logger.error(f"Failed to parse unified Gemini response JSON: {e}")
+            ]
+            messages.append({"role": "user", "content": user_content})
+        else:
+            messages.append({"role": "user", "content": context_prompt})
 
+        models_to_try = [self.model] + [m for m in SUPPORTED_OPENAI_MODELS if m != self.model]
+
+        for model_name in models_to_try:
+            for attempt in range(1, 3):
+                try:
+                    response = client.chat.completions.create(
+                        model=model_name,
+                        messages=messages,
+                        response_format={"type": "json_object"},
+                        temperature=0.2
+                    )
+
+                    raw_text = response.choices[0].message.content
+                    if not raw_text:
+                        continue
+
+                    parsed = json.loads(raw_text)
+                    ids = parsed.get("recommended_product_ids", [])
+                    valid_ids = [p["id"] for p in catalog_products]
+                    final_ids = [int(i) for i in ids if int(i) in valid_ids]
+
+                    return {
+                        "message": parsed.get("message", "Aapke liye ye behtareen options hain:"),
+                        "recommended_product_ids": final_ids,
+                        "demand_keyword": parsed.get("demand_keyword"),
+                        "category_hint": parsed.get("category_hint")
+                    }
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse JSON response from OpenAI ({model_name}): {e}")
+                    break
+                except Exception as e:
+                    logger.warning(f"OpenAI API error on {model_name} (attempt {attempt}): {e}")
+                    time.sleep(1.0 * attempt)
+
+        # If all OpenAI model attempts fail, fall back gracefully
         return self._fallback_conversational_turn(user_message, catalog_products, history=history)
 
     def _fallback_conversational_turn(
@@ -236,9 +237,11 @@ class GeminiProvider(AIProvider):
     ) -> Dict[str, Any]:
         """Fast rule-based fallback response when API is unavailable."""
         msg = user_message.lower()
+        import re
+        words = set(re.findall(r"\b\w+\b", msg))
 
         # Greetings
-        if any(w in msg for w in ["salam", "assalam", "hello", "hi", "hey"]):
+        if words.intersection({"salam", "assalam", "hello", "hi", "hey"}):
             return {
                 "message": "Walaikum Assalam! Main AI Plaza ka Shopping Assistant hoon. Aaj main aapki shopping mein kya madad kar sakta hoon?",
                 "recommended_product_ids": [],
@@ -288,6 +291,26 @@ class GeminiProvider(AIProvider):
             "category_hint": None
         }
 
+
+# Retained for fallback compatibility if needed
+class GeminiProvider(AIProvider):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-3.6-flash"):
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        self.model = model
+
+    def generate_text(self, prompt: str) -> str:
+        return ""
+
+    def process_conversational_turn(
+        self,
+        user_message: str,
+        catalog_products: List[Dict[str, Any]],
+        image_url: Optional[str] = None,
+        history: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        return OpenAIProvider()._fallback_conversational_turn(user_message, catalog_products, history)
+
+
 def get_ai_provider() -> AIProvider:
-    """Factory method to get the configured AI provider instance."""
-    return GeminiProvider()
+    """Factory method returning the primary OpenAI provider instance."""
+    return OpenAIProvider()

@@ -104,8 +104,8 @@ export interface AdminUser {
 }
 
 export interface AIMessage {
-  id: number;
-  chat_id: number;
+  id?: number;
+  chat_id?: number;
   role: 'user' | 'assistant' | 'system';
   content: string;
   message_type?: string;

@@ -248,7 +248,7 @@ def generate_product_description(
     )
     
     try:
-        raw_text = provider.generate_response(prompt)
+        raw_text = provider.generate_text(prompt)
         clean_json = raw_text.replace("```json", "").replace("```", "").strip()
         parsed = json.loads(clean_json)
         return {
