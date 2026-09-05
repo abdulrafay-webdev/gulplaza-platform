@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Response
 from sqlmodel import Session, select
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+import math
 from sqlalchemy.orm import selectinload
 import shutil
 import uuid
@@ -176,6 +177,42 @@ class ProductUpdate(BaseModel):
     main_category_id: Optional[int] = None
     sub_category_id: Optional[int] = None
     variants: Optional[List[dict]] = None
+
+    @field_validator("main_category_id", "sub_category_id", mode="before")
+    @classmethod
+    def sanitize_cat_id(cls, v):
+        if v == "" or v is None:
+            return None
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return None
+
+    @field_validator("price", mode="before")
+    @classmethod
+    def sanitize_price(cls, v):
+        if v is None or v == "":
+            return None
+        try:
+            val = float(v)
+            if math.isnan(val) or val < 0:
+                return 0.0
+            return val
+        except (ValueError, TypeError):
+            return 0.0
+
+    @field_validator("stock_quantity", mode="before")
+    @classmethod
+    def sanitize_stock(cls, v):
+        if v is None or v == "":
+            return None
+        try:
+            val = float(v)
+            if math.isnan(val) or val < 0:
+                return 0
+            return int(val)
+        except (ValueError, TypeError):
+            return 0
 
 @router.put("/products/{product_id}", response_model=ProductRead)
 def update_product(

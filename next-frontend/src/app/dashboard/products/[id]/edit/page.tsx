@@ -154,31 +154,55 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const trimmedName = (formData.name || '').trim();
+        if (!trimmedName) {
+            alert("Please enter a Product Name.");
+            return;
+        }
         if (!formData.main_category_id) {
-            alert("Main Category is required");
+            alert("Main Category is required.");
             return;
         }
         
-        const payload: any = {
-            ...formData,
-            main_category_id: parseInt(formData.main_category_id),
-            sub_category_id: formData.sub_category_id ? parseInt(formData.sub_category_id) : null
-        };
+        const cleanPrice = isNaN(Number(formData.price)) || Number(formData.price) < 0 ? 0 : Number(formData.price);
+        const cleanStock = isNaN(Number(formData.stock_quantity)) || Number(formData.stock_quantity) < 0 ? 0 : Math.floor(Number(formData.stock_quantity));
+        const cleanMainCat = formData.main_category_id ? parseInt(formData.main_category_id, 10) : null;
+        const cleanSubCat = formData.sub_category_id && !isNaN(parseInt(formData.sub_category_id, 10)) ? parseInt(formData.sub_category_id, 10) : null;
 
+        let cleanVariants: { id?: number; name: string; price: number; stock_quantity: number }[] = [];
         if (hasVariants) {
-            const validVariants = variantsList.filter(v => v.name.trim().length > 0 && v.price >= 0);
+            const validVariants = variantsList
+                .filter(v => (v.name || '').trim().length > 0)
+                .map(v => ({
+                    ...(v.id ? { id: v.id } : {}),
+                    name: v.name.trim(),
+                    price: isNaN(Number(v.price)) || Number(v.price) < 0 ? cleanPrice : Number(v.price),
+                    stock_quantity: isNaN(Number(v.stock_quantity)) || Number(v.stock_quantity) < 0 ? 0 : Math.floor(Number(v.stock_quantity))
+                }));
+
             if (validVariants.length === 0) {
-                alert("Please add at least one valid variant with a name and price, or turn off the variants checkbox.");
+                alert("Please add at least one valid variant with a name and price, or turn off the variants switch.");
                 return;
             }
-            payload.variants = validVariants;
-            const minPrice = Math.min(...validVariants.map(v => v.price));
-            if (!payload.price || payload.price === 0) {
-                payload.price = minPrice;
-            }
-        } else {
-            payload.variants = [];
+            cleanVariants = validVariants;
         }
+
+        const finalPrice = hasVariants && cleanVariants.length > 0 && cleanPrice === 0
+            ? Math.min(...cleanVariants.map(v => v.price))
+            : cleanPrice;
+
+        const payload: any = {
+            name: trimmedName,
+            short_description: (formData.short_description || '').trim() || "No short description",
+            long_description: (formData.long_description || '').trim() || "No long description",
+            price: finalPrice,
+            stock_quantity: cleanStock,
+            image_url: formData.image_url || (formData.image_urls.length > 0 ? formData.image_urls[0] : null),
+            image_urls: formData.image_urls || [],
+            main_category_id: cleanMainCat,
+            sub_category_id: cleanSubCat,
+            variants: cleanVariants
+        };
 
         setSaving(true);
         if (token) setAuthToken(token);
@@ -186,8 +210,18 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             await products.update(id, payload);
             alert("Product updated successfully!");
             router.push('/dashboard/products');
-        } catch (err) {
-            alert("Error updating product");
+        } catch (err: any) {
+            console.error("Error updating product:", err);
+            const detail = err.response?.data?.detail;
+            let errorMsg = "Error updating product";
+            if (Array.isArray(detail)) {
+                errorMsg = detail.map((d: any) => `${d.loc?.slice(-1)[0] || 'field'}: ${d.msg}`).join(", ");
+            } else if (typeof detail === 'string') {
+                errorMsg = detail;
+            } else if (err.message) {
+                errorMsg = err.message;
+            }
+            alert(`Failed to update product: ${errorMsg}`);
         } finally {
             setSaving(false);
         }
@@ -354,8 +388,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                                                 type="number"
                                                 step="0.01"
                                                 placeholder="Rs."
-                                                value={variant.price || ''}
-                                                onChange={(e) => handleVariantChange(vIdx, 'price', parseFloat(e.target.value) || 0)}
+                                                value={variant.price === 0 ? '' : (isNaN(variant.price) ? '' : variant.price)}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    handleVariantChange(vIdx, 'price', val === '' ? 0 : (parseFloat(val) || 0));
+                                                }}
                                                 className="w-full text-xs font-black text-slate-800 border border-slate-200 rounded-lg p-2 bg-slate-50 focus:bg-white focus:outline-none focus:border-purple-400"
                                                 required={hasVariants}
                                             />
@@ -365,8 +402,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                                             <input 
                                                 type="number"
                                                 placeholder="Qty"
-                                                value={variant.stock_quantity || ''}
-                                                onChange={(e) => handleVariantChange(vIdx, 'stock_quantity', parseInt(e.target.value) || 0)}
+                                                value={variant.stock_quantity === 0 ? '' : (isNaN(variant.stock_quantity) ? '' : variant.stock_quantity)}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    handleVariantChange(vIdx, 'stock_quantity', val === '' ? 0 : (parseInt(val, 10) || 0));
+                                                }}
                                                 className="w-full text-xs font-medium border border-slate-200 rounded-lg p-2 bg-slate-50 focus:bg-white focus:outline-none focus:border-purple-400"
                                             />
                                         </div>
@@ -394,8 +434,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                         <input 
                             type="number" step="0.01"
                             className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white"
-                            value={formData.price}
-                            onChange={e => setFormData({...formData, price: parseFloat(e.target.value)})}
+                            placeholder="0.00"
+                            value={formData.price === 0 && !hasVariants ? '' : (isNaN(formData.price) ? '' : formData.price)}
+                            onChange={e => {
+                                const val = e.target.value;
+                                setFormData({...formData, price: val === '' ? 0 : (parseFloat(val) || 0)});
+                            }}
                             required
                         />
                     </div>
@@ -404,8 +448,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                         <input 
                             type="number" 
                             className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white"
-                            value={formData.stock_quantity}
-                            onChange={e => setFormData({...formData, stock_quantity: parseInt(e.target.value)})}
+                            placeholder="0"
+                            value={formData.stock_quantity === 0 ? '' : (isNaN(formData.stock_quantity) ? '' : formData.stock_quantity)}
+                            onChange={e => {
+                                const val = e.target.value;
+                                setFormData({...formData, stock_quantity: val === '' ? 0 : (parseInt(val, 10) || 0)});
+                            }}
                             required
                         />
                     </div>

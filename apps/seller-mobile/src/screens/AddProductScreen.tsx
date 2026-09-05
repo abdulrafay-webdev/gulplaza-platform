@@ -212,19 +212,26 @@ export default function AddProductScreen({ navigation }: any) {
         name: name.trim(),
         price: priceNum,
         stock_quantity: stockNum,
-        short_description: shortDesc.trim() || undefined,
-        long_description: longDesc.trim() || undefined,
+        short_description: shortDesc.trim() || "No short description",
+        long_description: longDesc.trim() || "No long description",
         main_category_id: selectedCatId,
-        image_url: uploadedUrl,
-        variants: hasVariants ? validVariants : undefined,
+        image_url: uploadedUrl || null,
+        variants: hasVariants ? validVariants : [],
       });
 
       Alert.alert('Product Published! 🎉', 'Your product is now live on AI Plaza marketplace.', [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create product:', err);
-      Alert.alert('Failed to Publish', 'Could not create product. Please check your data.');
+      const detail = err.response?.data?.detail;
+      let errorMsg = 'Could not create product. Please check your data.';
+      if (Array.isArray(detail)) {
+        errorMsg = detail.map((d: any) => `${d.loc?.slice(-1)[0] || 'field'}: ${d.msg}`).join(', ');
+      } else if (typeof detail === 'string') {
+        errorMsg = detail;
+      }
+      Alert.alert('Failed to Publish', errorMsg);
     } finally {
       setLoading(false);
     }
