@@ -28,20 +28,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import re
+from urllib.parse import parse_qs, urlencode
+
 @app.middleware("http")
 async def vercel_path_resolver(request: Request, call_next):
-    # If Vercel rewrote the URL to /api/index.py, restore original path from x-matched-path
-    matched_path = request.headers.get("x-matched-path")
-    if matched_path:
-        clean_path = matched_path.split("?")[0]
-        if clean_path not in ("/api/index.py", "/api/index", "/api"):
-            request.scope["path"] = clean_path
-    elif request.scope.get("path") in ("/api/index.py", "/api/index", "/api"):
+    raw_qs = request.scope.get("query_string", b"").decode("utf-8", errors="ignore")
+    target_path = None
+
+    # 1. Primary: Extract __path injected by vercel.json rewrite rule
+    if "__path" in raw_qs:
+        qs_dict = parse_qs(raw_qs, keep_blank_values=True)
+        if "__path" in qs_dict:
+            target_path = qs_dict.pop("__path")[0]
+            pairs = [(k, v) for k, vals in qs_dict.items() for v in vals]
+            request.scope["query_string"] = urlencode(pairs).encode("utf-8")
+
+    # 2. Fallback: Check headers
+    if not target_path:
+        matched_path = request.headers.get("x-matched-path")
+        if matched_path:
+            clean_path = matched_path.split("?")[0]
+            if clean_path not in ("/api/index.py", "/api/index", "/api"):
+                target_path = clean_path
+
+    # 3. Fallback: Check forwarded uri
+    if not target_path and request.scope.get("path") in ("/api/index.py", "/api/index", "/api"):
         forwarded = request.headers.get("x-forwarded-uri") or request.headers.get("x-original-uri")
         if forwarded:
             clean_fwd = forwarded.split("?")[0]
             if clean_fwd not in ("/api/index.py", "/api/index", "/api"):
-                request.scope["path"] = clean_fwd
+                target_path = clean_fwd
+
+    # Apply resolved target path
+    if target_path:
+        target_path = re.sub(r"/+", "/", target_path)
+        if not target_path.startswith("/"):
+            target_path = "/" + target_path
+        request.scope["path"] = target_path
 
     return await call_next(request)
 
@@ -61,6 +85,9 @@ except Exception as e:
     print("FATAL STARTUP IMPORT ERROR:\n", traceback.format_exc())
 
 @app.get("/debug-status")
+@app.get("/api/index.py")
+@app.get("/api/index")
+@app.get("/api")
 def debug_status():
     return {
         "status": "alive",
