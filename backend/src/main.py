@@ -27,6 +27,7 @@ origins = [
     "https://gulplaza-frontend.vercel.app",
     "https://gulplaza-platform-frontend.vercel.app",
     "https://gulplaza-platform.vercel.app",
+    "https://gulplaza-platform-backend.vercel.app",
 ]
 
 extra = os.getenv("CORS_ALLOW_ORIGINS", "")

@@ -20,6 +20,7 @@ app.add_middleware(
         "https://gulplaza-frontend.vercel.app",
         "https://gulplaza-platform-frontend.vercel.app",
         "https://gulplaza-platform.vercel.app",
+        "https://gulplaza-platform-backend.vercel.app",
     ],
     allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
