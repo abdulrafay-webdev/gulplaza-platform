@@ -24,3 +24,6 @@ apps/*/.expo/
 .gemini/tmp/
 apps/*/dist/
 dist/
+
+.vercel
+.env*.local
