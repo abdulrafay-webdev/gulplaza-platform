@@ -28,6 +28,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def vercel_path_resolver(request: Request, call_next):
+    # If Vercel rewrote the URL to /api/index.py, restore original path from x-matched-path
+    matched_path = request.headers.get("x-matched-path")
+    if matched_path:
+        clean_path = matched_path.split("?")[0]
+        if clean_path not in ("/api/index.py", "/api/index", "/api"):
+            request.scope["path"] = clean_path
+    elif request.scope.get("path") in ("/api/index.py", "/api/index", "/api"):
+        forwarded = request.headers.get("x-forwarded-uri") or request.headers.get("x-original-uri")
+        if forwarded:
+            clean_fwd = forwarded.split("?")[0]
+            if clean_fwd not in ("/api/index.py", "/api/index", "/api"):
+                request.scope["path"] = clean_fwd
+
+    return await call_next(request)
+
 # Attempt importing main application
 main_app = None
 import_error = None

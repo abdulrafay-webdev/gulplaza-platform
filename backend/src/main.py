@@ -72,3 +72,7 @@ def root():
 def root_health():
     return {"status": "ok"}
 
+@app.get("/debug-status")
+def debug_status():
+    return {"status": "alive", "service": "AI Plaza API", "main_app": True}
+
