@@ -1,6 +1,9 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List, Any
-from datetime import datetime
+from datetime import datetime, timezone
+
+def get_utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 class AIChatBase(SQLModel):
     title: str = Field(default="Shopping Assistant Chat")
@@ -9,8 +12,8 @@ class AIChatBase(SQLModel):
 
 class AIChat(AIChatBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_utc_now)
+    updated_at: datetime = Field(default_factory=get_utc_now)
 
     messages: List["AIMessage"] = Relationship(
         back_populates="chat",
@@ -28,7 +31,7 @@ class AIMessageBase(SQLModel):
 
 class AIMessage(AIMessageBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_utc_now)
 
     chat: Optional[AIChat] = Relationship(back_populates="messages")
 
@@ -38,7 +41,7 @@ class AIDemandInsight(SQLModel, table=True):
     category_hint: Optional[str] = Field(default=None, index=True)
     request_count: int = Field(default=1)
     had_direct_match: bool = Field(default=True)
-    last_requested_at: datetime = Field(default_factory=datetime.utcnow)
+    last_requested_at: datetime = Field(default_factory=get_utc_now)
 
 # API Schemas
 class AIChatCreate(SQLModel):

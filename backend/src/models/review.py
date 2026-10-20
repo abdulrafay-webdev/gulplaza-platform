@@ -1,6 +1,9 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
+
+def get_utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 if TYPE_CHECKING:
     from .product import Product
@@ -18,7 +21,7 @@ class ReviewBase(SQLModel):
 
 class Review(ReviewBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_utc_now)
 
 class ReviewCreate(SQLModel):
     reviewer_name: str

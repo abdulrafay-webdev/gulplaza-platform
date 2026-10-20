@@ -1,7 +1,10 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
+
+def get_utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 if TYPE_CHECKING:
     from .customer import Customer
@@ -42,7 +45,7 @@ class Order(SQLModel, table=True):
     order_type: str = Field(default="RETAIL") # "RETAIL" or "WHOLESALE"
     buyer_shop_id: Optional[int] = Field(default=None) # Link to buying Retail Shop if wholesale
     total_amount: float
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=get_utc_now)
     
     items: List["OrderItem"] = Relationship(back_populates="order")
     customer: Optional["Customer"] = Relationship(back_populates="orders")

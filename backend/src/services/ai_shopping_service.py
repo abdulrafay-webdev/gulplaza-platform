@@ -2,7 +2,7 @@ import re
 import json
 import logging
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Session, select
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import selectinload
@@ -33,7 +33,7 @@ def record_customer_demand(
 
         if existing:
             existing.request_count += 1
-            existing.last_requested_at = datetime.utcnow()
+            existing.last_requested_at = datetime.now(timezone.utc)
             if not had_direct_match:
                 existing.had_direct_match = False
             if category_hint and not existing.category_hint:
@@ -45,7 +45,7 @@ def record_customer_demand(
                 category_hint=category_hint,
                 request_count=1,
                 had_direct_match=had_direct_match,
-                last_requested_at=datetime.utcnow()
+                last_requested_at=datetime.now(timezone.utc)
             )
             session.add(new_insight)
         session.commit()
@@ -71,8 +71,8 @@ def get_or_create_chat(
         user_identity=user_identity,
         user_type=user_type,
         title=title,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
     )
     session.add(chat)
     session.commit()
@@ -309,7 +309,7 @@ def process_ai_message(
         content=content,
         message_type="image" if image_url and not content else ("mixed" if image_url else "text"),
         image_url=image_url,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)
     )
     session.add(user_msg)
     session.flush()
@@ -337,7 +337,7 @@ def process_ai_message(
         content=ai_response_text,
         message_type="product_recommendation" if recommended_ids else "text",
         product_ids_json=json.dumps(recommended_ids) if recommended_ids else None,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)
     )
     session.add(assistant_msg)
 
@@ -348,7 +348,7 @@ def process_ai_message(
             clean_title = "Visual Shopping Search"
         chat.title = clean_title
 
-    chat.updated_at = datetime.utcnow()
+    chat.updated_at = datetime.now(timezone.utc)
     session.commit()
     session.refresh(assistant_msg)
 
