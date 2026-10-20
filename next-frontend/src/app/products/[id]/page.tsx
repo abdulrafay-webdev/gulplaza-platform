@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from 'react';
-import { products, reviews } from '@/services/api';
+import { products, reviews, setAuthToken } from '@/services/api';
 import { useCart } from '@/context/CartContext';
 import { useCustomer } from '@/context/CustomerContext';
 import PublicLayout from '@/components/PublicLayout';
@@ -80,8 +80,16 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     useEffect(() => {
         const load = async () => {
             try {
+                // If seller is logged in, attach auth token so wholesale products can be retrieved
+                const sellerToken = typeof window !== 'undefined' ? localStorage.getItem('aiplaza_seller_token') : null;
+                if (sellerToken) setAuthToken(sellerToken);
+
                 const res = await products.get(id);
                 setProduct(res.data);
+                
+                const minMoq = res.data.moq || 1;
+                setQuantity(minMoq);
+
                 if (res.data.variants && res.data.variants.length > 0) {
                     setSelectedVariant(res.data.variants[0]);
                 } else {
@@ -115,14 +123,17 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     const currentPrice = selectedVariant ? selectedVariant.price : (product?.price || 0);
     const currentName = selectedVariant ? `${product?.name} (${selectedVariant.name})` : product?.name;
     const currentStock = selectedVariant ? (selectedVariant.stock_quantity ?? product?.stock_quantity ?? 0) : (product?.stock_quantity ?? 0);
+    const minMoq = product?.moq || 1;
 
     const handleAddToCart = () => {
         if (!product) return;
+        const finalQty = Math.max(minMoq, quantity);
         addToCart({
             product_id: product.id,
             name: currentName,
             price: currentPrice,
-            quantity: quantity,
+            quantity: finalQty,
+            moq: minMoq,
             shop_id: product.shop_id,
             image_url: activeImage || product.image_url,
             variant_id: selectedVariant?.id,
@@ -134,11 +145,13 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
     const handleBuyNow = () => {
         if (!product) return;
+        const finalQty = Math.max(minMoq, quantity);
         addToCart({
             product_id: product.id,
             name: currentName,
             price: currentPrice,
-            quantity: quantity,
+            quantity: finalQty,
+            moq: minMoq,
             shop_id: product.shop_id,
             image_url: activeImage || product.image_url,
             variant_id: selectedVariant?.id,
@@ -298,6 +311,18 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                     </span>
                                 )}
                                 
+                                {product.moq > 1 && (
+                                    <span className="bg-blue-50 text-blue-800 text-[11px] font-black px-3 py-1 rounded-full border border-blue-200">
+                                        📦 Min. Order (MOQ): {product.moq} units
+                                    </span>
+                                )}
+
+                                {product.product_type === 'WHOLESALE' && (
+                                    <span className="bg-purple-100 text-[#7C3AED] text-[11px] font-black px-3 py-1 rounded-full border border-purple-200">
+                                        Wholesale B2B Catalog
+                                    </span>
+                                )}
+
                                 {/* Star Rating Badge */}
                                 {reviewSummary.total_reviews > 0 && (
                                     <div className="flex items-center gap-1 bg-amber-50 text-amber-900 px-2.5 py-1 rounded-full border border-amber-200 text-xs font-bold">
@@ -376,21 +401,26 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         {/* Quantity Selector & Action CTA */}
                         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                             <div className="flex items-center gap-4">
-                                <span className="text-xs font-black uppercase tracking-wider text-slate-600">Quantity:</span>
+                                <div className="flex flex-col">
+                                    <span className="text-xs font-black uppercase tracking-wider text-slate-600">Quantity:</span>
+                                    {minMoq > 1 && (
+                                        <span className="text-[10px] text-blue-600 font-bold">MOQ: {minMoq} min</span>
+                                    )}
+                                </div>
                                 <div className="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200">
                                     <button 
-                                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-700 disabled:opacity-30 transition-all"
-                                        disabled={quantity <= 1}
+                                        onClick={() => setQuantity(Math.max(minMoq, quantity - 1))}
+                                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-700 disabled:opacity-30 transition-all cursor-pointer"
+                                        disabled={quantity <= minMoq}
                                     >
                                         <Minus className="w-4 h-4" />
                                     </button>
-                                    <span className="w-10 text-center text-sm font-black text-slate-900">
+                                    <span className="w-12 text-center text-sm font-black text-slate-900">
                                         {quantity}
                                     </span>
                                     <button 
-                                        onClick={() => setQuantity(Math.min(currentStock || 99, quantity + 1))}
-                                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-700 disabled:opacity-30 transition-all"
+                                        onClick={() => setQuantity(Math.min(currentStock || 99999, quantity + 1))}
+                                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-700 disabled:opacity-30 transition-all cursor-pointer"
                                         disabled={currentStock > 0 && quantity >= currentStock}
                                     >
                                         <Plus className="w-4 h-4" />

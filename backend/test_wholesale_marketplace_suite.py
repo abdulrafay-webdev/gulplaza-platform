@@ -102,20 +102,34 @@ def test_full_wholesale_flow():
     wholesale_headers = {"Authorization": f"Bearer {wholesale_token}"}
     retail_headers = {"Authorization": f"Bearer {retail_token}"}
 
-    # Wholesale Seller adds a product (attacker tries sending product_type='RETAIL' to bypass)
+    # Wholesale Seller adds a product (with MOQ = 10, attacker tries sending product_type='RETAIL' to bypass)
     res_wp = client.post(f"/api/v1/shops/{wholesale_shop_id}/products", headers=wholesale_headers, json={
         "name": f"Bulk Wireless Earbuds Lot (100x) {uid_tag}",
         "short_description": "Wholesale master carton of bluetooth earbuds",
         "long_description": "Factory direct wholesale carton containing 100 units.",
         "price": 850.0,
         "stock_quantity": 500,
+        "moq": 10,
         "product_type": "RETAIL"  # Tamper attempt: MUST be overwritten by backend!
     })
     assert res_wp.status_code == 200, f"Wholesale product creation failed: {res_wp.text}"
     wholesale_product = res_wp.json()
     wholesale_product_id = wholesale_product["id"]
     assert wholesale_product["product_type"] == "WHOLESALE", f"Tamper bypass detected! Expected WHOLESALE, got {wholesale_product['product_type']}"
-    print(f"  -> Wholesale product #{wholesale_product_id} auto-classified as {wholesale_product['product_type']} (tamper attempt neutralized)")
+    assert wholesale_product.get("moq") == 10, f"Expected MOQ 10, got {wholesale_product.get('moq')}"
+    print(f"  -> Wholesale product #{wholesale_product_id} auto-classified as {wholesale_product['product_type']} with MOQ={wholesale_product.get('moq')}")
+
+    # Wholesale inventory check: Wholesale seller MUST see their products in dashboard inventory
+    res_ws_inv = client.get(f"/api/v1/shops/{wholesale_shop_id}/products", headers=wholesale_headers)
+    assert res_ws_inv.status_code == 200, f"Wholesale owner failed to retrieve own inventory: {res_ws_inv.text}"
+    ws_inv_ids = [p["id"] for p in res_ws_inv.json()]
+    assert wholesale_product_id in ws_inv_ids, "Wholesale product missing from owner's inventory!"
+    print(f"  -> Wholesaler dashboard inventory successfully returns wholesale products (Found #{wholesale_product_id})")
+
+    # Wholesaler detail lookup: Owner viewing their own wholesale product detail
+    res_ws_own_detail = client.get(f"/api/v1/products/{wholesale_product_id}", headers=wholesale_headers)
+    assert res_ws_own_detail.status_code == 200, f"Owner failed to view wholesale product detail: {res_ws_own_detail.text}"
+    print(f"  -> Wholesaler successfully opens detailed product page for #{wholesale_product_id}")
 
     # Retail Seller adds a retail product
     res_rp = client.post(f"/api/v1/shops/{retail_shop_id}/products", headers=retail_headers, json={
@@ -182,7 +196,25 @@ def test_full_wholesale_flow():
     assert res_ws_single.status_code == 200
     assert res_ws_single.json()["product_type"] == "WHOLESALE"
 
-    # Retail seller orders wholesale products via existing Cart Checkout (Cash on Delivery)
+    # 1. Retail seller attempts to order below MOQ (Quantity = 5, MOQ = 10) -> MUST FAIL (400)
+    res_moq_fail = client.post("/api/v1/cart/checkout", headers=retail_headers, json={
+        "items": [
+            {
+                "product_id": wholesale_product_id,
+                "quantity": 5,
+                "price": 850.0
+            }
+        ],
+        "guest_name": f"Retail Store {uid_tag}",
+        "guest_email": retail_email,
+        "guest_phone": "03001234567",
+        "guest_address": "Shop #12, First Floor, AI Plaza, Karachi"
+    })
+    assert res_moq_fail.status_code == 400, f"MOQ breach! Expected 400 for qty < MOQ, got {res_moq_fail.status_code}"
+    assert "minimum order quantity" in res_moq_fail.text.lower() or "moq" in res_moq_fail.text.lower(), f"Unexpected error detail: {res_moq_fail.text}"
+    print(f"  -> MOQ Enforcement Verified: Order below MOQ (5 < 10) properly rejected")
+
+    # 2. Retail seller orders wholesale products meeting MOQ (Quantity = 20 >= 10) via COD -> MUST SUCCEED
     res_checkout = client.post("/api/v1/cart/checkout", headers=retail_headers, json={
         "items": [
             {

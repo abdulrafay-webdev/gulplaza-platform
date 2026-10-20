@@ -1,5 +1,6 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Optional
 from sqlmodel import Session, select
 from src.db.session import get_session
 from src.services import customer_service, shop_service
@@ -10,9 +11,21 @@ import logging
 
 logger = logging.getLogger(__name__)
 security = HTTPBearer()
+security_optional = HTTPBearer(auto_error=False)
 
 SECRET_KEY = os.getenv("CUSTOMER_JWT_SECRET", "default_secret_for_customers_123")
 ALGORITHM = "HS256"
+
+def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_optional),
+    session: Session = Depends(get_session)
+) -> Optional[dict]:
+    if not credentials:
+        return None
+    try:
+        return get_current_user(credentials, session)
+    except Exception:
+        return None
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), session: Session = Depends(get_session)):
     token = credentials.credentials

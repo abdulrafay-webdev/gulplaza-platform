@@ -47,8 +47,12 @@ def run_wholesale_migration():
                 conn.execute(text("ALTER TABLE product ADD COLUMN IF NOT EXISTS product_type VARCHAR DEFAULT 'RETAIL';"))
                 conn.execute(text("UPDATE product SET product_type = 'RETAIL' WHERE product_type IS NULL;"))
                 print("Added product_type to 'product' table and initialized defaults.")
+            if 'moq' not in prod_cols:
+                conn.execute(text("ALTER TABLE product ADD COLUMN IF NOT EXISTS moq INTEGER DEFAULT 1;"))
+                conn.execute(text("UPDATE product SET moq = 1 WHERE moq IS NULL;"))
+                print("Added moq to 'product' table and initialized defaults.")
             else:
-                print("product_type already exists on 'product'.")
+                print("moq already exists on 'product'.")
 
         # 4. Update "order" table
         if "order" in tables:

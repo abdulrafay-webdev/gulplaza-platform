@@ -19,7 +19,7 @@ from src.db.session import get_session
 from src.models.product import Product, ProductImage, ProductCreate, ProductRead
 from src.models.shop import Shop
 from src.services import product_service, shop_service, image_service
-from src.auth.deps import get_shop_owner
+from src.auth.deps import get_shop_owner, get_current_user_optional
 
 router = APIRouter()
 
@@ -67,14 +67,22 @@ def list_all_products(
     ]
 
 @router.get("/products/{product_id}", response_model=ProductRead)
-def get_product(product_id: int, response: Response, session: Session = Depends(get_session)):
-    """Get a single retail product details (Public). Wholesale products return 404."""
-    response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+def get_product(
+    product_id: int, 
+    response: Response, 
+    user: Optional[dict] = Depends(get_current_user_optional),
+    session: Session = Depends(get_session)
+):
+    """Get a single product details.
+    - Retail products are public for all users.
+    - Wholesale products are only accessible to the product's shop owner, 
+      super admin, or approved retail sellers.
+    - Otherwise returns 404 for wholesale products (preserving catalog isolation).
+    """
     product = session.exec(
         select(Product).where(
             Product.id == product_id, 
-            Product.is_deleted == False,
-            Product.product_type == "RETAIL"
+            Product.is_deleted == False
         ).options(
             selectinload(Product.images),
             selectinload(Product.variants)
@@ -83,6 +91,29 @@ def get_product(product_id: int, response: Response, session: Session = Depends(
     
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+        
+    if product.product_type == "WHOLESALE":
+        # Check authorization
+        is_authorized = False
+        if user:
+            role = str(user.get("role", "")).upper()
+            if role == "SUPER_ADMIN" or user.get("email") == "abdullrrafay@gmail.com":
+                is_authorized = True
+            elif user.get("shop_id") == product.shop_id:
+                is_authorized = True
+            else:
+                prod_shop = session.get(Shop, product.shop_id)
+                if prod_shop and prod_shop.owner_clerk_id == user.get("id"):
+                    is_authorized = True
+                elif user.get("seller_type") == "RETAIL" and user.get("shop_id"):
+                    buyer_shop = session.get(Shop, user["shop_id"])
+                    if buyer_shop and buyer_shop.is_approved:
+                        is_authorized = True
+        
+        if not is_authorized:
+            raise HTTPException(status_code=404, detail="Product not found")
+    else:
+        response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
     
     shop_name = None
     if product.shop_id:
@@ -159,20 +190,58 @@ def create_product(
     return product_service.format_product_read(prod_loaded or new_prod, shop.name)
 
 @router.get("/shops/{shop_id}/products", response_model=List[ProductRead])
-def list_products(shop_id: int, session: Session = Depends(get_session)):
-    """List retail products for a shop (Public). Wholesale products are excluded."""
+def list_products(
+    shop_id: int, 
+    user: Optional[dict] = Depends(get_current_user_optional),
+    session: Session = Depends(get_session)
+):
+    """List products for a shop.
+    - If shop is WHOLESALE: Accessible to the shop owner, super admin, or approved retail sellers.
+      Unauthenticated / normal customers receive 404 (isolation).
+    - If shop is RETAIL: Publicly accessible.
+    """
     shop = session.get(Shop, shop_id)
-    shop_name = shop.name if shop else f"Shop #{shop_id}"
-    statement = select(Product).where(
-        Product.shop_id == shop_id, 
-        Product.is_deleted == False,
-        Product.product_type == "RETAIL"
-    ).options(
-        selectinload(Product.images),
-        selectinload(Product.variants)
-    )
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+        
+    is_wholesale = getattr(shop, "seller_type", "RETAIL") == "WHOLESALE"
+    
+    if is_wholesale:
+        is_authorized = False
+        if user:
+            role = str(user.get("role", "")).upper()
+            if role == "SUPER_ADMIN" or user.get("email") == "abdullrrafay@gmail.com":
+                is_authorized = True
+            elif user.get("shop_id") == shop.id or shop.owner_clerk_id == user.get("id"):
+                is_authorized = True
+            elif user.get("seller_type") == "RETAIL" and user.get("shop_id"):
+                buyer_shop = session.get(Shop, user["shop_id"])
+                if buyer_shop and buyer_shop.is_approved:
+                    is_authorized = True
+                    
+        if not is_authorized:
+            raise HTTPException(status_code=404, detail="Shop not found")
+            
+        statement = select(Product).where(
+            Product.shop_id == shop_id, 
+            Product.is_deleted == False,
+            Product.product_type == "WHOLESALE"
+        ).options(
+            selectinload(Product.images),
+            selectinload(Product.variants)
+        )
+    else:
+        statement = select(Product).where(
+            Product.shop_id == shop_id, 
+            Product.is_deleted == False,
+            Product.product_type == "RETAIL"
+        ).options(
+            selectinload(Product.images),
+            selectinload(Product.variants)
+        )
+
     prods = session.exec(statement).all()
-    return [product_service.format_product_read(p, shop_name) for p in prods]
+    return [product_service.format_product_read(p, shop.name) for p in prods]
 
 @router.delete("/products/{product_id}")
 def delete_product(product_id: int, user = Depends(get_shop_owner), session: Session = Depends(get_session)):
@@ -192,6 +261,7 @@ class ProductUpdate(BaseModel):
     name: Optional[str] = None
     price: Optional[float] = None
     stock_quantity: Optional[int] = None
+    moq: Optional[int] = None
     short_description: Optional[str] = None
     long_description: Optional[str] = None
     image_url: Optional[str] = None
@@ -199,6 +269,16 @@ class ProductUpdate(BaseModel):
     main_category_id: Optional[int] = None
     sub_category_id: Optional[int] = None
     variants: Optional[List[dict]] = None
+
+    @validator_before("moq")
+    @classmethod
+    def sanitize_moq_update(cls, v):
+        if v is None or v == "":
+            return None
+        try:
+            return max(1, int(v))
+        except (ValueError, TypeError):
+            return 1
 
     @validator_before("main_category_id", "sub_category_id")
     @classmethod

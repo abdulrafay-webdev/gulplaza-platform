@@ -57,17 +57,21 @@ export default function WholesaleMarketplacePage() {
     loadWholesaleProducts(search);
   };
 
-  const handleAddToCart = (product: any, qty: number = 10) => {
+  const handleAddToCart = (product: any, qty?: number) => {
+    const minMoq = product.moq || 1;
+    const finalQty = qty ? Math.max(qty, minMoq) : minMoq;
+
     addToCart({
       product_id: product.id,
       name: product.name,
       price: product.min_price || product.price,
-      quantity: qty,
+      quantity: finalQty,
+      moq: minMoq,
       shop_id: product.shop_id,
       image_url: product.image_url || (product.images?.[0]?.url)
     });
 
-    setActionNotice(`Added ${qty}x "${product.name}" to cart!`);
+    setActionNotice(`Added ${finalQty}x "${product.name}" (Min MOQ: ${minMoq}) to cart!`);
     setTimeout(() => setActionNotice(null), 3500);
   };
 
@@ -206,7 +210,7 @@ export default function WholesaleMarketplacePage() {
             >
               <div>
                 {/* Product Thumbnail */}
-                <div className="relative aspect-square w-full bg-slate-100 overflow-hidden">
+                <Link href={`/products/${p.id}`} className="relative aspect-square w-full bg-slate-100 overflow-hidden block">
                   <img
                     src={thumb}
                     alt={p.name}
@@ -215,7 +219,10 @@ export default function WholesaleMarketplacePage() {
                   <div className="absolute top-2.5 left-2.5 bg-blue-600 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-md shadow-xs">
                     Wholesale Bulk
                   </div>
-                </div>
+                  <div className="absolute bottom-2.5 right-2.5 bg-slate-900/80 backdrop-blur-xs text-white text-[9px] font-black px-2 py-0.5 rounded-md">
+                    MOQ: {p.moq || 1} units
+                  </div>
+                </Link>
 
                 {/* Details */}
                 <div className="p-4 space-y-2">
@@ -224,9 +231,11 @@ export default function WholesaleMarketplacePage() {
                     <span className="font-semibold truncate">{p.shop_name || `Shop #${p.shop_id}`}</span>
                   </div>
 
-                  <h3 className="font-black text-sm text-slate-900 line-clamp-2 leading-snug">
-                    {p.name}
-                  </h3>
+                  <Link href={`/products/${p.id}`} className="block hover:text-[#A163F7] transition-colors">
+                    <h3 className="font-black text-sm text-slate-900 line-clamp-2 leading-snug">
+                      {p.name}
+                    </h3>
+                  </Link>
 
                   <p className="text-[11px] text-slate-500 line-clamp-2">
                     {p.short_description || "High quality wholesale bulk supply ready for immediate dispatch."}
@@ -249,21 +258,29 @@ export default function WholesaleMarketplacePage() {
               {/* Action Buttons */}
               <div className="p-4 pt-0 space-y-2">
                 <button
-                  onClick={() => handleAddToCart(p, 10)}
-                  disabled={p.stock_quantity <= 0}
+                  onClick={() => handleAddToCart(p, p.moq || 1)}
+                  disabled={p.stock_quantity <= 0 || p.stock_quantity < (p.moq || 1)}
                   className="w-full py-2.5 bg-gradient-to-r from-[#A163F7] to-[#6F88FC] text-white text-xs font-black rounded-xl shadow-xs hover:opacity-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>Add 10x Pack to Cart</span>
+                  <span>Add MOQ Pack ({p.moq || 1} units)</span>
                 </button>
 
-                <button
-                  onClick={() => handleAddToCart(p, 50)}
-                  disabled={p.stock_quantity < 50}
-                  className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  <span>Add 50x Bulk Lot</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleAddToCart(p, (p.moq || 1) * 2)}
+                    disabled={p.stock_quantity < (p.moq || 1) * 2}
+                    className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold rounded-lg transition-all text-center cursor-pointer disabled:opacity-50"
+                  >
+                    2x MOQ ({(p.moq || 1) * 2})
+                  </button>
+                  <Link
+                    href={`/products/${p.id}`}
+                    className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-[#A163F7] text-[11px] font-black rounded-lg transition-all text-center"
+                  >
+                    Details &rarr;
+                  </Link>
+                </div>
               </div>
             </div>
           );

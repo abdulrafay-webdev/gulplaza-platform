@@ -36,6 +36,7 @@ class ProductBase(SQLModel):
     name: str
     price: Optional[float] = Field(default=0.0, ge=0)
     stock_quantity: Optional[int] = Field(default=0, ge=0)
+    moq: int = Field(default=1, ge=1) # Minimum Order Quantity (for wholesale / bulk or retail)
     image_url: Optional[str] = None # Thumbnail
     is_active: bool = True
     is_deleted: bool = False # New field for soft delete
@@ -84,6 +85,17 @@ class ProductBase(SQLModel):
             return int(val)
         except (ValueError, TypeError):
             return 0
+
+    @validator_before("moq")
+    @classmethod
+    def sanitize_moq(cls, v):
+        if v is None or v == "":
+            return 1
+        try:
+            val = int(v)
+            return max(1, val)
+        except (ValueError, TypeError):
+            return 1
 
     @validator_before("short_description", "long_description")
     @classmethod

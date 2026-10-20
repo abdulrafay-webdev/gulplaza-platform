@@ -66,6 +66,11 @@ def process_checkout(
                 raise ValueError(f"Product {pid} not found in database")
             if product.stock_quantity < qty:
                 raise ValueError(f"Product '{product.name}' is out of stock")
+
+            # Enforce Minimum Order Quantity (MOQ)
+            min_moq = getattr(product, "moq", 1) or 1
+            if min_moq > 1 and qty < min_moq:
+                raise ValueError(f"Product '{product.name}' has a Minimum Order Quantity (MOQ) of {min_moq} units. You ordered {qty}.")
                 
             shop_id = product.shop_id
             if shop_id not in shop_orders:

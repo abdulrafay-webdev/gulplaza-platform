@@ -23,6 +23,7 @@ export interface Product {
   name: string;
   price: number;
   stock_quantity: number;
+  moq?: number;
   product_type?: 'RETAIL' | 'WHOLESALE';
   short_description?: string;
   long_description?: string;

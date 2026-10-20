@@ -11,6 +11,7 @@ export type CartItem = {
     image_url?: string;
     variant_id?: number;
     variant_name?: string;
+    moq?: number;
 };
 
 type CartContextType = {
@@ -26,7 +27,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
     const [items, setItems] = useState<CartItem[]>([]);
 
-    // Persist cart to local storage (preservng behavior)
+    // Persist cart to local storage (preserving behavior)
     useEffect(() => {
         const saved = localStorage.getItem('cart');
         if (saved) {
@@ -43,13 +44,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }, [items]);
 
     const addToCart = (item: CartItem) => {
+        const minQty = item.moq || 1;
+        const initialQty = Math.max(minQty, item.quantity);
+        const sanitizedItem = { ...item, quantity: initialQty, moq: minQty };
+
         setItems(prev => {
             const isMatch = (i: CartItem) => i.product_id === item.product_id && (i.variant_name || null) === (item.variant_name || null);
             const existing = prev.find(isMatch);
             if (existing) {
-                return prev.map(i => isMatch(i) ? { ...i, quantity: i.quantity + item.quantity } : i);
+                return prev.map(i => isMatch(i) ? { ...i, quantity: i.quantity + sanitizedItem.quantity, moq: minQty } : i);
             }
-            return [...prev, item];
+            return [...prev, sanitizedItem];
         });
     };
 
@@ -64,7 +69,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const updateQuantity = (productId: number, quantity: number, variantName?: string) => {
         setItems(prev => prev.map(item => {
             if (item.product_id === productId && (variantName === undefined || item.variant_name === variantName)) {
-                return { ...item, quantity: Math.max(1, quantity) };
+                const minQty = item.moq || 1;
+                return { ...item, quantity: Math.max(minQty, quantity) };
             }
             return item;
         }));

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { IKUpload } from "imagekitio-next";
 
 export default function ProductForm() {
-    const { token, isLoaded } = useSeller();
+    const { token, isLoaded, isWholesaleSeller } = useSeller();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     
@@ -22,6 +22,7 @@ export default function ProductForm() {
         long_description: '',
         price: 0,
         stock_quantity: 0,
+        moq: 1,
         image_url: '', // Main Thumbnail
         image_urls: [] as string[], // Gallery
         main_category_id: '',
@@ -217,6 +218,7 @@ export default function ProductForm() {
             long_description: toSafeString(formData.long_description).trim() || "No long description",
             price: finalPrice,
             stock_quantity: finalStock,
+            moq: Math.max(1, parseInt(formData.moq as any, 10) || 1),
             image_url: formData.image_url || (formData.image_urls.length > 0 ? formData.image_urls[0] : null),
             image_urls: formData.image_urls || [],
             main_category_id: cleanMainCat,
@@ -497,6 +499,40 @@ export default function ProductForm() {
                         </div>
                     </div>
                 )}
+
+                {/* Minimum Order Quantity (MOQ) */}
+                <div className={`p-4 rounded-xl border ${isWholesaleSeller ? 'bg-blue-50/70 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
+                    <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <span>Minimum Order Quantity (MOQ)</span>
+                            {isWholesaleSeller && (
+                                <span className="text-[10px] bg-blue-600 text-white font-black px-2 py-0.5 rounded-full uppercase">
+                                    Wholesale Required
+                                </span>
+                            )}
+                        </label>
+                        <span className="text-xs font-mono font-bold text-slate-500">
+                            Min: {formData.moq || 1} units
+                        </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-2.5">
+                        {isWholesaleSeller 
+                            ? "Retail buyers must order at least this quantity (or more) when purchasing this product in bulk."
+                            : "For regular retail customers, standard default is 1 unit."}
+                    </p>
+                    <input 
+                        type="number" 
+                        min="1"
+                        className="block w-full sm:w-48 border border-gray-300 rounded-lg p-2.5 bg-white text-sm font-bold text-slate-900"
+                        placeholder="1"
+                        value={formData.moq}
+                        onChange={e => {
+                            const val = parseInt(e.target.value, 10);
+                            setFormData({...formData, moq: isNaN(val) || val < 1 ? 1 : val});
+                        }}
+                        required
+                    />
+                </div>
 
                 <div>
                     <label className="block text-sm font-medium mb-2">Product Images (Gallery)</label>
