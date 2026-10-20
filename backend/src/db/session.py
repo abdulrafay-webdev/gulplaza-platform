@@ -16,7 +16,23 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 SQL_ECHO = os.getenv("SQL_ECHO", "false").lower() == "true"
 
 if DATABASE_URL:
-    engine = create_engine(DATABASE_URL, echo=SQL_ECHO, pool_pre_ping=True)
+    try:
+        engine = create_engine(DATABASE_URL, echo=SQL_ECHO, pool_pre_ping=True)
+    except Exception as e:
+        err_msg = str(e).lower()
+        if "no module named 'psycopg'" in err_msg or "no module named 'psycopg2'" in err_msg:
+            # Attempt reciprocal driver fallback
+            if "postgresql+psycopg://" in DATABASE_URL:
+                alt_url = DATABASE_URL.replace("postgresql+psycopg://", "postgresql+psycopg2://", 1)
+            elif "postgresql+psycopg2://" in DATABASE_URL:
+                alt_url = DATABASE_URL.replace("postgresql+psycopg2://", "postgresql+psycopg://", 1)
+            elif DATABASE_URL.startswith("postgresql://"):
+                alt_url = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+            else:
+                alt_url = DATABASE_URL
+            engine = create_engine(alt_url, echo=SQL_ECHO, pool_pre_ping=True)
+        else:
+            raise e
 else:
     # Fallback to in-memory SQLite so app starts up cleanly without crashing on import
     engine = create_engine("sqlite:///:memory:", echo=False)
