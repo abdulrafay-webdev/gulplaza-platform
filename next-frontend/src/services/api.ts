@@ -47,19 +47,27 @@ export const reviews = {
     deleteReview: (reviewId: string | number) => api.delete(`/reviews/${reviewId}`),
 };
 
+export const wholesale = {
+    listProducts: (params?: any) => api.get('/wholesale/products', { params }),
+    getProduct: (id: string | number) => api.get(`/wholesale/products/${id}`),
+    listVendors: () => api.get('/wholesale/shops'),
+    getVendor: (id: string | number) => api.get(`/wholesale/shops/${id}`),
+    listMyPurchases: () => api.get('/wholesale/orders'),
+};
+
 export const cart = {
     checkout: (data: any) => api.post('/cart/checkout', data),
 };
 
 export const orders = {
-    list: () => api.get('/orders'),
+    list: (params?: any) => api.get('/orders', { params }),
     get: (id: string | number) => api.get(`/orders/${id}`),
     updateStatus: (id: string | number, status: string) => api.patch(`/orders/${id}/status`, { status }),
 };
 
 export const admin = {
     getAnalytics: () => api.get('/admin/analytics'),
-    listShops: (approved?: boolean) => api.get('/admin/shops', { params: { approved } }),
+    listShops: (params?: { approved?: boolean; seller_type?: string }) => api.get('/admin/shops', { params }),
     approveShop: (shopId: string | number) => api.post(`/admin/shops/${shopId}/approve`),
     toggleActive: (shopId: string | number) => api.patch(`/admin/shops/${shopId}/toggle-active`),
     deleteShop: (shopId: string | number) => api.delete(`/admin/shops/${shopId}`),

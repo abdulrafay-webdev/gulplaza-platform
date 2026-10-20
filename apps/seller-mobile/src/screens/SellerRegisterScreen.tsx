@@ -19,6 +19,7 @@ import { useSellerAuth } from '../context/SellerAuthContext';
 
 export default function SellerRegisterScreen({ navigation }: any) {
   const { register } = useSellerAuth();
+  const [sellerType, setSellerType] = useState<'RETAIL' | 'WHOLESALE'>('RETAIL');
   const [shopName, setShopName] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -41,6 +42,7 @@ export default function SellerRegisterScreen({ navigation }: any) {
     try {
       setLoading(true);
       const result = await register({
+        seller_type: sellerType,
         shop_name: shopName.trim(),
         full_name: fullName.trim(),
         email: email.trim(),
@@ -89,6 +91,42 @@ export default function SellerRegisterScreen({ navigation }: any) {
           </Text>
 
           <View style={styles.form}>
+            {/* Vendor Type Selection */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Vendor Type *</Text>
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                <TouchableOpacity
+                  style={[
+                    styles.typeCard,
+                    sellerType === 'RETAIL' && styles.typeCardActive
+                  ]}
+                  onPress={() => setSellerType('RETAIL')}
+                >
+                  <Text style={[styles.typeTitle, sellerType === 'RETAIL' && styles.typeTitleActive]}>
+                    Retail Seller
+                  </Text>
+                  <Text style={styles.typeDesc}>
+                    Sell directly to retail customers
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.typeCard,
+                    sellerType === 'WHOLESALE' && styles.typeCardActiveBlue
+                  ]}
+                  onPress={() => setSellerType('WHOLESALE')}
+                >
+                  <Text style={[styles.typeTitle, sellerType === 'WHOLESALE' && styles.typeTitleActiveBlue]}>
+                    Wholesale Seller
+                  </Text>
+                  <Text style={styles.typeDesc}>
+                    Sell bulk to retail stores in B2B
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Shop Name */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Shop / Brand Name *</Text>
@@ -297,6 +335,39 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '900',
+  },
+  typeCard: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    padding: 12,
+  },
+  typeCardActive: {
+    borderColor: '#7C3AED',
+    backgroundColor: '#FAF5FF',
+  },
+  typeCardActiveBlue: {
+    borderColor: '#2563EB',
+    backgroundColor: '#EFF6FF',
+  },
+  typeTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  typeTitleActive: {
+    color: '#7C3AED',
+  },
+  typeTitleActiveBlue: {
+    color: '#2563EB',
+  },
+  typeDesc: {
+    fontSize: 10,
+    color: '#64748B',
+    lineHeight: 14,
   },
   footerRow: {
     flexDirection: 'row',

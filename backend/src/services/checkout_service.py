@@ -1,15 +1,23 @@
 from sqlmodel import Session, select
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from src.models.order import Order, OrderItem, OrderStatus
 from src.models.product import Product
+from src.models.shop import Shop
 import logging
 
 logger = logging.getLogger(__name__)
 
-def process_checkout(session: Session, customer_identity: Optional[str], items: List[dict], guest_info: dict = None):
+def process_checkout(
+    session: Session, 
+    customer_identity: Optional[str] = None, 
+    items: List[dict] = None, 
+    guest_info: dict = None,
+    auth_context: Optional[Dict[str, Any]] = None
+):
     """
     Process checkout for multiple items.
     Splits into multiple orders by Shop.
+    Enforces Retail B2C vs Wholesale B2B purchasing rules.
     """
     try:
         # 1. Fetch all products
@@ -22,6 +30,30 @@ def process_checkout(session: Session, customer_identity: Optional[str], items: 
         products_list = session.exec(select(Product).where(Product.id.in_(product_ids), Product.is_deleted == False)).all()
         product_map = {p.id: p for p in products_list}
         
+        # Check product types
+        has_wholesale = any(getattr(p, "product_type", "RETAIL") == "WHOLESALE" for p in products_list)
+        has_retail = any(getattr(p, "product_type", "RETAIL") == "RETAIL" for p in products_list)
+
+        if has_wholesale and has_retail:
+            raise ValueError("Wholesale products and retail products cannot be purchased together in the same order.")
+
+        # Wholesale B2B Purchase Verification
+        if has_wholesale:
+            if not auth_context or auth_context.get("type") != "user":
+                raise ValueError("Unauthorized: Wholesale products can only be purchased by approved Retail Sellers. Please log in with your Retail Seller store account.")
+            
+            role = str(auth_context.get("role", "")).upper()
+            seller_type = str(auth_context.get("seller_type", "")).upper()
+
+            if role != "SUPER_ADMIN" and auth_context.get("email") != "abdullrrafay@gmail.com":
+                if seller_type != "RETAIL":
+                    raise ValueError("Wholesale sellers are not permitted to purchase from the wholesale marketplace.")
+                
+                buyer_shop_id = auth_context.get("shop_id")
+                buyer_shop = session.get(Shop, buyer_shop_id) if buyer_shop_id else None
+                if not buyer_shop or not buyer_shop.is_approved:
+                    raise ValueError("Your Retail Seller store must be approved by Super Admin before purchasing from the Wholesale Marketplace.")
+
         # 2. Group by Shop and Validate Stock
         shop_orders = {} # shop_id -> {total, items: []}
         
@@ -63,8 +95,15 @@ def process_checkout(session: Session, customer_identity: Optional[str], items: 
         # Determine customer links
         c_clerk_id = None
         c_neon_id = None
+        buyer_shop_id = None
         
-        if customer_identity:
+        if auth_context:
+            if auth_context.get("type") == "customer":
+                c_neon_id = auth_context.get("id")
+            elif auth_context.get("type") == "user":
+                c_clerk_id = str(auth_context.get("id"))
+                buyer_shop_id = auth_context.get("shop_id")
+        elif customer_identity:
             if str(customer_identity).isdigit():
                 c_neon_id = int(customer_identity)
             else:
@@ -76,11 +115,19 @@ def process_checkout(session: Session, customer_identity: Optional[str], items: 
         g_phone = guest_info.get("phone") if guest_info else None
         g_address = guest_info.get("address") if guest_info else None
 
+        if has_wholesale and auth_context:
+            g_name = g_name or auth_context.get("name") or "Retail Seller Partner"
+            g_email = g_email or auth_context.get("email")
+
+        determined_order_type = "WHOLESALE" if has_wholesale else "RETAIL"
+
         for shop_id, data in shop_orders.items():
             order = Order(
                 shop_id=shop_id,
                 customer_clerk_id=c_clerk_id,
                 customer_id=c_neon_id,
+                buyer_shop_id=buyer_shop_id,
+                order_type=determined_order_type,
                 guest_name=g_name.strip() if g_name else None,
                 guest_email=g_email.strip() if g_email else None,
                 guest_phone=g_phone.strip() if g_phone else None,
@@ -105,7 +152,7 @@ def process_checkout(session: Session, customer_identity: Optional[str], items: 
             created_orders.append(order)
             
         session.commit()
-        logger.info(f"Successfully created {len(created_orders)} orders")
+        logger.info(f"Successfully created {len(created_orders)} {determined_order_type} orders")
         return created_orders
         
     except Exception as e:

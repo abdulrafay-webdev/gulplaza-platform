@@ -39,6 +39,8 @@ class Order(SQLModel, table=True):
     guest_address: Optional[str] = None
     
     status: str = Field(default=OrderStatus.PENDING)
+    order_type: str = Field(default="RETAIL") # "RETAIL" or "WHOLESALE"
+    buyer_shop_id: Optional[int] = Field(default=None) # Link to buying Retail Shop if wholesale
     total_amount: float
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
@@ -71,6 +73,8 @@ class OrderRead(SQLModel):
     guest_phone: Optional[str]
     guest_address: Optional[str]
     status: str
+    order_type: str = "RETAIL"
+    buyer_shop_id: Optional[int] = None
     total_amount: float
     created_at: datetime
     items: List[OrderItemRead] = []

@@ -41,12 +41,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
   
   const isPending = shop && !shop.is_approved;
+  const sellerType = (shop?.seller_type || seller?.seller_type || 'RETAIL').toUpperCase();
+  const isWholesale = sellerType === 'WHOLESALE';
 
-  const navItems = [
+  const navItems = isWholesale ? [
+    { name: 'Wholesale Analytics', href: '/dashboard', icon: BarChart3 },
+    { name: 'Bulk Products Inventory', href: '/dashboard/products', icon: Layers },
+    { name: 'B2B Retail Orders', href: '/dashboard/orders', icon: ShoppingBag },
+    { name: 'Product Reviews', href: '/dashboard/reviews', icon: MessageSquare },
+  ] : [
     { name: 'Store Analytics', href: '/dashboard', icon: BarChart3 },
     { name: 'Products Inventory', href: '/dashboard/products', icon: Layers },
     { name: 'Customer Orders', href: '/dashboard/orders', icon: ShoppingBag },
     { name: 'Product Reviews', href: '/dashboard/reviews', icon: MessageSquare },
+    { name: 'Wholesale Marketplace', href: '/dashboard/wholesale', icon: Store, badge: 'B2B Sourcing' },
+    { name: 'My Sourcing Orders', href: '/dashboard/wholesale/purchases', icon: ShoppingBag },
   ];
 
   return (
@@ -68,7 +77,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <div>
               <span className="text-sm font-black text-slate-900 block leading-tight">{shop?.name || seller?.full_name || "Seller Portal"}</span>
-              <span className="text-[9px] font-bold text-[#A163F7] uppercase tracking-wider block">Vendor Control</span>
+              <span className={`text-[9px] font-bold uppercase tracking-wider block ${isWholesale ? 'text-[#3B82F6]' : 'text-[#A163F7]'}`}>
+                {isWholesale ? 'Wholesale Vendor (B2B)' : 'Retail Vendor (B2C)'}
+              </span>
             </div>
           </div>
         </div>
@@ -105,6 +116,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.name}</span>
+                  {item.badge && (
+                    <span className="ml-auto text-[9px] font-black bg-gradient-to-r from-amber-400 to-orange-500 text-white px-2 py-0.5 rounded-full shadow-xs">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -135,7 +151,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Link href="/" className="text-base font-black text-[#161226] hover:text-[#A163F7] transition-colors block leading-tight">
                   {shop?.name || "AI Plaza Vendor"}
                 </Link>
-                <span className="text-[10px] font-black text-[#A163F7] uppercase tracking-wider block mt-0.5">Seller Portal</span>
+                <span className={`text-[10px] font-black uppercase tracking-wider block mt-0.5 ${isWholesale ? 'text-[#3B82F6]' : 'text-[#A163F7]'}`}>
+                  {isWholesale ? 'Wholesale Vendor (B2B)' : 'Retail Vendor (B2C)'}
+                </span>
               </div>
             </div>
           </div>
@@ -157,6 +175,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.name}</span>
+                  {item.badge && (
+                    <span className="ml-auto text-[9px] font-black bg-gradient-to-r from-amber-400 to-orange-500 text-white px-2 py-0.5 rounded-full shadow-xs">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

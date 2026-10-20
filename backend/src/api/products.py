@@ -36,11 +36,14 @@ def list_all_products(
     search: Optional[str] = None, 
     session: Session = Depends(get_session)
 ):
-    """List all products across all shops (Public)."""
+    """List all retail products across all shops (Public). Wholesale products are strictly excluded."""
     if not search:
         response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=120"
 
-    query = select(Product).where(Product.is_deleted == False).options(
+    query = select(Product).where(
+        Product.is_deleted == False,
+        Product.product_type == "RETAIL"
+    ).options(
         selectinload(Product.images),
         selectinload(Product.variants)
     )
@@ -65,10 +68,14 @@ def list_all_products(
 
 @router.get("/products/{product_id}", response_model=ProductRead)
 def get_product(product_id: int, response: Response, session: Session = Depends(get_session)):
-    """Get a single product details (Public)."""
+    """Get a single retail product details (Public). Wholesale products return 404."""
     response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
     product = session.exec(
-        select(Product).where(Product.id == product_id, Product.is_deleted == False).options(
+        select(Product).where(
+            Product.id == product_id, 
+            Product.is_deleted == False,
+            Product.product_type == "RETAIL"
+        ).options(
             selectinload(Product.images),
             selectinload(Product.variants)
         )
@@ -131,6 +138,9 @@ def create_product(
         
     product_data = product_in.dict(exclude={"image_urls", "variants"})
     product_data["shop_id"] = shop_id
+    # Automatically enforce product_type strictly from the shop's registered seller_type
+    shop_seller_type = getattr(shop, "seller_type", None) or "RETAIL"
+    product_data["product_type"] = shop_seller_type.upper()
     
     gallery = product_in.image_urls or []
     if product_in.image_url and product_in.image_url not in gallery:
@@ -150,10 +160,14 @@ def create_product(
 
 @router.get("/shops/{shop_id}/products", response_model=List[ProductRead])
 def list_products(shop_id: int, session: Session = Depends(get_session)):
-    """List products for a shop (Public)."""
+    """List retail products for a shop (Public). Wholesale products are excluded."""
     shop = session.get(Shop, shop_id)
     shop_name = shop.name if shop else f"Shop #{shop_id}"
-    statement = select(Product).where(Product.shop_id == shop_id, Product.is_deleted == False).options(
+    statement = select(Product).where(
+        Product.shop_id == shop_id, 
+        Product.is_deleted == False,
+        Product.product_type == "RETAIL"
+    ).options(
         selectinload(Product.images),
         selectinload(Product.variants)
     )
@@ -239,6 +253,7 @@ def update_product(
         raise HTTPException(status_code=403, detail="Not your product")
         
     data = update_data.dict(exclude_unset=True, exclude={"image_urls", "variants"})
+    data.pop("product_type", None) # Invariant: product_type cannot be changed
     image_urls = update_data.image_urls
     variants = update_data.variants
     

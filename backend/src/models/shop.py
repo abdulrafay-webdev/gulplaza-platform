@@ -12,6 +12,7 @@ class ShopBase(SQLModel):
     cover_image_url: Optional[str] = None
     is_active: bool = True
     is_approved: bool = False  # New field for admin approval
+    seller_type: str = Field(default="RETAIL")  # "RETAIL" or "WHOLESALE"
 
 class Shop(ShopBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

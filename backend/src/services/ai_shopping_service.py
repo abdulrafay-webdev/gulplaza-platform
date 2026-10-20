@@ -151,7 +151,7 @@ def hydrate_product_cards(session: Session, product_ids: List[int]) -> List[Dict
 
     statement = (
         select(Product)
-        .where(Product.id.in_(product_ids), Product.is_deleted == False)
+        .where(Product.id.in_(product_ids), Product.is_deleted == False, Product.product_type == "RETAIL")
         .options(selectinload(Product.images), selectinload(Product.shop))
     )
     products = session.exec(statement).all()
@@ -201,6 +201,7 @@ def get_active_catalog_products(
         Product.is_deleted == False,
         Product.is_active == True,
         Product.stock_quantity > 0,
+        Product.product_type == "RETAIL",
     ]
 
     selected: Dict[int, Any] = {}

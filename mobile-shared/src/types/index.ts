@@ -10,6 +10,7 @@ export interface Shop {
   description?: string;
   logo_url?: string;
   cover_image_url?: string;
+  seller_type?: 'RETAIL' | 'WHOLESALE';
   is_approved: boolean;
   is_active: boolean;
   owner_clerk_id?: string;
@@ -22,6 +23,7 @@ export interface Product {
   name: string;
   price: number;
   stock_quantity: number;
+  product_type?: 'RETAIL' | 'WHOLESALE';
   short_description?: string;
   long_description?: string;
   image_url?: string;
@@ -70,6 +72,8 @@ export interface Order {
   shop_id: number;
   shop_name?: string;
   customer_id?: number;
+  buyer_shop_id?: number;
+  order_type?: 'RETAIL' | 'WHOLESALE';
   guest_name?: string;
   guest_email?: string;
   guest_phone?: string;
@@ -92,6 +96,7 @@ export interface CustomerUser {
 export interface SellerUser {
   id: string;
   role: string;
+  seller_type?: 'RETAIL' | 'WHOLESALE';
   shop_id?: number;
   email?: string;
   full_name?: string;

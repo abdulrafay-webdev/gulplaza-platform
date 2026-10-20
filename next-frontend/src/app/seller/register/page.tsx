@@ -9,6 +9,7 @@ import { useSeller } from "@/context/SellerContext";
 export default function SellerRegisterPage() {
     const router = useRouter();
     const { registerSeller } = useSeller();
+    const [sellerType, setSellerType] = useState<"RETAIL" | "WHOLESALE">("RETAIL");
     const [shopName, setShopName] = useState("");
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
@@ -35,6 +36,7 @@ export default function SellerRegisterPage() {
             setLoading(true);
             setError(null);
             const res = await registerSeller({
+                seller_type: sellerType,
                 shop_name: shopName.trim(),
                 full_name: fullName.trim(),
                 email: email.trim(),
@@ -103,6 +105,57 @@ export default function SellerRegisterPage() {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Seller Type Selection */}
+                    <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-2">
+                            Select Vendor Account Type *
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setSellerType("RETAIL")}
+                                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                                    sellerType === "RETAIL"
+                                        ? "border-[#A163F7] bg-purple-50/60 ring-2 ring-[#A163F7]/30 shadow-xs"
+                                        : "border-slate-200 bg-white hover:bg-slate-50"
+                                }`}
+                            >
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-xs font-black text-slate-900">Retail Seller</span>
+                                    {sellerType === "RETAIL" && (
+                                        <span className="w-2.5 h-2.5 rounded-full bg-[#A163F7]" />
+                                    )}
+                                </div>
+                                <p className="text-[11px] text-slate-500 leading-snug">
+                                    Sell products directly to customers through your shop.
+                                </p>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setSellerType("WHOLESALE")}
+                                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                                    sellerType === "WHOLESALE"
+                                        ? "border-[#6F88FC] bg-blue-50/60 ring-2 ring-[#6F88FC]/30 shadow-xs"
+                                        : "border-slate-200 bg-white hover:bg-slate-50"
+                                }`}
+                            >
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-xs font-black text-slate-900">Wholesale Seller</span>
+                                    {sellerType === "WHOLESALE" && (
+                                        <span className="w-2.5 h-2.5 rounded-full bg-[#6F88FC]" />
+                                    )}
+                                </div>
+                                <p className="text-[11px] text-slate-500 leading-snug">
+                                    Sell products in bulk to retail sellers through the Wholesale Marketplace.
+                                </p>
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-1.5 italic">
+                            * Note: An account can only have one vendor type and cannot be switched later.
+                        </p>
+                    </div>
+
                     <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1">
                             Shop / Store Name *

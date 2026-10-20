@@ -155,6 +155,14 @@ export default function AdminShopsScreen({ route }: any) {
                     )}
                   </View>
 
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 3 }}>
+                    <View style={[styles.typeBadge, item.seller_type === 'WHOLESALE' ? styles.typeBadgeWholesale : styles.typeBadgeRetail]}>
+                      <Text style={[styles.typeBadgeText, item.seller_type === 'WHOLESALE' ? styles.typeTextWholesale : styles.typeTextRetail]}>
+                        {item.seller_type === 'WHOLESALE' ? 'Wholesale Seller (B2B)' : 'Retail Seller (B2C)'}
+                      </Text>
+                    </View>
+                  </View>
+
                   <Text style={styles.shopDesc} numberOfLines={2}>
                     {item.description || 'No description provided.'}
                   </Text>
@@ -316,6 +324,30 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     color: '#D97706',
+  },
+  typeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  typeBadgeWholesale: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+  },
+  typeBadgeRetail: {
+    backgroundColor: '#FAF5FF',
+    borderColor: '#E9D5FF',
+  },
+  typeBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  typeTextWholesale: {
+    color: '#1D4ED8',
+  },
+  typeTextRetail: {
+    color: '#7C3AED',
   },
   shopDesc: {
     fontSize: 11,

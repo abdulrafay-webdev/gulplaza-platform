@@ -31,6 +31,7 @@ class SellerRegisterRequest(BaseModel):
     shop_description: Optional[str] = None
     logo_url: Optional[str] = None
     cover_image_url: Optional[str] = None
+    seller_type: Optional[str] = "RETAIL" # "RETAIL" or "WHOLESALE"
 
 class SellerLoginRequest(BaseModel):
     login_id: str  # Email or Phone
@@ -47,13 +48,14 @@ class AuthTokenResponse(BaseModel):
     shop: Optional[dict] = None
     message: Optional[str] = None
 
-def create_user_access_token(user_id: str, role: str, email: str, shop_id: Optional[int] = None) -> str:
+def create_user_access_token(user_id: str, role: str, email: str, shop_id: Optional[int] = None, seller_type: Optional[str] = "RETAIL") -> str:
     expire = datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
     payload = {
         "sub": str(user_id),
         "role": role,
         "email": email,
         "shop_id": shop_id,
+        "seller_type": seller_type,
         "exp": expire
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
@@ -63,6 +65,12 @@ def register_seller(data: SellerRegisterRequest, session: Session = Depends(get_
     """Register a new seller and shop. Shop starts in is_approved=False (Pending Approval)."""
     email_clean = data.email.strip().lower()
     
+    # Clean and validate seller_type
+    raw_st = (data.seller_type or "RETAIL").strip().upper()
+    if raw_st not in ["RETAIL", "WHOLESALE"]:
+        raise HTTPException(status_code=400, detail="Invalid seller_type. Must be either 'RETAIL' or 'WHOLESALE'.")
+    seller_type_clean = raw_st
+
     # 1. Check if user email already exists
     existing_user = session.exec(select(User).where(User.email == email_clean)).first()
     if existing_user:
@@ -76,13 +84,14 @@ def register_seller(data: SellerRegisterRequest, session: Session = Depends(get_
     try:
         user_id = f"seller_{uuid.uuid4().hex[:12]}"
         
-        # 3. Create Shop with is_approved=False
+        # 3. Create Shop with is_approved=False and seller_type
         new_shop = Shop(
             name=data.shop_name.strip(),
             description=data.shop_description,
             logo_url=data.logo_url,
             cover_image_url=data.cover_image_url,
             owner_clerk_id=user_id,
+            seller_type=seller_type_clean,
             is_active=True,
             is_approved=False  # Requires Super Admin approval
         )
@@ -90,7 +99,7 @@ def register_seller(data: SellerRegisterRequest, session: Session = Depends(get_
         session.commit()
         session.refresh(new_shop)
 
-        # 4. Create User linked to shop
+        # 4. Create User linked to shop with seller_type
         new_user = User(
             id=user_id,
             email=email_clean,
@@ -98,6 +107,7 @@ def register_seller(data: SellerRegisterRequest, session: Session = Depends(get_
             full_name=data.full_name,
             hashed_password=get_password_hash(data.password),
             role="SELLER",
+            seller_type=seller_type_clean,
             shop_id=new_shop.id,
             is_active=True
         )
@@ -109,7 +119,8 @@ def register_seller(data: SellerRegisterRequest, session: Session = Depends(get_
             user_id=new_user.id,
             role="SELLER",
             email=new_user.email,
-            shop_id=new_shop.id
+            shop_id=new_shop.id,
+            seller_type=seller_type_clean
         )
 
         return {
@@ -121,6 +132,7 @@ def register_seller(data: SellerRegisterRequest, session: Session = Depends(get_
                 "full_name": new_user.full_name,
                 "phone": new_user.phone,
                 "role": new_user.role,
+                "seller_type": seller_type_clean,
                 "shop_id": new_shop.id
             },
             "shop": {
@@ -129,6 +141,7 @@ def register_seller(data: SellerRegisterRequest, session: Session = Depends(get_
                 "description": new_shop.description,
                 "logo_url": new_shop.logo_url,
                 "cover_image_url": new_shop.cover_image_url,
+                "seller_type": seller_type_clean,
                 "is_approved": new_shop.is_approved,
                 "is_active": new_shop.is_active
             },
@@ -165,11 +178,14 @@ def login_seller(data: SellerLoginRequest, session: Session = Depends(get_sessio
     if not shop:
         shop = session.exec(select(Shop).where(Shop.owner_clerk_id == user.id)).first()
 
+    seller_type = getattr(shop, "seller_type", None) or getattr(user, "seller_type", None) or "RETAIL"
+
     token = create_user_access_token(
         user_id=user.id,
         role=user.role,
         email=user.email,
-        shop_id=shop.id if shop else None
+        shop_id=shop.id if shop else None,
+        seller_type=seller_type
     )
 
     return {
@@ -181,6 +197,7 @@ def login_seller(data: SellerLoginRequest, session: Session = Depends(get_sessio
             "full_name": user.full_name,
             "phone": user.phone,
             "role": user.role,
+            "seller_type": seller_type,
             "shop_id": shop.id if shop else None
         },
         "shop": {
@@ -189,6 +206,7 @@ def login_seller(data: SellerLoginRequest, session: Session = Depends(get_sessio
             "description": shop.description,
             "logo_url": shop.logo_url,
             "cover_image_url": shop.cover_image_url,
+            "seller_type": seller_type,
             "is_approved": shop.is_approved,
             "is_active": shop.is_active
         } if shop else None
@@ -275,6 +293,7 @@ def get_authenticated_profile(user = Depends(get_current_user), session: Session
             "description": shop.description,
             "logo_url": shop.logo_url,
             "cover_image_url": shop.cover_image_url,
+            "seller_type": getattr(shop, "seller_type", "RETAIL"),
             "is_approved": shop.is_approved,
             "is_active": shop.is_active
         } if shop else None

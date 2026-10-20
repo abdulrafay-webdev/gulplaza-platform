@@ -126,11 +126,18 @@ def get_platform_analytics(user = Depends(get_super_admin), session: Session = D
     }
 
 @router.get("/shops", response_model=List[Shop])
-def list_all_shops(approved: bool = None, user = Depends(get_super_admin), session: Session = Depends(get_session)):
-    """List all shops (Admin). Optional filter by approval status."""
+def list_all_shops(
+    approved: bool = None, 
+    seller_type: Optional[str] = None,
+    user = Depends(get_super_admin), 
+    session: Session = Depends(get_session)
+):
+    """List all shops (Admin). Optional filter by approval status and seller_type."""
     query = select(Shop)
     if approved is not None:
         query = query.where(Shop.is_approved == approved)
+    if seller_type:
+        query = query.where(Shop.seller_type == seller_type.upper())
     return session.exec(query).all()
 
 @router.post("/shops/{shop_id}/approve", response_model=Shop)
@@ -246,6 +253,7 @@ def list_all_platform_users(user = Depends(get_super_admin), session: Session = 
             "email": u.email or "N/A",
             "phone": u.phone or "N/A",
             "role": u.role,
+            "seller_type": getattr(u, "seller_type", None) or (getattr(shop, "seller_type", None) if shop else "RETAIL"),
             "is_active": u.is_active,
             "shop_id": shop.id if shop else u.shop_id,
             "shop_name": shop.name if shop else "No Store Attached",
@@ -269,6 +277,7 @@ def list_all_platform_users(user = Depends(get_super_admin), session: Session = 
                 "email": f"shop{sh.id}@aiplaza.pk",
                 "phone": getattr(sh, "phone", "N/A"),
                 "role": "SELLER",
+                "seller_type": getattr(sh, "seller_type", "RETAIL"),
                 "is_active": sh.is_active,
                 "shop_id": sh.id,
                 "shop_name": sh.name,

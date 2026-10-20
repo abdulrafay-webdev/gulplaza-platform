@@ -16,6 +16,7 @@ interface SellerAuthContextType {
     password: string;
     shop_name: string;
     shop_description?: string;
+    seller_type?: 'RETAIL' | 'WHOLESALE';
   }) => Promise<{ success: boolean; error?: string }>;
   refreshShop: () => Promise<void>;
   logout: () => Promise<void>;

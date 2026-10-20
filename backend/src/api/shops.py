@@ -177,4 +177,7 @@ def get_shop(shop_id: int, response: Response, session: Session = Depends(get_se
     shop = shop_service.get_shop_by_id(session, shop_id)
     if not shop:
         raise HTTPException(status_code=404, detail="Shop not found")
+    if getattr(shop, "seller_type", "RETAIL") == "WHOLESALE":
+        # Wholesale stores are private B2B entities, not browsable on public retail marketplace
+        raise HTTPException(status_code=404, detail="Shop not found")
     return shop

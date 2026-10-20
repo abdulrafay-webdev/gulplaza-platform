@@ -17,12 +17,16 @@ class OrderStatusUpdate(BaseModel):
     status: str
 
 @router.get("/orders", response_model=List[OrderRead])
-def list_orders(user = Depends(get_current_user), session: Session = Depends(get_session)):
+def list_orders(
+    order_type: Optional[str] = None,
+    user = Depends(get_current_user), 
+    session: Session = Depends(get_session)
+):
     """
     List orders contextually based on user role:
     - SUPER_ADMIN: Returns all orders on the marketplace.
-    - SELLER / SHOP_OWNER: Returns orders for their store.
-    - CUSTOMER: Returns orders placed by this customer.
+    - SELLER / SHOP_OWNER: Returns orders for their store (or wholesale purchases if specified).
+    - CUSTOMER: Returns orders placed by this customer (retail only).
     """
     role = str(user.get("role", "")).upper()
     user_id = str(user.get("id"))
@@ -31,7 +35,10 @@ def list_orders(user = Depends(get_current_user), session: Session = Depends(get
     orders_list = []
     # 1. Super Admin sees all platform orders
     if role == "SUPER_ADMIN" or user.get("email") == "abdullrrafay@gmail.com":
-        orders_list = order_service.get_all_orders(session)
+        query = select(Order)
+        if order_type:
+            query = query.where(Order.order_type == order_type.upper())
+        orders_list = session.exec(query.order_by(Order.created_at.desc())).all()
 
     # 2. Seller / Shop Owner sees their store orders
     elif role in ["SELLER", "SHOP_OWNER"] or shop_id:
@@ -42,11 +49,28 @@ def list_orders(user = Depends(get_current_user), session: Session = Depends(get
             shop = shop_service.get_shop_by_owner(session, user_id)
         if not shop:
             return []
-        orders_list = order_service.get_orders(session, shop_id=shop.id)
+        
+        # If retail seller explicitly asks for their wholesale sourcing purchases:
+        if order_type and order_type.upper() == "WHOLESALE" and getattr(shop, "seller_type", "RETAIL") == "RETAIL":
+            query = select(Order).where(
+                Order.order_type == "WHOLESALE",
+                (Order.buyer_shop_id == shop.id) | (Order.customer_clerk_id == user_id)
+            ).order_by(Order.created_at.desc())
+            orders_list = session.exec(query).all()
+        else:
+            # Orders received by this store
+            query = select(Order).where(Order.shop_id == shop.id)
+            if order_type:
+                query = query.where(Order.order_type == order_type.upper())
+            orders_list = session.exec(query.order_by(Order.created_at.desc())).all()
 
-    # 3. Customer sees their placed orders
+    # 3. Customer sees their placed retail orders only (wholesale strictly excluded)
     else:
-        orders_list = order_service.get_orders(session, customer_id=user_id)
+        query = select(Order).where(
+            Order.order_type == "RETAIL",
+            (Order.customer_id == user_id) | (Order.customer_clerk_id == user_id)
+        ).order_by(Order.created_at.desc())
+        orders_list = session.exec(query).all()
 
     if not orders_list:
         return []
@@ -93,19 +117,28 @@ def get_order(
         if role == "SUPER_ADMIN" or email == "abdullrrafay@gmail.com":
             return order
 
-        # 2. Seller owning the shop
+        # 2. Seller owning the shop (seller or retail buyer)
         if role in ["SELLER", "SHOP_OWNER"] or shop_id:
+            # Wholesale vendor who received the order
             if shop_id and order.shop_id == shop_id:
                 return order
             shop = shop_service.get_shop_by_owner(session, user_id)
             if shop and order.shop_id == shop.id:
                 return order
 
-        # 3. Customer owning the order
-        if order.customer_id and str(order.customer_id) == user_id:
-            return order
-        if order.customer_clerk_id and str(order.customer_clerk_id) == user_id:
-            return order
+            # Retail seller who placed the wholesale order
+            if order.order_type == "WHOLESALE":
+                if shop_id and order.buyer_shop_id == shop_id:
+                    return order
+                if order.customer_clerk_id and order.customer_clerk_id == user_id:
+                    return order
+
+        # 3. Customer owning the retail order (wholesale orders are strictly blocked for normal customers)
+        if order.order_type != "WHOLESALE":
+            if order.customer_id and str(order.customer_id) == user_id:
+                return order
+            if order.customer_clerk_id and str(order.customer_clerk_id) == user_id:
+                return order
     except Exception:
         pass
 

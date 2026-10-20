@@ -42,11 +42,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from src.api import shops, products, checkout, orders, admin, categories, customers, search, reviews, ai_chat, auth
+from src.api import shops, products, checkout, orders, admin, categories, customers, search, reviews, ai_chat, auth, wholesale
 
 api_router = APIRouter()
 
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+api_router.include_router(wholesale.router, prefix="/wholesale", tags=["wholesale"])
 api_router.include_router(ai_chat.router, prefix="/ai", tags=["ai"])
 api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(shops.router, prefix="/shops", tags=["shops"])

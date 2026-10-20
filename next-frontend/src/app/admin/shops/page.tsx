@@ -24,7 +24,7 @@ export default function AdminShopsManagement() {
     const [shops, setShops] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterTab, setFilterTab] = useState<'all' | 'pending' | 'approved' | 'inactive'>('all');
+    const [filterTab, setFilterTab] = useState<'all' | 'pending' | 'approved' | 'wholesale' | 'retail' | 'inactive'>('all');
     const [actionMessage, setActionMessage] = useState<string | null>(null);
 
     const loadShops = async () => {
@@ -80,6 +80,8 @@ export default function AdminShopsManagement() {
 
     const pendingCount = shops.filter(s => !s.is_approved).length;
     const approvedCount = shops.filter(s => s.is_approved && s.is_active).length;
+    const wholesaleCount = shops.filter(s => s.seller_type === 'WHOLESALE').length;
+    const retailCount = shops.filter(s => (s.seller_type || 'RETAIL') === 'RETAIL').length;
 
     const filteredShops = shops.filter(s => {
         const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -89,6 +91,8 @@ export default function AdminShopsManagement() {
         if (!matchesSearch) return false;
         if (filterTab === 'pending') return !s.is_approved;
         if (filterTab === 'approved') return s.is_approved && s.is_active;
+        if (filterTab === 'wholesale') return s.seller_type === 'WHOLESALE';
+        if (filterTab === 'retail') return (s.seller_type || 'RETAIL') === 'RETAIL';
         if (filterTab === 'inactive') return !s.is_active;
         return true;
     });
@@ -166,6 +170,26 @@ export default function AdminShopsManagement() {
                         Active Live ({approvedCount})
                     </button>
                     <button
+                        onClick={() => setFilterTab('retail')}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                            filterTab === 'retail'
+                            ? 'bg-[#A163F7] text-white shadow-xs'
+                            : 'text-slate-600 hover:bg-slate-100'
+                        }`}
+                    >
+                        Retail Stores ({retailCount})
+                    </button>
+                    <button
+                        onClick={() => setFilterTab('wholesale')}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                            filterTab === 'wholesale'
+                            ? 'bg-[#3B82F6] text-white shadow-xs'
+                            : 'text-slate-600 hover:bg-slate-100'
+                        }`}
+                    >
+                        Wholesale Vendors ({wholesaleCount})
+                    </button>
+                    <button
                         onClick={() => setFilterTab('inactive')}
                         className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                             filterTab === 'inactive'
@@ -197,6 +221,7 @@ export default function AdminShopsManagement() {
                         <thead>
                             <tr className="bg-slate-50 text-[11px] font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">
                                 <th className="p-4">Store Info</th>
+                                <th className="p-4">Seller Type</th>
                                 <th className="p-4">Owner ID</th>
                                 <th className="p-4">Approval Status</th>
                                 <th className="p-4">Visibility</th>
@@ -225,6 +250,17 @@ export default function AdminShopsManagement() {
                                                 <p className="text-[11px] text-slate-500 line-clamp-1 max-w-xs">{shop.description || "No description"}</p>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td className="p-4">
+                                        {shop.seller_type === 'WHOLESALE' ? (
+                                            <span className="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 border border-blue-200">
+                                                Wholesale (B2B)
+                                            </span>
+                                        ) : (
+                                            <span className="bg-purple-100 text-[#7C3AED] px-2.5 py-1 rounded-full text-[10px] font-black uppercase inline-flex items-center gap-1 border border-purple-200">
+                                                Retail (B2C)
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="p-4">
                                         <span className="font-mono text-[11px] text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">

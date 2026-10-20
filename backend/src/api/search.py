@@ -19,16 +19,22 @@ def unified_search(
     Returns aggregated results and records customer demand.
     """
     shops = shop_service.search_shops(session, q, limit=5)
-    products = product_service.search_products(session, q, limit=10)
+    raw_products = product_service.search_products(session, q, limit=10, product_type="RETAIL")
+    
+    # Format products with ProductRead
+    formatted_products = [
+        product_service.format_product_read(p, p.shop.name if getattr(p, "shop", None) else None)
+        for p in raw_products
+    ]
     
     if len(q.strip()) >= 3:
         record_customer_demand(
             session=session,
             query_text=q.strip(),
-            had_direct_match=bool(products or shops)
+            had_direct_match=bool(raw_products or shops)
         )
 
     return {
         "shops": shops,
-        "products": products
+        "products": formatted_products
     }

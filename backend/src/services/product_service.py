@@ -97,10 +97,11 @@ def get_products_by_shop(session: Session, shop_id: int) -> List[Product]:
     statement = select(Product).where(Product.shop_id == shop_id, Product.is_deleted == False)
     return session.exec(statement).all()
 
-def search_products(session: Session, query: str, limit: int = 10) -> List[Product]:
-    """Search products by name or description."""
+def search_products(session: Session, query: str, limit: int = 10, product_type: str = "RETAIL") -> List[Product]:
+    """Search products by name or description. Defaults strictly to RETAIL."""
     statement = select(Product).where(
         Product.is_deleted == False,
+        Product.product_type == product_type,
         (Product.name.ilike(f"%{query}%")) | (Product.short_description.ilike(f"%{query}%"))
     ).limit(limit)
     return session.exec(statement).all()

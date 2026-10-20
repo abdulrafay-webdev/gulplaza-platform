@@ -31,17 +31,22 @@ def get_shop_by_owner(session: Session, owner_id: str) -> Optional[Shop]:
 def get_shop_by_id(session: Session, shop_id: int) -> Optional[Shop]:
     return session.get(Shop, shop_id)
 
-def get_all_shops(session: Session, offset: int = 0, limit: int = 100) -> List[Shop]:
-    # Only return shops that are approved by admin AND currently active
-    return session.exec(select(Shop).where(Shop.is_approved == True, Shop.is_active == True).offset(offset).limit(limit)).all()
+def get_all_shops(session: Session, offset: int = 0, limit: int = 100, seller_type: Optional[str] = "RETAIL") -> List[Shop]:
+    # Only return shops that are approved by admin AND currently active. Defaults to RETAIL.
+    query = select(Shop).where(Shop.is_approved == True, Shop.is_active == True)
+    if seller_type:
+        query = query.where(Shop.seller_type == seller_type)
+    return session.exec(query.offset(offset).limit(limit)).all()
 
-def search_shops(session: Session, query: str, limit: int = 5) -> List[Shop]:
-    statement = select(Shop).where(
+def search_shops(session: Session, query: str, limit: int = 5, seller_type: Optional[str] = "RETAIL") -> List[Shop]:
+    query_stmt = select(Shop).where(
         Shop.is_approved == True, 
         Shop.is_active == True,
         (Shop.name.ilike(f"%{query}%")) | (Shop.description.ilike(f"%{query}%"))
-    ).limit(limit)
-    return session.exec(statement).all()
+    )
+    if seller_type:
+        query_stmt = query_stmt.where(Shop.seller_type == seller_type)
+    return session.exec(query_stmt.limit(limit)).all()
 
 def update_shop(session: Session, shop: Shop, data: dict) -> Shop:
     for key, value in data.items():

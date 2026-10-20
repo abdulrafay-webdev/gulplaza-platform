@@ -9,6 +9,7 @@ export type SellerUser = {
     full_name?: string;
     phone?: string;
     role: string;
+    seller_type?: 'RETAIL' | 'WHOLESALE';
     shop_id?: number;
 };
 
@@ -18,6 +19,7 @@ export type Shop = {
     description?: string;
     logo_url?: string;
     cover_image_url?: string;
+    seller_type?: 'RETAIL' | 'WHOLESALE';
     is_approved: boolean;
     is_active: boolean;
 };
@@ -28,6 +30,8 @@ type SellerContextType = {
     token: string | null;
     isLoaded: boolean;
     isAdmin: boolean;
+    isWholesaleSeller: boolean;
+    isRetailSeller: boolean;
     loginSeller: (loginId: string, pass: string) => Promise<{ success: boolean; error?: string; is_approved?: boolean }>;
     registerSeller: (data: any) => Promise<{ success: boolean; error?: string }>;
     loginAdmin: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
@@ -162,6 +166,9 @@ export function SellerProvider({ children }: { children: ReactNode }) {
     };
 
     const isAdmin = seller?.role === 'SUPER_ADMIN' || seller?.email === 'abdullrrafay@gmail.com';
+    const currentSellerType = (shop?.seller_type || seller?.seller_type || 'RETAIL').toUpperCase();
+    const isWholesaleSeller = currentSellerType === 'WHOLESALE';
+    const isRetailSeller = currentSellerType === 'RETAIL';
 
     return (
         <SellerContext.Provider
@@ -171,6 +178,8 @@ export function SellerProvider({ children }: { children: ReactNode }) {
                 token,
                 isLoaded,
                 isAdmin,
+                isWholesaleSeller,
+                isRetailSeller,
                 loginSeller,
                 registerSeller,
                 loginAdmin,

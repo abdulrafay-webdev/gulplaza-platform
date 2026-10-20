@@ -21,10 +21,13 @@ import {
 } from 'lucide-react';
 
 import { useCustomer } from '@/context/CustomerContext';
+import { useSeller } from '@/context/SellerContext';
+import { setAuthToken } from '@/services/api';
 
 export default function Checkout() {
     const { items, clearCart } = useCart();
     const { customer, isLoaded: customerLoaded } = useCustomer();
+    const { seller, shop, token: sellerToken, isLoaded: sellerLoaded } = useSeller();
     const [loading, setLoading] = useState(false);
     const [orderPlaced, setOrderPlaced] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -38,7 +41,7 @@ export default function Checkout() {
         guest_address: ''
     });
 
-    // Pre-fill form if customer is logged in
+    // Pre-fill form if customer or retail seller is logged in
     useEffect(() => {
         if (customerLoaded && customer) {
             setFormData(prev => ({
@@ -47,8 +50,15 @@ export default function Checkout() {
                 guest_email: customer.email || '',
                 guest_phone: customer.phone || '',
             }));
+        } else if (sellerLoaded && seller) {
+            setFormData(prev => ({
+                ...prev,
+                guest_name: shop?.name || seller.full_name || '',
+                guest_email: seller.email || '',
+                guest_phone: seller.phone || '',
+            }));
         }
-    }, [customer, customerLoaded]);
+    }, [customer, customerLoaded, seller, shop, sellerLoaded]);
 
     const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -74,6 +84,9 @@ export default function Checkout() {
         setErrorMessage(null);
 
         try {
+            if (sellerToken) {
+                setAuthToken(sellerToken);
+            }
             await cart.checkout({
                 items: items.map(i => ({
                     product_id: i.product_id,

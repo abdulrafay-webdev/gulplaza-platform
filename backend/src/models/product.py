@@ -39,6 +39,7 @@ class ProductBase(SQLModel):
     image_url: Optional[str] = None # Thumbnail
     is_active: bool = True
     is_deleted: bool = False # New field for soft delete
+    product_type: str = Field(default="RETAIL") # "RETAIL" or "WHOLESALE"
     
     # Descriptions (permissive to prevent 422 on null/empty)
     short_description: Optional[str] = Field(default="No short description")

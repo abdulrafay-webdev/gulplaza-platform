@@ -158,9 +158,11 @@ export default function AdminUsersPage() {
                     </div>
 
                     <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
-                      isSeller ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800'
+                      isSeller 
+                        ? (user.seller_type === 'WHOLESALE' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800')
+                        : 'bg-emerald-100 text-emerald-800'
                     }`}>
-                      {isSeller ? 'Seller' : 'Customer'}
+                      {isSeller ? (user.seller_type === 'WHOLESALE' ? 'Wholesale (B2B)' : 'Retail (B2C)') : 'Customer'}
                     </span>
                   </div>
 
@@ -269,6 +271,14 @@ export default function AdminUsersPage() {
                     <span className="text-slate-500 font-medium block">Account Status:</span>
                     <span className="font-bold text-emerald-600">Active</span>
                   </div>
+                  {selectedUser.isSeller && (
+                    <div>
+                      <span className="text-slate-500 font-medium block">Vendor Account Type:</span>
+                      <span className={`font-black ${selectedUser.seller_type === 'WHOLESALE' ? 'text-blue-600' : 'text-purple-600'}`}>
+                        {selectedUser.seller_type === 'WHOLESALE' ? 'Wholesale Seller (B2B)' : 'Retail Seller (B2C)'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -7,6 +7,7 @@ class UserBase(SQLModel):
     phone: Optional[str] = Field(default=None, index=True)
     full_name: Optional[str] = None
     role: str = Field(default="SELLER") # "SUPER_ADMIN", "SELLER"
+    seller_type: str = Field(default="RETAIL") # "RETAIL", "WHOLESALE"
     is_active: bool = Field(default=True)
     shop_id: Optional[int] = Field(default=None)
 
