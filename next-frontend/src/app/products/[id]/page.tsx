@@ -98,18 +98,13 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 setActiveImage(res.data.image_url || (res.data.images?.[0]?.url) || '');
                 await loadReviews();
 
-                // Load Related Products
+                // Load Related Products with strict Retail vs Wholesale isolation
                 try {
-                    const allRes = await products.listAll({ limit: 12 });
-                    const related = (allRes.data || []).filter(
-                        (p: any) => p.id !== Number(id) && (
-                            (res.data.main_category_id && p.main_category_id === res.data.main_category_id) ||
-                            p.shop_id === res.data.shop_id
-                        )
-                    );
-                    setRelatedProducts(related.length > 0 ? related.slice(0, 8) : (allRes.data || []).filter((p: any) => p.id !== Number(id)).slice(0, 6));
+                    const relRes = await products.getRelated(id);
+                    setRelatedProducts(relRes.data || []);
                 } catch (relErr) {
                     console.warn("Failed to load related products", relErr);
+                    setRelatedProducts([]);
                 }
             } catch (err) {
                 console.error("Failed to load product", err);
@@ -666,18 +661,23 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-2">
                             <div>
                                 <span className="text-[11px] font-black uppercase tracking-wider text-[#A163F7]">
-                                    Discover More
+                                    {product?.product_type === 'WHOLESALE' ? 'Wholesale Sourcing' : 'Discover More'}
                                 </span>
                                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                                    Related Products
+                                    {product?.product_type === 'WHOLESALE' ? 'Related Wholesale Products' : 'Related Products'}
                                 </h2>
                             </div>
-                            <p className="text-xs text-slate-500">Other shoppers frequently view these matching items</p>
+                            <p className="text-xs text-slate-500">
+                                {product?.product_type === 'WHOLESALE'
+                                    ? 'Other bulk inventory items from wholesale vendors'
+                                    : 'Other shoppers frequently view these matching items'}
+                            </p>
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
                             {relatedProducts.map((rel: any) => {
                                 const thumb = rel.image_url || (rel.images?.[0]?.url) || '/images/placeholder.png';
+                                const isWholesale = rel.product_type === 'WHOLESALE';
                                 return (
                                     <Link
                                         key={rel.id}
@@ -690,6 +690,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                                 alt={rel.name}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                             />
+                                            {isWholesale && (
+                                                <div className="absolute top-2 left-2 bg-blue-600 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-md shadow-xs">
+                                                    MOQ: {rel.moq || 1}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex-1 flex flex-col justify-between">
                                             <div>
@@ -703,6 +708,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                                             <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
                                                 <span className="font-black text-sm text-slate-900">
                                                     Rs. {Number(rel.price).toLocaleString()}
+                                                    {isWholesale && <span className="text-[10px] text-slate-400 font-normal"> / unit</span>}
                                                 </span>
                                                 <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
                                                     View →

@@ -320,8 +320,45 @@ def test_full_wholesale_flow():
     assert res_mixed_cart.status_code == 400, "SECURITY BREACH: Mixed retail and wholesale cart allowed!"
     print("  -> Mixed retail + wholesale cart properly rejected: Verified")
 
+    # ------------------------------------------------------------------
+    # TEST J: RELATED PRODUCTS ISOLATION
+    # ------------------------------------------------------------------
+    print("\n[TEST J] Related Products Catalog Isolation...")
+    # 1. Related products for wholesale item
+    res_rel_ws = client.get(f"/api/v1/products/{wholesale_product_id}/related", headers=retail_headers)
+    assert res_rel_ws.status_code == 200
+    rel_ws_items = res_rel_ws.json()
+    assert all(p["product_type"] == "WHOLESALE" for p in rel_ws_items), "SECURITY BREACH: Retail product found in wholesale related products!"
+    assert retail_product_id not in [p["id"] for p in rel_ws_items], "Retail product leaked into wholesale related products!"
+    print("  -> Wholesale product related items strictly isolated to WHOLESALE: Verified")
+
+    # 2. Related products for retail item
+    res_rel_ret = client.get(f"/api/v1/products/{retail_product_id}/related")
+    assert res_rel_ret.status_code == 200
+    rel_ret_items = res_rel_ret.json()
+    assert all(p["product_type"] == "RETAIL" for p in rel_ret_items), "SECURITY BREACH: Wholesale product found in retail related products!"
+    assert wholesale_product_id not in [p["id"] for p in rel_ret_items], "Wholesale product leaked into retail related products!"
+    print("  -> Retail product related items strictly isolated to RETAIL: Verified")
+
+    # ------------------------------------------------------------------
+    # CLEANUP TEST ARTIFACTS (Prevent DB Pollution)
+    # ------------------------------------------------------------------
+    print("\n[CLEANUP] Cleaning up test orders, products, and shops...")
+    from sqlalchemy import text
+    from src.db.session import engine
+    with engine.begin() as conn:
+        sids = f"({retail_shop_id}, {wholesale_shop_id})"
+        conn.execute(text(f'DELETE FROM orderitem WHERE order_id IN (SELECT id FROM "order" WHERE buyer_shop_id IN {sids} OR shop_id IN {sids});'))
+        conn.execute(text(f'DELETE FROM "order" WHERE buyer_shop_id IN {sids} OR shop_id IN {sids};'))
+        conn.execute(text(f'DELETE FROM productimage WHERE product_id IN ({wholesale_product_id}, {retail_product_id});'))
+        conn.execute(text(f'DELETE FROM productvariant WHERE product_id IN ({wholesale_product_id}, {retail_product_id});'))
+        conn.execute(text(f'DELETE FROM product WHERE id IN ({wholesale_product_id}, {retail_product_id});'))
+        conn.execute(text(f'DELETE FROM "user" WHERE shop_id IN {sids} OR id IN (\'{retail_user_id}\', \'{wholesale_user_id}\');'))
+        conn.execute(text(f'DELETE FROM shop WHERE id IN {sids};'))
+    print("  -> Test artifacts successfully cleaned from database!")
+
     print("\n==================================================")
-    print("ALL TESTS (TEST A THROUGH TEST I) PASSED 100%!")
+    print("ALL TESTS (TEST A THROUGH TEST J) PASSED 100%!")
     print("==================================================")
 
 if __name__ == "__main__":

@@ -34,6 +34,7 @@ export const products = {
     list: (shopId: string | number) => api.get(`/shops/${shopId}/products`),
     listAll: (params?: any) => api.get('/products', { params }),
     get: (id: string | number) => api.get(`/products/${id}`),
+    getRelated: (id: string | number, params?: any) => api.get(`/products/${id}/related`, { params }),
     update: (id: string | number, data: any) => api.put(`/products/${id}`, data),
     delete: (id: string | number) => api.delete(`/products/${id}`),
 };

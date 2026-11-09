@@ -122,6 +122,100 @@ def get_product(
             shop_name = shop.name
     return product_service.format_product_read(product, shop_name)
 
+@router.get("/products/{product_id}/related", response_model=List[ProductRead])
+def get_related_products(
+    product_id: int,
+    limit: int = 8,
+    user: Optional[dict] = Depends(get_current_user_optional),
+    session: Session = Depends(get_session)
+):
+    """Retrieve related products respecting strict Retail vs Wholesale catalog isolation."""
+    base_product = session.get(Product, product_id)
+    if not base_product or base_product.is_deleted:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    target_type = getattr(base_product, "product_type", "RETAIL")
+
+    if target_type == "WHOLESALE":
+        # Check authorization: Wholesale products are isolated to shop owners and approved retail sellers
+        is_authorized = False
+        if user:
+            role = str(user.get("role", "")).upper()
+            if role == "SUPER_ADMIN" or user.get("email") == "abdullrrafay@gmail.com":
+                is_authorized = True
+            elif user.get("shop_id") == base_product.shop_id:
+                is_authorized = True
+            else:
+                prod_shop = session.get(Shop, base_product.shop_id)
+                if prod_shop and prod_shop.owner_clerk_id == user.get("id"):
+                    is_authorized = True
+                elif user.get("seller_type") == "RETAIL" and user.get("shop_id"):
+                    buyer_shop = session.get(Shop, user["shop_id"])
+                    if buyer_shop and buyer_shop.is_approved:
+                        is_authorized = True
+
+        if not is_authorized:
+            return []
+
+        # Find only wholesale products
+        query = select(Product).where(
+            Product.id != product_id,
+            Product.is_deleted == False,
+            Product.product_type == "WHOLESALE"
+        ).options(
+            selectinload(Product.images),
+            selectinload(Product.variants)
+        )
+        
+        candidates = session.exec(query).all()
+        def relevance_sort_wholesale(p: Product):
+            score = 0
+            if p.shop_id == base_product.shop_id:
+                score += 2
+            if base_product.main_category_id and p.main_category_id == base_product.main_category_id:
+                score += 1
+            return -score
+
+        sorted_candidates = sorted(candidates, key=relevance_sort_wholesale)[:limit]
+
+        shop_ids = list({p.shop_id for p in sorted_candidates if p.shop_id})
+        shop_map = {}
+        if shop_ids:
+            shops = session.exec(select(Shop).where(Shop.id.in_(shop_ids))).all()
+            shop_map = {s.id: s.name for s in shops}
+
+        return [product_service.format_product_read(p, shop_map.get(p.shop_id, f"Wholesale Shop #{p.shop_id}")) for p in sorted_candidates]
+
+    else:
+        # RETAIL products only
+        query = select(Product).where(
+            Product.id != product_id,
+            Product.is_deleted == False,
+            Product.product_type == "RETAIL"
+        ).options(
+            selectinload(Product.images),
+            selectinload(Product.variants)
+        )
+
+        candidates = session.exec(query).all()
+        def relevance_sort_retail(p: Product):
+            score = 0
+            if p.shop_id == base_product.shop_id:
+                score += 2
+            if base_product.main_category_id and p.main_category_id == base_product.main_category_id:
+                score += 1
+            return -score
+
+        sorted_candidates = sorted(candidates, key=relevance_sort_retail)[:limit]
+
+        shop_ids = list({p.shop_id for p in sorted_candidates if p.shop_id})
+        shop_map = {}
+        if shop_ids:
+            shops = session.exec(select(Shop).where(Shop.id.in_(shop_ids))).all()
+            shop_map = {s.id: s.name for s in shops}
+
+        return [product_service.format_product_read(p, shop_map.get(p.shop_id, f"Shop #{p.shop_id}")) for p in sorted_candidates]
+
 import base64
 
 @router.post("/products/upload-image")
